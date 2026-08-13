@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultados – OrçaTech</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy:       #0F172A;
+            --royal:      #2563EB;
+            --royal-lt:   #3B82F6;
+            --sky:        #60A5FA;
+            --ice:        #EFF6FF;
+            --ice2:       #F8FAFC;
+            --amber:      #D97706;
+            --amber-lt:   #FEF3C7;
+            --green:      #059669;
+            --green-lt:   #D1FAE5;
+            --red:        #DC2626;
+            --red-lt:     #FEE2E2;
+            --purple:     #7C3AED;
+            --purple-lt:  #EDE9FE;
+            --bg:         #F1F5F9;
+            --surface:    #FFFFFF;
+            --surface2:   #F8FAFC;
+            --border:     #E2E8F0;
+            --border2:    #CBD5E1;
+            --text:       #0F172A;
+            --text2:      #334155;
+            --muted:      #64748B;
+            --muted2:     #94A3B8;
+            --radius:     12px;
+            --radius-lg:  16px;
+            --radius-xl:  22px;
+            --shadow-sm:  0 1px 3px rgba(15,23,42,.05), 0 1px 2px rgba(15,23,42,.03);
+            --shadow:     0 4px 20px -2px rgba(15,23,42,.08), 0 2px 6px -1px rgba(15,23,42,.04);
+            --shadow-lg:  0 20px 25px -5px rgba(15,23,42,.1), 0 8px 10px -6px rgba(15,23,42,.05);
+        }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior:smooth; }
+        body {
+            background:var(--bg); color:var(--text);
+            font-family:'Inter', sans-serif; min-height:100vh;
+            padding:40px 44px 64px; font-size:14px;
+            line-height:1.6; -webkit-font-smoothing:antialiased;
+            transition:background .25s, color .25s;
+        }
+
+        .wrap { max-width:1440px; margin:0 auto; }
+
+        @keyframes fadeDown {
+            from { opacity:0; transform:translateY(-14px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+        @keyframes fadeUp {
+            from { opacity:0; transform:translateY(18px); }
+            to   { opacity:1; transform:translateY(0); }
+        }
+
+        /* ── TOPBAR ── */
+        .topo {
+            display:flex; align-items:center; justify-content:space-between;
+            margin-bottom:32px; flex-wrap:wrap; gap:16px;
+            animation:fadeDown .45s cubic-bezier(.16,1,.3,1) both;
+            background: var(--surface);
+            padding: 20px 24px;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+        }
+        .topo-left h1 {
+            font-size:22px; font-weight:800; color:var(--navy);
+            letter-spacing:-.4px; line-height:1.3;
+        }
+        .topo-left h1 span { color:var(--royal); }
+        .badge-cache {
+            display:inline-flex; align-items:center; gap:6px;
+            background:var(--amber-lt); color:var(--amber);
+            border:1px solid rgba(217,119,6,.2);
+            padding:4px 12px; border-radius:20px;
+            font-size:11px; font-weight:700; margin-top:6px;
+        }
+
+        .acoes { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .btn {
+            padding:10px 18px; border:none; border-radius:var(--radius);
+            font-size:13px; font-weight:600; cursor:pointer;
+            transition:all .22s cubic-bezier(.16,1,.3,1); text-decoration:none;
+            display:inline-flex; align-items:center; gap:8px;
+            font-family:'Inter', sans-serif; letter-spacing:.2px;
+        }
+        .btn-voltar {
+            background:var(--surface2); color:var(--text2);
+            border:1px solid var(--border); box-shadow:var(--shadow-sm);
+        }
+        .btn-voltar:hover { color:var(--royal); border-color:var(--royal); transform:translateY(-1px); }
+        .btn-novo {
+            background:var(--green-lt); color:var(--green);
+            border:1px solid rgba(5,150,105,.2);
+        }
+        .btn-novo:hover { background:var(--green); color:white; transform:translateY(-1px); box-shadow: 0 4px 12px rgba(5,150,105,.25); }
+        .btn-pdf {
+            background:var(--royal); color:white; border:none;
+            box-shadow:0 4px 14px rgba(37,99,235,.25);
+        }
+        .btn-pdf:hover { background:var(--royal-lt); transform:translateY(-2px); box-shadow:0 8px 20px rgba(37,99,235,.35); }
+
+        /* ── BOTÃO TEMA ── */
+        .theme-btn{
+            width:40px;height:40px;border-radius:var(--radius);border:1px solid var(--border);
+            background:var(--surface2);color:var(--text);cursor:pointer;font-size:18px;
+            box-shadow:var(--shadow-sm);transition:.2s;flex-shrink:0;
+            display:flex; align-items:center; justify-content:center;
+        }
+        .theme-btn:hover{transform:translateY(-2px); border-color:var(--royal); color:var(--royal);}
+
+        /* ── STATS ── */
+        .stats {
+            display:grid; grid-template-columns:repeat(4,1fr);
+            gap:16px; margin-bottom:28px;
+        }
+        .stat-card {
+            background:var(--surface); border-radius:var(--radius-lg);
+            padding:22px 20px; border:1px solid var(--border);
+            box-shadow:var(--shadow-sm); text-align:left;
+            transition:transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, border-color .3s ease, background .25s;
+            position:relative; overflow:hidden;
+            animation:fadeUp .45s cubic-bezier(.16,1,.3,1) both;
+        }
+        .stat-card:nth-child(1){animation-delay:.04s;}
+        .stat-card:nth-child(2){animation-delay:.09s;}
+        .stat-card:nth-child(3){animation-delay:.14s;}
+        .stat-card:nth-child(4){animation-delay:.19s;}
+        .stat-card::before {
+            content:''; position:absolute; top:0; left:0; right:0; height:3px;
+            transform:scaleX(0); transform-origin:left; transition:transform .35s cubic-bezier(.4,0,.2,1);
+        }
+        .stat-card:nth-child(1)::before { background:var(--royal); }
+        .stat-card:nth-child(2)::before { background:var(--green); }
+        .stat-card:nth-child(3)::before { background:var(--purple); }
+        .stat-card:nth-child(4)::before { background:var(--amber); }
+        .stat-card:hover { transform:translateY(-3px); box-shadow:var(--shadow); border-color:var(--border2); }
+        .stat-card:hover::before { transform:scaleX(1); }
+        .stat-card .valor {
+            font-family:'JetBrains Mono', monospace;
+            font-size:22px; font-weight:700; color:var(--text); letter-spacing:-.5px;
+        }
+        .stat-card:nth-child(2) .valor { color:var(--green); }
+        .stat-card:nth-child(3) .valor { color:var(--purple); }
+        .stat-card .rotulo { font-size:12px; color:var(--muted); margin-top:4px; font-weight:600; display:flex; align-items:center; }
+
+        /* ── GRID DE PRODUTOS ── */
+        .grid {
+            display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr));
+            gap:22px;
+        }
+        .card { animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both; }
+        .grid .card:nth-child(1){animation-delay:.02s;}
+        .grid .card:nth-child(2){animation-delay:.06s;}
+        .grid .card:nth-child(3){animation-delay:.10s;}
+        .grid .card:nth-child(4){animation-delay:.14s;}
+        .grid .card:nth-child(5){animation-delay:.18s;}
+        .grid .card:nth-child(6){animation-delay:.22s;}
+        .grid .card:nth-child(n+7){animation-delay:.24s;}
+        .card {
+            background:var(--surface); border-radius:var(--radius-xl);
+            overflow:hidden; border:1px solid var(--border);
+            box-shadow:var(--shadow-sm);
+            transition:transform .35s cubic-bezier(.16,1,.3,1),
+                       box-shadow .35s cubic-bezier(.16,1,.3,1),
+                       border-color .35s ease, background .25s;
+            display:flex; flex-direction:column; position:relative;
+        }
+        .card::before {
+            content:''; position:absolute; top:0; left:0; right:0; height:3px;
+            opacity:0; transition:opacity .3s; z-index:2;
+        }
+        .card.tipo-barato-card::before { background:linear-gradient(90deg,var(--green),#34d399); opacity:1; }
+        .card.tipo-premium-card::before { background:linear-gradient(90deg,var(--purple),#a78bfa); opacity:1; }
+        .card:hover { transform:translateY(-6px); border-color:var(--border2); box-shadow:var(--shadow-lg); }
+        .card-img { width:100%; height:200px; object-fit:contain; background:#ffffff; padding:16px; transition:transform .4s cubic-bezier(.16,1,.3,1); }
+        .card:hover .card-img { transform:scale(1.04); }
+        .card-img-placeholder {
+            width:100%; height:200px; background:var(--ice2);
+            display:flex; align-items:center; justify-content:center;
+            font-size:44px; color:var(--muted2);
+        }
+
+        /* ── EXPANDABLE CARD (inspirado no motion-primitives) ── */
+        .card { cursor:pointer; }
+        .card.expanded {
+            z-index:5;
+            box-shadow:var(--shadow-lg); border-color:var(--border2);
+        }
+        .card.expanded:hover { transform:none; }
+        .pc { padding:12px 14px; display:flex; flex-direction:column; }
+
+        .pc-top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:9px; }
+        .pc-top .badge-tipo { margin-bottom:0; padding:3px 10px; font-size:10px; }
+        .preco-chip {
+            font-family:'JetBrains Mono', monospace; font-size:11.5px; font-weight:700;
+            color:var(--text2); padding:4px 11px; border:1px solid var(--border2);
+            border-radius:20px; background:var(--surface2); white-space:nowrap; flex-shrink:0;
+            transition:all .3s cubic-bezier(.16,1,.3,1);
+        }
+        .card.tipo-barato-card .preco-chip { color:var(--green); border-color:rgba(5,150,105,.3); }
+        .card.tipo-premium-card .preco-chip { color:var(--purple); border-color:rgba(124,58,237,.3); }
+        .card.expanded .preco-chip { font-size:12px; padding:4px 12px; }
+
+        .pc-main { display:flex; align-items:center; gap:10px; }
+        .card.expanded .pc-main { align-items:flex-start; }
+        .pc-img-wrap {
+            width:46px; height:46px; flex-shrink:0; border-radius:9px; overflow:hidden;
+            background:#ffffff; border:1px solid var(--border);
+            display:flex; align-items:center; justify-content:center;
+            transition:width .38s cubic-bezier(.34,1.32,.64,1), height .38s cubic-bezier(.34,1.32,.64,1);
+        }
+        .card.expanded .pc-img-wrap { width:68px; height:68px; }
+        .pc-img-wrap img { width:100%; height:100%; object-fit:contain; padding:5px; }
+        .pc-img-wrap .card-img-placeholder { width:100%; height:100%; font-size:16px; }
+
+        .pc-headinfo { flex:1; min-width:0; }
+        .pc-headinfo .nome {
+            font-size:12.5px;
+            margin-bottom:3px; flex:none;
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+            transition:font-size .3s ease, white-space 0s .3s;
+        }
+        .card.expanded .pc-headinfo .nome {
+            font-size:13.5px; font-weight:800; white-space:normal;
+            line-height:1.35; letter-spacing:-.2px;
+            transition:font-size .3s ease;
+        }
+        .pc-headinfo .badge-loja { margin-bottom:0; font-size:11px; }
+
+        .pc-extra {
+            max-height:0; opacity:0; overflow:hidden;
+            transition:max-height .45s cubic-bezier(.16,1,.3,1), opacity .3s ease;
+        }
+        .card.expanded .pc-extra { max-height:280px; opacity:1; }
+        .pc-extra-inner { padding-top:10px; }
+
+        /* ── FICHA TÉCNICA (reveal escalonado, tipo "blur-md" do Expandable) ── */
+        .pc-specs {
+            margin-bottom:10px; border-top:1px dashed var(--border);
+        }
+        .spec-row {
+            display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+            padding:5px 0; border-bottom:1px dashed var(--border);
+            font-size:10.5px; line-height:1.4;
+            opacity:0; filter:blur(4px); transform:translateY(4px);
+        }
+        .card.expanded .spec-row {
+            animation:specReveal .38s cubic-bezier(.16,1,.3,1) forwards;
+        }
+        .card.expanded .spec-row:nth-child(1) { animation-delay:.04s; }
+        .card.expanded .spec-row:nth-child(2) { animation-delay:.08s; }
+        .card.expanded .spec-row:nth-child(3) { animation-delay:.12s; }
+        .card.expanded .spec-row:nth-child(4) { animation-delay:.16s; }
+        .card.expanded .spec-row:nth-child(5) { animation-delay:.20s; }
+        .card.expanded .spec-row:nth-child(6) { animation-delay:.24s; }
+        @keyframes specReveal { to { opacity:1; filter:blur(0); transform:translateY(0); } }
+
+        .spec-label {
+            color:var(--muted); font-weight:600; white-space:nowrap;
+            display:flex; align-items:center; gap:5px;
+        }
+        .spec-label::before {
+            content:''; width:3.5px; height:3.5px; border-radius:50%;
+            background:var(--royal); flex-shrink:0;
+        }
+        .card.tipo-barato-card .spec-label::before { background:var(--green); }
+        .card.tipo-premium-card .spec-label::before { background:var(--purple); }
+        .spec-value {
+            color:var(--text2); font-weight:700; font-family:'JetBrains Mono', monospace;
+            text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+        }
+
+        .pc-extra-inner .btn-ver-prod {
+            padding:7px; font-size:11.5px; gap:5px;
+            opacity:0; filter:blur(4px); transform:translateY(4px);
+        }
+        .card.expanded .pc-extra-inner .btn-ver-prod {
+            animation:specReveal .38s cubic-bezier(.16,1,.3,1) forwards;
+            animation-delay:.28s;
+        }
+
+        .pc-footer {
+            max-height:0; opacity:0; overflow:hidden;
+            transition:max-height .35s .05s cubic-bezier(.16,1,.3,1), opacity .2s .05s ease, margin .35s .05s, padding .35s .05s;
+            display:flex; justify-content:space-between; align-items:center;
+            font-size:10px; color:var(--muted); border-top:1px solid var(--border);
+            margin-top:0; padding-top:0;
+        }
+        .card.expanded .pc-footer { max-height:36px; opacity:1; margin-top:8px; padding-top:8px; }
+
+        .pc-chevron {
+            flex-shrink:0; color:var(--muted2); align-self:center;
+            display:flex; align-items:center; justify-content:center;
+            transition:transform .35s cubic-bezier(.16,1,.3,1), color .2s;
+        }
+        .card:hover .pc-chevron { color:var(--royal); }
+        .card.expanded .pc-chevron { transform:rotate(180deg); color:var(--royal); }
+
+        .badge-tipo {
+            display:inline-flex; align-items:center;
+            padding:4px 12px; border-radius:20px;
+            font-size:11px; font-weight:700; margin-bottom:10px; width: fit-content;
+        }
+        .tipo-barato { background:var(--green-lt); color:var(--green); border:1px solid rgba(5,150,105,.2); }
+        .tipo-premium { background:var(--purple-lt); color:var(--purple); border:1px solid rgba(124,58,237,.2); }
+        .tipo-custo { background:var(--ice); color:var(--royal); border:1px solid rgba(37,99,235,.15); }
+
+        .badge-loja { font-size:12px; color:var(--muted); margin-bottom:10px; font-weight:600; display:flex; align-items:center; }
+        .nome { font-size:13.5px; font-weight: 500; color:var(--text2); line-height:1.5; margin-bottom:16px; flex:1; }
+
+        .preco {
+            font-family:'JetBrains Mono', monospace;
+            font-size:22px; font-weight:700; color:var(--text);
+            margin-bottom:16px; letter-spacing: -.5px;
+        }
+        .preco.barato { color:var(--green); }
+        .preco.premium { color:var(--purple); }
+
+        .btn-ver-prod {
+            display:flex; align-items:center; justify-content:center; gap:8px;
+            text-align:center; background:var(--surface2); color:var(--royal);
+            padding:12px; border-radius:var(--radius);
+            text-decoration:none; font-weight:600; font-size:13px;
+            border:1px solid var(--border);
+            transition:all .22s cubic-bezier(.16,1,.3,1);
+            overflow:hidden;
+        }
+        .btn-ver-prod .seta { display:inline-block; transition:transform .25s cubic-bezier(.4,0,.2,1); }
+        .btn-ver-prod:hover { background:var(--royal); color:white; border-color:var(--royal); box-shadow: 0 4px 12px rgba(37,99,235,.25); }
+        .btn-ver-prod:hover .seta { transform:translateX(4px); }
+
+        /* ── CONTROLES ── */
+        .controles {
+            display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+            background:var(--surface); border:1px solid var(--border);
+            border-radius:var(--radius-lg); padding:16px 20px; margin-bottom:24px;
+            box-shadow:var(--shadow-sm); animation:fadeUp .45s .08s ease both;
+            transition:background .25s, border-color .25s;
+        }
+        .controles > label { font-size:12.5px; color:var(--muted); font-weight:600; display:flex; align-items:center; gap:10px; }
+        .controles select {
+            padding:9px 14px; border:1px solid var(--border); border-radius:var(--radius);
+            background:var(--surface2); color:var(--text); font-size:13px; font-family:'Inter',sans-serif;
+            font-weight: 500; cursor:pointer; outline:none; transition:all .2s;
+        }
+        .controles select:hover { border-color:var(--border2); }
+        .controles select:focus { border-color:var(--royal); box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+        .chips-lojas { display:flex; gap:8px; flex-wrap:wrap; }
+        .chip-loja {
+            display:inline-flex; align-items:center; gap:6px;
+            padding:7px 14px; border-radius:20px; font-size:12px; font-weight:600;
+            background:var(--ice); color:var(--royal); border:1px solid rgba(37,99,235,.15);
+            cursor:pointer; transition:all .2s; user-select:none;
+        }
+        .chip-loja:hover { border-color:var(--royal); }
+        .chip-loja input { accent-color:var(--royal); width:14px; height:14px; cursor:pointer; }
+        .chip-loja.off { background:var(--surface2); color:var(--muted); border-color:var(--border); opacity:.65; }
+
+        /* ── VAZIO ── */
+        .vazio {
+            text-align:center; padding:80px 20px;
+            background:var(--surface); border-radius:var(--radius-xl);
+            border:1.5px dashed var(--border2);
+            box-shadow:var(--shadow-sm); color:var(--muted2);
+            transition:background .25s, border-color .25s;
+        }
+        .vazio .v-icon {
+            width:72px; height:72px; border-radius:20px;
+            background:var(--ice2); border:1px solid var(--border);
+            display:flex; align-items:center; justify-content:center;
+            font-size:30px; margin:0 auto 20px; color:var(--muted);
+        }
+        .vazio h3 { font-size:18px; font-weight:700; color:var(--text); margin-bottom:8px; }
+        .vazio p { font-size:13px; color:var(--muted); }
+
+        @media (max-width:900px) { .stats { grid-template-columns:repeat(2,1fr); } }
+        @media (max-width:640px) {
+            body { padding:20px 16px 40px; }
+            .topo { flex-direction:column; align-items:stretch; }
+            .acoes { width:100%; }
+            .btn { flex:1; justify-content:center; }
+            .stats { grid-template-columns:1fr 1fr; gap:12px; }
+            .grid { grid-template-columns:1fr; }
+            .controles { flex-direction:column; align-items:stretch; }
+        }
+        @media (max-width:400px) { .stats { grid-template-columns:1fr; } }
+
+        /* ════════ VIEW TRANSITIONS ════════ */
+        @view-transition { navigation: auto; }
+        .wrap { view-transition-name: app-content; }
+        ::view-transition-old(app-content){animation:vt-out .22s cubic-bezier(.4,0,.6,1) both;}
+        ::view-transition-new(app-content){animation:vt-in .32s cubic-bezier(.16,1,.3,1) both;}
+        @keyframes vt-out{to{opacity:0;transform:translateY(-6px) scale(.992);}}
+        @keyframes vt-in{from{opacity:0;transform:translateY(10px) scale(.992);}}
+        @media (prefers-reduced-motion: reduce){
+            ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important;}
+        }
+
+        /* ════════ MODO ESCURO ════════ */
+        [data-theme='dark']{
+            --bg:#0B0F17;
+            --surface:#151D2A;
+            --surface2:#1C2638;
+            --border:#2A384F;
+            --border2:#3A4D6B;
+            --text:#F8FAFC;
+            --text2:#E2E8F0;
+            --muted:#94A3B8;
+            --muted2:#64748B;
+            --navy:#3B82F6;
+            --royal:#60A5FA;
+            --royal-lt:#93C5FD;
+            --sky:#93C5FD;
+            --ice:#1E293B;
+            --ice2:#1C2638;
+            --amber:#F59E0B;
+            --amber-lt:#2D2109;
+            --green:#10B981;
+            --green-lt:#062C22;
+            --red:#EF4444;
+            --red-lt:#3B1212;
+            --purple:#A78BFA;
+            --purple-lt:#2A1B4E;
+            --shadow-sm:0 1px 3px rgba(0,0,0,.4);
+            --shadow:0 4px 20px rgba(0,0,0,.5);
+            --shadow-lg:0 20px 25px rgba(0,0,0,.6);
+        }
+
+        [data-theme='dark'] body{background:var(--bg);color:var(--text);}
+        [data-theme='dark'] .topo{background:var(--surface);border-color:var(--border);}
+        [data-theme='dark'] .topo-left h1{color:var(--text);}
+        [data-theme='dark'] .topo-left h1 span{color:var(--royal);}
+        [data-theme='dark'] .badge-cache{
+            background:var(--amber-lt); color:var(--amber);
+            border-color:rgba(245,158,11,.3);
+        }
+
+        [data-theme='dark'] .btn-voltar{background:var(--surface2);color:var(--text2);border-color:var(--border);}
+        [data-theme='dark'] .btn-voltar:hover{color:var(--royal);border-color:var(--royal);}
+        [data-theme='dark'] .btn-novo{background:var(--green-lt);color:var(--green);border-color:rgba(16,185,129,.3);}
+        [data-theme='dark'] .btn-novo:hover{background:var(--green);color:#0B0F17;}
+        [data-theme='dark'] .btn-pdf{background:var(--royal);color:#0B0F17;box-shadow:0 4px 14px rgba(96,165,250,.3);}
+        [data-theme='dark'] .btn-pdf:hover{background:var(--sky);}
+
+        [data-theme='dark'] .theme-btn{background:var(--surface2);border-color:var(--border);color:var(--amber);}
+
+        [data-theme='dark'] .stat-card{background:var(--surface);border-color:var(--border);}
+        [data-theme='dark'] .stat-card .valor{color:var(--text);}
+        [data-theme='dark'] .stat-card:nth-child(2) .valor{color:var(--green);}
+        [data-theme='dark'] .stat-card:nth-child(3) .valor{color:var(--purple);}
+        [data-theme='dark'] .stat-card .rotulo{color:var(--muted);}
+
+        [data-theme='dark'] .card{background:var(--surface);border-color:var(--border);}
+        [data-theme='dark'] .card-img-placeholder{background:var(--surface2);color:var(--muted);}
+        [data-theme='dark'] .pc-img-wrap{background:#111827; border-color:var(--border);}
+        [data-theme='dark'] .preco-chip{background:var(--surface2); color:var(--text2); border-color:var(--border2);}
+
+        [data-theme='dark'] .tipo-barato{background:var(--green-lt);color:var(--green);border-color:rgba(16,185,129,.3);}
+        [data-theme='dark'] .tipo-premium{background:var(--purple-lt);color:var(--purple);border-color:rgba(167,139,250,.3);}
+        [data-theme='dark'] .tipo-custo{background:var(--ice);color:var(--sky);border-color:var(--border2);}
+
+        [data-theme='dark'] .badge-loja{color:var(--muted);}
+        [data-theme='dark'] .nome{color:var(--text2);}
+
+        [data-theme='dark'] .preco{color:var(--text);}
+        [data-theme='dark'] .preco.barato{color:var(--green);}
+        [data-theme='dark'] .preco.premium{color:var(--purple);}
+
+        [data-theme='dark'] .btn-ver-prod{background:var(--surface2);color:var(--sky);border-color:var(--border);}
+        [data-theme='dark'] .btn-ver-prod:hover{background:var(--royal);color:#0B0F17;border-color:var(--royal);}
+
+        [data-theme='dark'] .controles{background:var(--surface);border-color:var(--border);}
+        [data-theme='dark'] .controles > label{color:var(--muted);}
+        [data-theme='dark'] .controles select{background:var(--surface2);color:var(--text);border-color:var(--border);}
+        [data-theme='dark'] .controles select:focus{border-color:var(--royal);}
+        [data-theme='dark'] .chip-loja{background:var(--ice);color:var(--sky);border-color:var(--border2);}
+        [data-theme='dark'] .chip-loja.off{background:var(--surface2);color:var(--muted);border-color:var(--border);}
+
+        [data-theme='dark'] .vazio{background:var(--surface);border-color:var(--border2);color:var(--muted);}
+        [data-theme='dark'] .vazio .v-icon{background:var(--surface2);border-color:var(--border);}
+        [data-theme='dark'] .vazio h3{color:var(--text);}
+        [data-theme='dark'] .vazio p{color:var(--muted);}
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="topo">
+        <div class="topo-left">
+            <h1>Resultados: <span>"{{ produto }}"</span></h1>
+            {% if do_cache %}<span class="badge-cache"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg> Resultado em cache</span>{% endif %}
+        </div>
+        <div class="acoes">
+            <button class="theme-btn" id="themeToggle" onclick="toggleTheme()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+            <a href="/" class="btn btn-voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg> Voltar</a>
+            <form action="/buscar" method="POST" style="display:contents">
+                <input type="hidden" name="produto" value="{{ produto }}">
+                <input type="hidden" name="solicitante" value="{{ solicitante }}">
+                <input type="hidden" name="forcar_busca" value="1">
+                <button type="submit" class="btn btn-novo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M21 12a9 9 0 0 1-15.4 6.4L3 16"/><path d="M3 12a9 9 0 0 1 15.4-6.4L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg> Atualizar Preços</button>
+            </form>
+            <form action="/gerar_pdf" method="POST" style="display:contents">
+                <input type="hidden" name="produto" value="{{ produto }}">
+                <input type="hidden" name="solicitante" value="{{ solicitante }}">
+                <button type="submit" class="btn btn-pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6M9 9h1"/></svg> Exportar PDF</button>
+            </form>
+        </div>
+    </div>
+
+    {% if produtos %}
+    {% set validos = produtos | selectattr('preco', 'gt', 0) | list %}
+    {% set sem_preco = produtos | rejectattr('preco', 'gt', 0) | list %}
+    {% set produtos_ordenados = (validos | sort(attribute='preco')) + sem_preco %}
+    {% if validos %}
+    <div class="stats">
+        <div class="stat-card">
+            <div class="valor">{{ produtos | length }}</div>
+            <div class="rotulo">Produtos encontrados</div>
+        </div>
+        <div class="stat-card">
+            <div class="valor">{{ (validos | min(attribute='preco')).preco_texto }}</div>
+            <div class="rotulo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;vertical-align:-2px;margin-right:6px;"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v9"/><path d="M15 9.8c0-1.3-1.4-2.3-3-2.3s-3 .9-3 2.2 1.3 1.9 3 2.3c1.7.4 3 1 3 2.3s-1.4 2.2-3 2.2-3-1-3-2.3"/></svg>Menor Preço</div>
+        </div>
+        <div class="stat-card">
+            <div class="valor">{{ (validos | max(attribute='preco')).preco_texto }}</div>
+            <div class="rotulo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;vertical-align:-2px;margin-right:6px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Maior Preço</div>
+        </div>
+        <div class="stat-card">
+            <div class="valor">{{ validos | map(attribute='site') | unique | list | length }}</div>
+            <div class="rotulo">Lojas pesquisadas</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if validos %}
+    <div class="controles">
+        <label>Ordenar por:
+            <select id="ordenar">
+                <option value="padrao">Menor preço primeiro (padrão)</option>
+                <option value="preco_asc">Menor preço</option>
+                <option value="preco_desc">Maior preço</option>
+                <option value="nome">Nome (A-Z)</option>
+            </select>
+        </label>
+        <div class="chips-lojas" id="chipsLojas"></div>
+    </div>
+    {% endif %}
+
+    <div class="grid">
+    {% for item in produtos_ordenados %}
+    <div class="card {% if '💰' in item.tipo %}tipo-barato-card{% elif '🔥' in item.tipo %}tipo-premium-card{% endif %}"
+         data-site="{{ item.site }}" data-preco="{{ item.preco }}" data-nome="{{ item.nome }}">
+        <div class="pc" onclick="toggleCard(this)">
+            <div class="pc-top">
+                {% if '💰' in item.tipo %}<span class="badge-tipo tipo-barato">{{ item.tipo }}</span>
+                {% elif '🔥' in item.tipo %}<span class="badge-tipo tipo-premium">{{ item.tipo }}</span>
+                {% else %}<span class="badge-tipo tipo-custo">{{ item.tipo }}</span>{% endif %}
+                <span class="preco-chip">{{ item.preco_texto }}</span>
+            </div>
+
+            <div class="pc-main">
+                <div class="pc-img-wrap">
+                    {% if item.imagem %}
+                    <img src="{{ item.imagem }}" alt="{{ item.nome }}" onerror="this.parentNode.innerHTML='<div class=\'card-img-placeholder\'><svg viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\' style=\'width:22px;height:22px;flex-shrink:0;\'><circle cx=\'9\' cy=\'21\' r=\'1\'/><circle cx=\'19\' cy=\'21\' r=\'1\'/><path d=\'M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6\'/></svg></div>'">
+                    {% else %}
+                    <div class="card-img-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;flex-shrink:0;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg></div>
+                    {% endif %}
+                </div>
+                <div class="pc-headinfo">
+                    <p class="nome">{{ item.nome }}</p>
+                    <div class="badge-loja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;vertical-align:-2px;margin-right:6px;"><path d="M3 9 5 3h14l2 6"/><path d="M4 9v10a1 1 0 0 0 1 1h4v-6h6v6h4a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/></svg>{{ item.site }}</div>
+                </div>
+                <span class="pc-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><path d="m6 9 6 6 6-6"/></svg></span>
+            </div>
+
+            <div class="pc-extra">
+                <div class="pc-extra-inner">
+                    {% if item.specs %}
+                    <div class="pc-specs">
+                        {% for s in item.specs %}
+                        {% set rotulo, _, valor = s.partition(': ') %}
+                        <div class="spec-row">
+                            <span class="spec-label">{{ rotulo }}</span>
+                            <span class="spec-value">{{ valor }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if item.link %}<a href="{{ item.link }}" target="_blank" class="btn-ver-prod" onclick="event.stopPropagation()">Ver Produto <span class="seta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></span></a>{% endif %}
+                </div>
+            </div>
+
+            <div class="pc-footer">
+                <span>{{ item.site }}</span>
+                <span>{{ item.tipo }}</span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="vazio">
+        <div class="v-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;flex-shrink:0;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></div>
+        <h3>Nenhum produto encontrado</h3>
+        <p>Tente buscar novamente com termos diferentes.</p>
+    </div>
+    {% endif %}
+</div>
+<script>
+const grid  = document.querySelector('.grid');
+const cards = grid ? Array.from(grid.querySelectorAll('.card')) : [];
+let lojasAtivas = new Set(cards.map(c => c.dataset.site));
+
+function montarChipsLojas() {
+    const cont = document.getElementById('chipsLojas');
+    if (!cont) return;
+    const lojas = [...new Set(cards.map(c => c.dataset.site))];
+    cont.innerHTML = lojas.map(l => `<label class="chip-loja"><input type="checkbox" value="${l}" checked> ${l}</label>`).join('');
+    cont.querySelectorAll('input').forEach(chk => {
+        chk.addEventListener('change', () => {
+            lojasAtivas = new Set([...cont.querySelectorAll('input:checked')].map(c => c.value));
+            cont.querySelectorAll('.chip-loja').forEach(chip => {
+                chip.classList.toggle('off', !chip.querySelector('input').checked);
+            });
+            aplicar();
+        });
+    });
+}
+
+function aplicar() {
+    const ordemEl = document.getElementById('ordenar');
+    const ordem = ordemEl ? ordemEl.value : 'padrao';
+
+    cards.forEach(c => {
+        c.style.display = lojasAtivas.has(c.dataset.site) ? '' : 'none';
+        c.classList.remove('expanded');
+    });
+
+    let visiveis = cards.filter(c => lojasAtivas.has(c.dataset.site));
+    if (ordem === 'padrao' || ordem === 'preco_asc') visiveis.sort((a, b) => parseFloat(a.dataset.preco) - parseFloat(b.dataset.preco));
+    if (ordem === 'preco_desc') visiveis.sort((a, b) => parseFloat(b.dataset.preco) - parseFloat(a.dataset.preco));
+    if (ordem === 'nome')       visiveis.sort((a, b) => a.dataset.nome.localeCompare(b.dataset.nome));
+    if (grid) visiveis.forEach(c => grid.appendChild(c));
+}
+
+// ── EXPANDABLE CARDS ──
+function toggleCard(pc) {
+    const card = pc.closest('.card');
+    const jaExpandido = card.classList.contains('expanded');
+
+    // fecha qualquer outro card aberto (apenas um expandido por vez)
+    cards.forEach(c => {
+        if (c !== card && c.classList.contains('expanded')) {
+            c.classList.remove('expanded');
+        }
+    });
+
+    card.classList.toggle('expanded', !jaExpandido);
+
+    if (!jaExpandido) {
+        requestAnimationFrame(() => {
+            const rect = card.getBoundingClientRect();
+            if (rect.bottom > window.innerHeight || rect.top < 0) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        });
+    }
+}
+
+if (grid && cards.length) {
+    montarChipsLojas();
+    aplicar();
+    const sel = document.getElementById('ordenar');
+    if (sel) sel.addEventListener('change', aplicar);
+}
+
+(function iconizarTipos(){
+    const ICONS = {
+        '💰': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;margin-right:5px;"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v9"/><path d="M15 9.8c0-1.3-1.4-2.3-3-2.3s-3 .9-3 2.2 1.3 1.9 3 2.3c1.7.4 3 1 3 2.3s-1.4 2.2-3 2.2-3-1-3-2.3"/></svg>',
+        '🔥': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;margin-right:5px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>'
+    };
+    document.querySelectorAll('.badge-tipo').forEach(el => {
+        const texto = el.textContent;
+        for (const [emoji, svg] of Object.entries(ICONS)) {
+            if (texto.includes(emoji)) {
+                el.innerHTML = svg + texto.replace(emoji, '').trim();
+                break;
+            }
+        }
+    });
+    document.querySelectorAll('.pc-footer span:last-child').forEach(el => {
+        const texto = el.textContent;
+        for (const [emoji, svg] of Object.entries(ICONS)) {
+            if (texto.includes(emoji)) {
+                el.innerHTML = texto.replace(emoji, '').trim() + ' ' + svg.replace('margin-right:5px;', 'margin-right:0;');
+                break;
+            }
+        }
+    });
+})();
+</script>
+<script>
+(function(){
+    const t = localStorage.getItem('tema') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    const b = document.getElementById('themeToggle');
+    if(b) b.innerHTML = t === 'dark' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+})();
+function toggleTheme(){
+    const e = document.documentElement;
+    const n = e.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    e.setAttribute('data-theme', n);
+    localStorage.setItem('tema', n);
+    const b = document.getElementById('themeToggle');
+    if(b) b.innerHTML = n === 'dark' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+}
+</script>
+</body>
+</html>

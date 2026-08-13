@@ -1,0 +1,17 @@
+﻿.venv/
+venv/
+__pycache__/
+*.pyc
+
+cache/
+historico.json
+
+chromedriver.exe
+chromedriver_debug.log
+debug_americanas.py
+
+backups/
+
+orcamentos/*.pdf
+
+.env

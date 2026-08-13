@@ -1,0 +1,284 @@
+[source: 24]<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orçamentos – OrçaTech</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy:#1e2a6e; --royal:#2d3a8c; --blue:#3d52c4; --sky:#5b78e0;
+            --ice:#dde5ff; --gold:#e69500; --gold-lt:#f5b800;
+            --teal:#0a8a79; --teal-lt:#0fb39e; --danger:#dc2626;
+            --bg:#f4f6fb; --surface:#ffffff; --surface2:#f0f2fa; --surface3:#e8ecf8;
+            --border:#d4d9ef; --border2:#b8c0e0;
+            --text:#1a2040; --text2:#374080; --muted:#8890b8; --muted2:#6070a8;
+            --sidebar-w:250px; --radius:12px; --radius-lg:18px;
+            --shadow:0 4px 20px rgba(30,42,110,.08);
+            --shadow-lg:0 12px 40px rgba(30,42,110,.14);
+        }
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+        body{display:flex;background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
+        body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(61,82,196,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(61,82,196,.025) 1px,transparent 1px);background-size:40px 40px;}
+
+        /* SIDEBAR */
+        .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--navy);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 24px rgba(30,42,110,.18);}
+        .sidebar-header{padding:28px 24px 22px;border-bottom:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.15);}
+        .sidebar-subtitle{font-size:9px;color:rgba(255,255,255,.5);letter-spacing:2.5px;text-transform:uppercase;font-weight:700;}
+        .sidebar-nav{padding:20px 14px;flex:1;display:flex;flex-direction:column;gap:3px;}
+        .nav-section-label{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:2px;text-transform:uppercase;font-weight:700;padding:0 10px;margin:12px 0 6px;}
+        .sidebar a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:rgba(255,255,255,.6);text-decoration:none;font-size:13.5px;font-weight:500;transition:color .22s,background .22s,border-color .22s,transform .22s cubic-bezier(.4,0,.2,1);border:1px solid transparent;position:relative;}
+        .sidebar a .icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:rgba(255,255,255,.08);transition:all .2s;flex-shrink:0;}
+        .sidebar a:hover{color:white;background:rgba(255,255,255,.08);transform:translateX(2px);}
+        .sidebar a:hover .icon{background:rgba(255,255,255,.15);}
+        .sidebar a.ativo{color:white;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.15);}
+        .sidebar a.ativo .icon{background:linear-gradient(135deg,var(--gold),var(--gold-lt));box-shadow:0 4px 12px rgba(240,165,0,.4);}
+        .sidebar a.ativo::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--gold-lt);border-radius:0 3px 3px 0;transition:height .25s cubic-bezier(.4,0,.2,1);}
+        .sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.35);}
+        .sidebar-footer span{color:rgba(255,255,255,.6);font-weight:600;}
+
+        /* TOPBAR MOBILE */
+        .topbar-mobile{display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--navy);padding:12px 20px;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(30,42,110,.2);}
+        .hamburger{background:none;border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:8px;border-radius:8px;display:flex;flex-direction:column;gap:4px;}
+        .hamburger span{display:block;width:18px;height:2px;background:white;border-radius:2px;transition:all .3s;}
+        .hamburger.open span:nth-child(1){transform:translateY(6px) rotate(45deg);}
+        .hamburger.open span:nth-child(2){opacity:0;}
+        .hamburger.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
+        .overlay{display:none;position:fixed;inset:0;background:rgba(20,30,80,.5);z-index:99;backdrop-filter:blur(4px);}
+        .overlay.show{display:block;}
+
+        /* MAIN */
+        .main{margin-left:var(--sidebar-w);flex:1;padding:40px 44px 60px;position:relative;z-index:1;}
+        @keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+        .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;animation:fadeDown .5s ease both;gap:16px;}
+        .page-header h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--navy);letter-spacing:-.3px;}
+        .page-header p{color:var(--muted2);margin-top:6px;font-size:13px;}
+
+        /* TABELA */
+        .table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;animation:fadeUp .5s .1s ease both;position:relative;box-shadow:var(--shadow);}
+        .table-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--navy),var(--sky),var(--teal));}
+        .table-scroll{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;}
+        thead{background:var(--surface2);border-bottom:2px solid var(--border);}
+        th{padding:14px 18px;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--muted2);font-weight:700;white-space:nowrap;}
+        td{padding:14px 18px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border);vertical-align:middle;}
+        tr:last-child td{border-bottom:none;}
+        tbody tr{transition:background .2s ease;position:relative;}
+        tbody tr td:first-child{position:relative;}
+        tbody tr td:first-child::before{content:'';position:absolute;left:0;top:0;bottom:0;width:0;background:var(--gold-lt);transition:width .2s ease;}
+        tbody tr:hover td{background:var(--surface2);}
+        tbody tr:hover td:first-child::before{width:3px;}
+
+        .prod-nome{color:var(--navy);font-weight:700;font-size:13.5px;}
+        .prod-sub{font-size:11px;color:var(--muted2);margin-top:3px;line-height:1.4;}
+
+        .badge{display:inline-flex;align-items:center;gap:4px;padding:5px 11px;border-radius:20px;font-size:11px;font-weight:700;}
+        .badge-teal{background:rgba(10,138,121,.1);color:var(--teal);border:1px solid rgba(10,138,121,.2);}
+        .badge-gold{color:var(--gold);font-weight:800;font-size:13px;font-family:'Playfair Display',serif;}
+
+        .acoes{display:flex;gap:7px;flex-wrap:wrap;}
+        .btn-acao{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;transition:background .2s,color .2s,transform .2s cubic-bezier(.4,0,.2,1),box-shadow .2s;white-space:nowrap;font-family:'Plus Jakarta Sans',sans-serif;border:none;}
+        .btn-ver{background:var(--ice);color:var(--royal);border:1px solid rgba(61,82,196,.25);}
+        .btn-ver:hover{background:var(--royal);color:white;transform:translateY(-1px);box-shadow:0 4px 12px rgba(45,58,140,.25);}
+        .btn-pdf{background:rgba(220,38,38,.06);color:var(--danger);border:1px solid rgba(220,38,38,.2);}
+        .btn-pdf:hover{background:var(--danger);color:white;transform:translateY(-1px);box-shadow:0 4px 12px rgba(220,38,38,.25);}
+
+        .sem-dados{background:var(--surface);border-radius:var(--radius-lg);padding:60px 40px;text-align:center;color:var(--muted2);border:2px dashed var(--border);animation:fadeUp .5s .1s ease both;box-shadow:var(--shadow);}
+        .sem-dados .sd-icon{width:64px;height:64px;border-radius:16px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;}
+        .sem-dados h3{font-family:'Playfair Display',serif;font-size:18px;color:var(--text2);margin-bottom:8px;}
+
+        @media(max-width:640px){
+            .sidebar{transform:translateX(-100%);}
+            .sidebar.open{transform:translateX(0);box-shadow:12px 0 40px rgba(20,30,80,.3);}
+            .topbar-mobile{display:flex;}
+            .main{margin-left:0;padding:72px 16px 40px;}
+            .page-header{flex-direction:column;align-items:flex-start;}
+            th,td{padding:10px 12px;}
+        }
+
+        /* VIEW TRANSITIONS */
+        @view-transition { navigation: auto; }
+        .sidebar       { view-transition-name: app-sidebar; }
+        .topbar-mobile { view-transition-name: app-topbar; }
+        .main          { view-transition-name: app-content; }
+        ::view-transition-old(app-content){animation:vt-out .22s cubic-bezier(.4,0,.6,1) both;}
+        ::view-transition-new(app-content){animation:vt-in .32s cubic-bezier(.16,1,.3,1) both;}
+        @keyframes vt-out{to{opacity:0;transform:translateY(-6px) scale(.992);}}
+        @keyframes vt-in{from{opacity:0;transform:translateY(10px) scale(.992);}}
+
+        .theme-btn{
+            width:40px;height:40px;border-radius:10px;border:1px solid var(--border);
+            background:var(--surface);color:var(--text);cursor:pointer;font-size:18px;
+            box-shadow:var(--shadow);transition:.2s;flex-shrink:0;
+        }
+        .theme-btn:hover{transform:translateY(-2px)}
+
+        /* MODO ESCURO */
+        [data-theme='dark']{
+            --bg:#0b1220;
+            --surface:#162033;
+            --surface2:#1d2940;
+            --surface3:#243550;
+            --border:#324764;
+            --border2:#46607f;
+            --text:#f4f7ff;
+            --text2:#dfe7ff;
+            --muted:#aab7d3;
+            --muted2:#c5d0ea;
+            --navy:#3d52c4;
+            --royal:#5b78e0;
+            --blue:#6f8cf0;
+            --sky:#8fa6f5;
+            --ice:#26345c;
+            --ice2:#1d2940;
+            --gold:#f5b800;
+            --gold-lt:#ffd24d;
+            --teal:#2dd4bf;
+            --teal-lt:#5eead4;
+            --danger:#f87171;
+            --shadow:0 4px 20px rgba(0,0,0,.35);
+            --shadow-lg:0 12px 40px rgba(0,0,0,.5);
+        }
+        [data-theme='dark'] body{background:var(--bg);color:var(--text);}
+        [data-theme='dark'] body::before{
+            background-image:linear-gradient(rgba(111,140,240,.05) 1px,transparent 1px),
+                              linear-gradient(90deg,rgba(111,140,240,.05) 1px,transparent 1px);
+        }
+        [data-theme='dark'] .sidebar,
+        [data-theme='dark'] .topbar-mobile{background:#0a1322;}
+        [data-theme='dark'] .page-header h1,
+        [data-theme='dark'] .prod-nome,
+        [data-theme='dark'] .sem-dados h3{color:var(--text);}
+        [data-theme='dark'] .table-card,
+        [data-theme='dark'] .sem-dados{background:var(--surface);border-color:var(--border);}
+        [data-theme='dark'] thead{background:var(--surface2);}
+        [data-theme='dark'] tbody tr:hover td{background:var(--surface2);}
+        [data-theme='dark'] td{border-color:var(--border);color:var(--text2);}
+        [data-theme='dark'] .btn-ver{background:var(--ice);color:var(--sky);border-color:var(--border2);}
+        [data-theme='dark'] .btn-ver:hover{background:var(--royal);color:#fff;}
+        [data-theme='dark'] .btn-pdf{background:rgba(248,113,113,.12);color:var(--danger);border-color:rgba(248,113,113,.25);}
+        [data-theme='dark'] .btn-pdf:hover{background:var(--danger);color:#fff;}
+        [data-theme='dark'] .theme-btn{background:var(--surface2);border-color:var(--border2);color:var(--gold-lt);}
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="fecharMenu()"></div>
+
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div style="padding:6px 0">
+            <h2 style="margin:0;color:#fff;letter-spacing:2px;">ORÇATECH</h2>
+            <div style="margin-top:6px;color:rgba(255,255,255,.75);font-size:12px">
+                Comparador Inteligente
+            </div>
+        </div>
+    </div>
+    <div class="sidebar-nav">
+        <div class="nav-section-label">Menu Principal</div>
+        <a href="/"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;"><path d="M3 9.5 12 2l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></div> Dashboard</a>
+        <a href="/orcamentos" class="ativo"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6M9 8h1"/></svg></div> Orçamentos</a>
+        <a href="/relatorios"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div> Relatórios</a>
+    </div>
+    <div class="sidebar-footer">OrçaTech v2.0 · <span>ORÇATECH</span></div>
+</nav>
+
+<div class="topbar-mobile">
+    <div style="background:none;padding:0">
+        <strong style="color:white;letter-spacing:2px;">ORÇATECH</strong>
+    </div>
+    <button class="hamburger" id="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+</div>
+
+<div class="main">
+    <div class="page-header">
+        <div>
+            <h1>Histórico de Orçamentos</h1>
+            <p>Consulte todas as pesquisas salvas e faça o download dos relatórios em PDF.</p>
+        </div>
+        <button class="theme-btn" id="themeToggle" onclick="toggleTheme()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+    </div>
+
+    {% if orcamentos %}
+    <div class="table-card">
+        <div class="table-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Produto / Solicitante</th>
+                        <th>Data / Hora</th>
+                        <th>Menor Preço</th>
+                        <th>Loja</th>
+                        <th>Total de Itens</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in orcamentos %}
+                    <tr>
+                        <td>
+                            <div class="prod-nome">{{ item.produto }}</div>
+                            <div class="prod-sub">Solicitado por: {{ item.solicitante or 'Não informado' }}</div>
+                        </td>
+                        <td>{{ item.data }}</td>
+                        <td><span class="badge-gold">{{ item.mais_barato_preco }}</span></td>
+                        <td><span class="badge badge-teal">{{ item.mais_barato_site }}</span></td>
+                        <td>{{ item.total }} itens</td>
+                        <td>
+                            <div class="acoes">
+                                <a href="/resultado/{{ item.id }}" class="btn-acao btn-ver">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> Ver
+                                </a>
+                                <a href="/pdf/{{ item.id }}" class="btn-acao btn-pdf" target="_blank">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="sem-dados">
+        <div class="sd-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:30px;height:30px;"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6M9 8h1"/></svg>
+        </div>
+        <h3>Nenhum orçamento encontrado</h3>
+        <p>Realize pesquisas no Dashboard para que elas apareçam salvas no seu histórico.</p>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleMenu(){
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('show');
+    document.getElementById('hamburger').classList.toggle('open');
+}
+function fecharMenu(){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('hamburger').classList.remove('open');
+}
+
+(function(){
+    const t = localStorage.getItem('tema') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    const b = document.getElementById('themeToggle');
+    if (b) b.innerHTML = t === 'dark' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+})();
+
+function toggleTheme(){
+    const e = document.documentElement;
+    const n = e.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    e.setAttribute('data-theme', n);
+    localStorage.setItem('tema', n);
+    document.getElementById('themeToggle').innerHTML = n === 'dark' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+}
+</script>
+</body>
+</html>

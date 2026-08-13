@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesquisando… – OrçaTech</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy:    #0F172A;
+            --royal:   #2563EB;
+            --blue:    #3B82F6;
+            --sky:     #60A5FA;
+            --ice:     #EFF6FF;
+            --teal:    #0D9488;
+            --teal-lt: #14B8A6;
+
+            --bg:      #F8FAFC;
+            --surface: #FFFFFF;
+            --surface2:#F1F5F9;
+            --border:  #E2E8F0;
+            --border2: #CBD5E1;
+
+            --text:    #0F172A;
+            --text2:   #334155;
+            --muted:   #64748B;
+            --muted2:  #94A3B8;
+
+            --radius:    12px;
+            --radius-lg: 18px;
+            --shadow:    0 4px 20px -2px rgba(15,23,42,.06);
+            --shadow-lg: 0 12px 32px -4px rgba(15,23,42,.12);
+        }
+
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            background:var(--bg); color:var(--text);
+            font-family:'Plus Jakarta Sans', sans-serif;
+            min-height:100vh; -webkit-font-smoothing:antialiased;
+        }
+        body::before {
+            content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(37,99,235,.08) 0%, transparent 50%),
+                linear-gradient(rgba(37,99,235,.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(37,99,235,.02) 1px, transparent 1px);
+            background-size:100% 100%, 32px 32px, 32px 32px;
+        }
+
+        @keyframes fadeDown { from{opacity:0;transform:translateY(-14px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes fadeUp   { from{opacity:0;transform:translateY(18px)}  to{opacity:1;transform:translateY(0)} }
+        @keyframes pulse    { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.85)} }
+        @keyframes shimmer  { 0%{transform:translateX(-100%)} 100%{transform:translateX(300%)} }
+
+        .page {
+            position:relative; z-index:1; min-height:100vh;
+            display:grid; grid-template-rows:auto 1fr auto;
+            max-width:620px; margin:0 auto; padding:32px 24px 40px;
+        }
+
+        /* HEADER */
+        .header {
+            display:flex; align-items:center; justify-content:flex-end;
+            margin-bottom:32px; animation:fadeDown .5s ease both;
+        }
+        .nav-links { display:flex; gap:8px; }
+        .nav-link {
+            padding:8px 14px; border-radius:var(--radius); font-size:12px; font-weight:600;
+            text-decoration:none; color:var(--text2);
+            border:1px solid var(--border); background:var(--surface);
+            transition:all .2s; box-shadow:var(--shadow); display:inline-flex; align-items:center; gap:6px;
+        }
+        .nav-link:hover { color:var(--royal); border-color:var(--royal); transform:translateY(-1px); }
+
+        /* ESFERA DE PARTÍCULAS NO LUGAR DO RADAR */
+        .spinner-wrap {
+            display:flex; justify-content:center; margin-bottom:28px;
+            animation:fadeUp .5s .1s ease both;
+        }
+        .radar-container {
+            width: 104px;
+            height: 104px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .esfera-canvas { width:100%; height:100%; }
+        .esfera-canvas canvas { display:block; }
+
+        /* TÍTULO */
+        .titulo { text-align:center; margin-bottom:32px; animation:fadeUp .5s .15s ease both; }
+        .titulo h1 { font-size:12px; font-weight:700; color:var(--royal); text-transform:uppercase; letter-spacing:2.5px; margin-bottom:8px; }
+        .produto-label {
+            font-size:24px; font-weight:800;
+            color:var(--navy); margin-bottom:8px; word-break:break-word; line-height:1.3;
+            letter-spacing: -.5px;
+        }
+        .descricao { font-size:13.5px; color:var(--muted); line-height:1.6; }
+
+        /* PROGRESSO */
+        .progress-wrap { width:100%; margin-bottom:28px; animation:fadeUp .5s .25s ease both; }
+        .progress-meta {
+            display:flex; justify-content:space-between; align-items:center;
+            margin-bottom:10px; font-size:12px; color:var(--muted);
+        }
+        .progress-meta .label { font-weight:600; }
+        .pct { color:var(--royal); font-weight:800; font-size:16px; font-family:'JetBrains Mono', monospace; }
+        .progress-bar {
+            height:10px; background:var(--surface2); border-radius:99px;
+            overflow:hidden; border:1px solid var(--border); padding: 1px;
+        }
+        .progress-fill {
+            height:100%; width:0%;
+            background:linear-gradient(90deg, var(--royal) 0%, var(--blue) 50%, var(--teal-lt) 100%);
+            border-radius:99px;
+            transition:width .8s cubic-bezier(.16,1,.3,1);
+            position:relative; overflow:hidden;
+        }
+        .progress-fill::before {
+            content:''; position:absolute; top:0; left:0;
+            width:40%; height:100%;
+            background:linear-gradient(90deg, transparent 0%, rgba(255,255,255,.4) 50%, transparent 100%);
+            animation:shimmer 1.8s ease-in-out infinite;
+            border-radius:99px;
+        }
+
+        /* LOJAS COM EFEITOS INTERATIVOS */
+        .lojas { width:100%; display:flex; flex-direction:column; gap:10px; margin-bottom:24px; animation:fadeUp .5s .35s ease both; }
+
+        .loja-item {
+            display:flex; align-items:center; gap:14px;
+            background:var(--surface); border-radius:var(--radius);
+            padding:14px 18px; border:1px solid var(--border);
+            font-size:13.5px; color:var(--muted);
+            transition:all .3s cubic-bezier(.16,1,.3,1); position:relative; overflow:hidden;
+            box-shadow:var(--shadow);
+            cursor: default;
+        }
+        .loja-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--border2);
+        }
+        .loja-item::before {
+            content:''; position:absolute; left:0; top:0; bottom:0; width:4px;
+            background:transparent; transition:background .3s;
+        }
+        .loja-item.buscando { 
+            border-color:rgba(37,99,235,.4); 
+            background:var(--ice); 
+            box-shadow: 0 4px 14px rgba(37,99,235,.08);
+        }
+        .loja-item.buscando::before { background:var(--royal); }
+        .loja-item.done { border-color:rgba(13,148,136,.25); background:#F0FDF4; }
+        .loja-item.done::before { background:var(--teal); }
+        .loja-item.erro { border-color:rgba(239,68,68,.25); background:#FEF2F2; }
+        .loja-item.erro::before { background:#EF4444; }
+
+        .loja-dot { width:8px; height:8px; border-radius:50%; background:var(--border2); flex-shrink:0; transition:all .3s; }
+        .loja-item.buscando .loja-dot { background:var(--royal); box-shadow:0 0 10px var(--blue); animation:pulse 1.2s ease-in-out infinite; }
+        .loja-item.done .loja-dot     { background:var(--teal); }
+        .loja-item.erro .loja-dot     { background:#EF4444; }
+
+        .loja-nome { flex:1; font-weight:600; color:var(--text2); display:flex; align-items:center; gap:8px; }
+        .loja-item.buscando .loja-nome { color:var(--navy); }
+        .loja-item.done .loja-nome     { color:var(--teal); }
+
+        .loja-status { font-size:12px; font-weight:700; white-space:nowrap; display:flex; align-items:center; gap:4px; }
+        .loja-item:not(.buscando):not(.done):not(.erro) .loja-status { color:var(--muted2); }
+        .loja-item.buscando .loja-status { color:var(--royal); }
+        .loja-item.done .loja-status     { color:var(--teal); }
+        .loja-item.erro .loja-status     { color:#EF4444; }
+
+        .loja-count {
+            font-size:11px; font-weight:700; padding:2px 8px;
+            border-radius:20px; white-space:nowrap; display:none;
+            font-family:'JetBrains Mono', monospace;
+        }
+        .loja-item.done .loja-count {
+            display:inline-block;
+            background:rgba(13,148,136,.1); color:var(--teal);
+            border:1px solid rgba(13,148,136,.2);
+        }
+
+        /* COLAPSO DAS LOJAS EXTRAS (além das 6 primeiras) */
+        .lojas.colapsado .loja-extra { display:none; }
+
+        .ver-mais-lojas {
+            width:100%; display:none; align-items:center; justify-content:center; gap:8px;
+            background:var(--surface); border:1px dashed var(--border2); border-radius:var(--radius);
+            padding:11px 16px; margin:-8px 0 24px; cursor:pointer;
+            font-family:'Plus Jakarta Sans', sans-serif; font-size:12.5px; font-weight:700;
+            color:var(--royal); transition:all .2s; animation:fadeUp .5s .35s ease both;
+        }
+        .ver-mais-lojas.visivel { display:flex; }
+        .ver-mais-lojas:hover { background:var(--ice); border-color:var(--royal); transform:translateY(-1px); }
+        .ver-mais-lojas svg { transition:transform .25s; }
+        .ver-mais-lojas.aberto svg { transform:rotate(180deg); }
+
+        /* DICA */
+        .dica {
+            width:100%; background:var(--surface); border:1px solid var(--border);
+            border-radius:var(--radius); padding:14px 18px;
+            font-size:12.5px; color:var(--muted); line-height:1.6;
+            display:flex; gap:12px; align-items:center;
+            margin-bottom:20px; animation:fadeUp .5s .45s ease both;
+            box-shadow:var(--shadow);
+        }
+        .dica-icon { color:var(--royal); flex-shrink:0; display:flex; }
+        .dica strong { color:var(--text); }
+
+        /* TIMER */
+        .timer {
+            font-size:12.5px; color:var(--muted); text-align:center; margin-bottom:28px;
+            animation:fadeUp .5s .5s ease both; display:flex; align-items:center; justify-content:center; gap:6px;
+        }
+        #segundos { color:var(--navy); font-weight:700; font-family:'JetBrains Mono', monospace; }
+
+        /* FOOTER */
+        .footer {
+            border-top:1px solid var(--border); padding-top:24px; margin-top:auto;
+            display:flex; align-items:center; justify-content:space-between;
+            flex-wrap:wrap; gap:12px; animation:fadeUp .5s .55s ease both;
+        }
+        .footer-brand { display:flex; align-items:center; gap:8px; }
+        .footer-text { font-size:12px; color:var(--muted); font-weight:500; }
+        .footer-links { display:flex; gap:8px; flex-wrap:wrap; }
+        .footer-link {
+            padding:6px 12px; border-radius:var(--radius); font-size:11.5px; font-weight:600;
+            text-decoration:none; transition:all .2s; display:inline-flex; align-items:center; gap:5px;
+        }
+        .fl-blue { color:var(--royal); background:var(--ice); border:1px solid rgba(37,99,235,.15); }
+        .fl-blue:hover { background:var(--royal); color:white; }
+        .fl-teal { color:var(--teal); background:rgba(13,148,136,.08); border:1px solid rgba(13,148,136,.2); }
+        .fl-teal:hover { background:var(--teal); color:white; }
+        .fl-muted { color:var(--text2); background:var(--surface); border:1px solid var(--border); }
+        .fl-muted:hover { border-color:var(--royal); color:var(--royal); }
+
+        @media(max-width:480px) {
+            .page { padding:20px 16px 28px; }
+            .produto-label { font-size:20px; }
+            .footer { flex-direction:column; align-items:center; text-align:center; }
+        }
+
+        .theme-btn{
+            width:38px;height:38px;border-radius:var(--radius);
+            border:1px solid var(--border); background:var(--surface);
+            color:var(--text); cursor:pointer; font-size:16px; transition:.2s;
+            display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow);
+        }
+        .theme-btn:hover{border-color:var(--royal); color:var(--royal); transform:translateY(-1px);}
+
+        [data-theme='dark']{
+            --bg:#0B0F17;
+            --surface:#151D2A;
+            --surface2:#1C2638;
+            --border:#2A384F;
+            --border2:#3A4D6B;
+            --text:#F8FAFC;
+            --text2:#E2E8F0;
+            --muted:#94A3B8;
+            --muted2:#64748B;
+            --navy:#F8FAFC;
+            --royal:#60A5FA;
+            --blue:#3B82F6;
+            --sky:#93C5FD;
+            --ice:#1E293B;
+            --teal:#14B8A6;
+            --teal-lt:#2DD4BF;
+            --shadow:0 4px 20px rgba(0,0,0,.4);
+            --shadow-lg:0 12px 32px rgba(0,0,0,.6);
+        }
+        [data-theme='dark'] body{background:var(--bg);}
+        [data-theme='dark'] .loja-item{background:var(--surface);border-color:var(--border);}
+        [data-theme='dark'] .loja-item.done{background:#062C22;}
+        [data-theme='dark'] .loja-item.erro{background:#3B1212;}
+        [data-theme='dark'] .loja-nome{color:var(--text2);}
+        [data-theme='dark'] .loja-status{color:var(--muted);}
+        [data-theme='dark'] .dica{background:var(--surface);border-color:var(--border);color:var(--muted);}
+    </style>
+</head>
+<body>
+<div class="page">
+    <header class="header">
+        <nav class="nav-links">
+            <a href="/orcamentos" class="nav-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6M9 8h1"/></svg> Orçamentos</a>
+            <a href="/relatorios" class="nav-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg> Relatórios</a>
+            <a href="/" class="nav-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;"><path d="M3 9.5 12 2l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg> Home</a>
+        </nav>
+    </header>
+
+    <main style="display:flex;flex-direction:column;align-items:center;">
+
+        <!-- ESFERA DE PARTÍCULAS (Three.js) NO LUGAR DO RADAR -->
+        <div class="spinner-wrap">
+            <div class="radar-container">
+                <div id="esferaParticulas" class="esfera-canvas"></div>
+            </div>
+        </div>
+
+        <div class="titulo">
+            <h1>Buscando o melhor preço para</h1>
+            <div class="produto-label">"{{ produto }}"</div>
+            <p class="descricao">
+                Consultando todas as lojas em paralelo.<br>
+                Você pode navegar livremente enquanto pesquisamos!
+            </p>
+        </div>
+
+        <div class="progress-wrap">
+            <div class="progress-meta">
+                <span class="label">Lojas concluídas: <strong id="lojasFeitas" style="color:var(--text)">0</strong> / <strong id="lojaTotal" style="color:var(--text)">7</strong></span>
+                <span class="pct" id="pctLabel">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="lojas">
+            <div class="loja-item" id="loja-ml" data-loja="mercadolivre">
+                <div class="loja-dot"></div>
+                <span class="loja-nome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg> Mercado Livre</span>
+                <span class="loja-count" id="count-ml"></span>
+                <span class="loja-status" id="status-ml">Aguardando…</span>
+            </div>
+            <div class="loja-item" id="loja-kb" data-loja="kabum">
+                <div class="loja-dot"></div>
+                <span class="loja-nome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg> KaBuM</span>
+                <span class="loja-count" id="count-kb"></span>
+                <span class="loja-status" id="status-kb">Aguardando…</span>
+            </div>
+            <div class="loja-item" id="loja-az" data-loja="amazon">
+                <div class="loja-dot"></div>
+                <span class="loja-nome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg> Amazon</span>
+                <span class="loja-count" id="count-az"></span>
+                <span class="loja-status" id="status-az">Aguardando…</span>
+            </div>
+            <div class="loja-item" id="loja-tb" data-loja="terabyte">
+                <div class="loja-dot"></div>
+                <span class="loja-nome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9l6 6v10a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M8 3v5h6"/></svg> Terabyte</span>
+                <span class="loja-count" id="count-tb"></span>
+                <span class="loja-status" id="status-tb">Aguardando…</span>
+            </div>
+            <div class="loja-item" id="loja-am" data-loja="americanas">
+                <div class="loja-dot"></div>
+                <span class="loja-nome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M3 9 5 3h14l2 6"/><path d="M4 9v10a1 1 0 0 0 1 1h4v-6h6v6h4a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/></svg> Americanas</span>
+                <span class="loja-count" id="count-am"></span>
+                <span class="loja-status" id="status-am">Aguardando…</span>
+            </div>
+            <div class="loja-item" id="loja-ib" data-loja="ibyte">
+                <div class="loja-dot"></div>
+                <span class="loja-nome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M3 9 5 3h14l2 6"/><path d="M4 9v10a1 1 0 0 0 1 1h4v-6h6v6h4a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/></svg> iBytes</span>
+                <span class="loja-count" id="count-ib"></span>
+                <span class="loja-status" id="status-ib">Aguardando…</span>
+            </div>
+            <div class="loja-item loja-extra" id="loja-gs" data-loja="gshield">
+                <div class="loja-dot"></div>
+                <span class="loja-nome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Gshield</span>
+                <span class="loja-count" id="count-gs"></span>
+                <span class="loja-status" id="status-gs">Aguardando…</span>
+            </div>
+        </div>
+
+        <button type="button" class="ver-mais-lojas" id="verMaisLojas" onclick="alternarLojasExtras()">
+            <span id="verMaisTexto">Mostrar todas as <strong id="verMaisTotal">7</strong> lojas</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;" id="verMaisSeta"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+
+        <div class="dica">
+            <span class="dica-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M15 14c.3-1 .8-1.6 1.6-2.5A5.5 5.5 0 1 0 9 11.5c.7.9 1.4 1.5 1.6 2.5"/><path d="M9.5 18h5"/><path d="M10.3 22h3.4"/></svg></span>
+            <div>
+                O progresso reflete as <strong>lojas realmente concluídas</strong>.
+                Você será <strong>redirecionado automaticamente</strong> ao final!
+            </div>
+        </div>
+
+        <p class="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Pesquisando há <span id="segundos">0</span>s…</p>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-brand">
+            <span class="footer-text">Sistema OrçaTech</span>
+        </div>
+        <div class="footer-links">
+            <a href="/orcamentos" class="footer-link fl-blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6M9 8h1"/></svg> Orçamentos</a>
+            <a href="/relatorios" class="footer-link fl-teal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg> Relatórios</a>
+            <a href="/" class="footer-link fl-muted"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;"><path d="M3 9.5 12 2l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg> Dashboard</a>
+        </div>
+    </footer>
+</div>
+
+<script>
+const jobId      = "{{ job_id }}";
+const solicitante= "{{ solicitante }}";
+
+const LOJAS = [
+    { key:'mercadolivre', itemId:'loja-ml', statusId:'status-ml', countId:'count-ml' },
+    { key:'kabum',        itemId:'loja-kb', statusId:'status-kb', countId:'count-kb' },
+    { key:'amazon',       itemId:'loja-az', statusId:'status-az', countId:'count-az' },
+    { key:'terabyte',     itemId:'loja-tb', statusId:'status-tb', countId:'count-tb' },
+    { key:'americanas',   itemId:'loja-am', statusId:'status-am', countId:'count-am' },
+    { key:'ibyte',        itemId:'loja-ib', statusId:'status-ib', countId:'count-ib' },
+    { key:'gshield',      itemId:'loja-gs', statusId:'status-gs', countId:'count-gs' },
+];
+const lojasContainer = document.querySelector('.lojas');
+
+/* Botão "Mostrar todas as lojas": a lista fica colapsada (só as 6
+   primeiras visíveis) até o usuário clicar, evitando que a página
+   fique gigante com as 7 lojas de uma vez. */
+const lojasEl        = document.querySelector('.lojas');
+const btnVerMais     = document.getElementById('verMaisLojas');
+const verMaisTexto   = document.getElementById('verMaisTexto');
+let lojasExpandidas  = false;
+
+function atualizarBotaoVerMais() {
+    const totalExtras = lojasContainer.querySelectorAll('.loja-extra').length;
+    if (totalExtras > 0) {
+        btnVerMais.classList.add('visivel');
+        const totalEl = document.getElementById('verMaisTotal');
+        if (totalEl) totalEl.textContent = LOJAS.length;
+    } else {
+        btnVerMais.classList.remove('visivel');
+    }
+}
+
+function alternarLojasExtras() {
+    lojasExpandidas = !lojasExpandidas;
+    lojasEl.classList.toggle('colapsado', !lojasExpandidas);
+    btnVerMais.classList.toggle('aberto', lojasExpandidas);
+    verMaisTexto.innerHTML = lojasExpandidas
+        ? 'Mostrar menos lojas'
+        : `Mostrar todas as <strong id="verMaisTotal">${LOJAS.length}</strong> lojas`;
+}
+
+lojasEl.classList.add('colapsado');
+atualizarBotaoVerMais();
+
+const progressFill  = document.getElementById('progressFill');
+const pctLabel      = document.getElementById('pctLabel');
+const lojasFeitas   = document.getElementById('lojasFeitas');
+const lojaTotal     = document.getElementById('lojaTotal');
+lojaTotal.textContent = LOJAS.length;
+
+let segundos = 0;
+let concluidas = 0;
+let concluido = false;
+
+setInterval(() => {
+    segundos++;
+    document.getElementById('segundos').textContent = segundos;
+}, 1000);
+
+function setProgresso(pct) {
+    progressFill.style.width = pct + '%';
+    pctLabel.textContent = Math.round(pct) + '%';
+    if (pct > 0) progressFill.classList.add('active');
+}
+
+function marcarLoja(loja, estado, count, jobFinalizado) {
+    const item    = document.getElementById(loja.itemId);
+    const status  = document.getElementById(loja.statusId);
+    const countEl = document.getElementById(loja.countId);
+
+    item.classList.remove('buscando', 'done', 'erro');
+
+    if (estado === 'running') {
+        item.classList.add('buscando');
+        status.textContent = 'Buscando…';
+        countEl.textContent = '';
+    } else if (estado === 'done') {
+        item.classList.add('done');
+        if (jobFinalizado && count !== undefined && count !== null) {
+            status.innerHTML = 'Concluído <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0;"><path d="M20 6 9 17l-5-5"/></svg>';
+            countEl.textContent = count === 0 ? 'nenhum item' : count + (count === 1 ? ' item' : ' itens');
+        } else {
+            status.innerHTML = 'Concluído <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0;"><path d="M20 6 9 17l-5-5"/></svg>';
+            countEl.textContent = '';
+        }
+    } else if (estado === 'erro') {
+        item.classList.add('erro');
+        status.innerHTML = 'Erro <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="m14.5 9.5-5 5M9.5 9.5l5 5"/></svg>';
+        countEl.textContent = '';
+    } else {
+        status.textContent = 'Aguardando…';
+        countEl.textContent = '';
+    }
+}
+
+function marcarTudo(lojas_data) {
+    LOJAS.forEach(l => {
+        const info  = lojas_data ? lojas_data[l.key] : null;
+        const count = info ? info.count : 0;
+        const estado = info ? (info.status || 'done') : 'done';
+        marcarLoja(l, estado, count, true);
+    });
+    setProgresso(100);
+    lojasFeitas.textContent = LOJAS.length;
+    if (!lojasExpandidas) alternarLojasExtras();
+}
+
+function processarEstado(data) {
+    const jobDone = data.status === 'done';
+
+    if (data.lojas) {
+        concluidas = 0;
+        LOJAS.forEach(loja => {
+            const info  = data.lojas[loja.key];
+            if (!info) return;
+            const estado = info.status || 'pending';
+            const count  = info.count;
+            marcarLoja(loja, estado, count, jobDone);
+            if (estado === 'done' || estado === 'error') concluidas++;
+        });
+        setProgresso((concluidas / LOJAS.length) * 100);
+        lojasFeitas.textContent = concluidas;
+    }
+
+    if (jobDone) {
+        concluido = true;
+        marcarTudo(data.lojas);
+        setTimeout(() => {
+            window.location.href = `/resultado/${jobId}?solicitante=${encodeURIComponent(solicitante)}`;
+        }, 1200);
+        return true;
+    }
+
+    if (data.status === 'error') {
+        document.querySelector('.descricao').innerHTML =
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="m14.5 9.5-5 5M9.5 9.5l5 5"/></svg> Erro na pesquisa. <a href="/" style="color:var(--sky)">Voltar ao início</a>';
+        return true;
+    }
+    return false;
+}
+
+async function checarProgresso() {
+    if (concluido) return;
+    try {
+        const data = await fetch(`/progresso/${jobId}`).then(r => r.json());
+
+        if (data.status === 'not_found') {
+            document.querySelector('.descricao').innerHTML =
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="m14.5 9.5-5 5M9.5 9.5l5 5"/></svg> Pesquisa não encontrada. <a href="/" style="color:var(--sky)">Voltar ao início</a>';
+            return;
+        }
+
+        processarEstado(data);
+    } catch (e) {
+        console.error('Erro ao checar progresso:', e);
+    }
+    if (!concluido) setTimeout(checarProgresso, 2000);
+}
+
+function iniciarFonteEventos() {
+    try {
+        const fonte = new EventSource(`/stream/${jobId}`);
+        let sseOk = false;
+
+        fonte.onmessage = (evento) => {
+            if (concluido) return;
+            sseOk = true;
+            const data = JSON.parse(evento.data);
+            if (data.status === 'not_found') {
+                fonte.close();
+                document.querySelector('.descricao').innerHTML =
+                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="m14.5 9.5-5 5M9.5 9.5l5 5"/></svg> Pesquisa não encontrada. <a href="/" style="color:var(--sky)">Voltar ao início</a>';
+                return;
+            }
+            const terminou = processarEstado(data);
+            if (terminou) fonte.close();
+        };
+
+        fonte.onerror = () => {
+            fonte.close();
+            if (!concluido) setTimeout(checarProgresso, 1000);
+        };
+
+        setTimeout(() => {
+            if (!sseOk && !concluido) {
+                fonte.close();
+                checarProgresso();
+            }
+        }, 4000);
+
+    } catch(e) {
+        setTimeout(checarProgresso, 1000);
+    }
+}
+
+marcarLoja(LOJAS[0], 'running');
+iniciarFonteEventos();
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   ESFERA DE PARTÍCULAS (adaptado do componente "Particle Sphere"
+   da Originkit para JS puro, sem React/Framer — carrega o Three.js
+   via CDN e roda dentro do círculo de 104px que antes tinha o radar).
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+    function corTema() {
+        const raw = getComputedStyle(document.documentElement)
+            .getPropertyValue('--royal').trim();
+        return raw || '#2563EB';
+    }
+
+    function iniciarEsferaParticulas() {
+        const container = document.getElementById('esferaParticulas');
+        if (!container || typeof THREE === 'undefined') return;
+
+        const tamanho = container.clientWidth || 104;
+        const QTD_PARTICULAS = 900;
+
+        const scene  = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+        camera.position.z = 2.5;
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(tamanho, tamanho);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        container.appendChild(renderer.domElement);
+
+        // Distribuição Fibonacci — pontos uniformemente espalhados na esfera
+        const posicoes = new Float32Array(QTD_PARTICULAS * 3);
+        const anguloDourado = Math.PI * (3 - Math.sqrt(5));
+        for (let i = 0; i < QTD_PARTICULAS; i++) {
+            const y = 1 - (i / (QTD_PARTICULAS - 1)) * 2;
+            const r = Math.sqrt(1 - y * y);
+            const theta = anguloDourado * i;
+            posicoes[i * 3]     = Math.cos(theta) * r;
+            posicoes[i * 3 + 1] = y;
+            posicoes[i * 3 + 2] = Math.sin(theta) * r;
+        }
+
+        const geometria = new THREE.BufferGeometry();
+        geometria.setAttribute('position', new THREE.Float32BufferAttribute(posicoes, 3));
+
+        const material = new THREE.PointsMaterial({
+            size: 0.045,
+            color: new THREE.Color(corTema()),
+            transparent: true,
+            opacity: 0.9,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+        });
+
+        const pontos = new THREE.Points(geometria, material);
+        const grupo  = new THREE.Group();
+        grupo.add(pontos);
+        scene.add(grupo);
+
+        let ativo = true;
+        function animar() {
+            if (!ativo) return;
+            grupo.rotation.y += 0.012;
+            grupo.rotation.x += 0.004;
+            renderer.render(scene, camera);
+            requestAnimationFrame(animar);
+        }
+        animar();
+
+        // Recolore a esfera quando o tema claro/escuro muda
+        window.addEventListener('temaAlterado', () => {
+            material.color.set(corTema());
+        });
+
+        // Economiza CPU/bateria quando a aba está em segundo plano
+        document.addEventListener('visibilitychange', () => {
+            const estavaAtivo = ativo;
+            ativo = !document.hidden;
+            if (ativo && !estavaAtivo) animar();
+        });
+    }
+
+    // Carrega o Three.js via CDN só quando necessário e inicializa a esfera
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
+    script.onload = iniciarEsferaParticulas;
+    script.onerror = function () {
+        // Fallback silencioso: se o CDN falhar, o círculo fica vazio
+        // (sem quebrar o resto da página de espera).
+        console.warn('[OrçaTech] Não foi possível carregar o Three.js para a esfera de partículas.');
+    };
+    document.head.appendChild(script);
+})();
+</script>
+
+<div style="position:fixed;bottom:20px;right:20px;z-index:999;">
+    <button class="theme-btn" id="themeToggle" onclick="toggleTheme()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+</div>
+
+<script>
+(function(){
+    const t = localStorage.getItem('tema') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    const b = document.getElementById('themeToggle');
+    if(b) b.innerHTML = t === 'dark' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+})();
+function toggleTheme(){
+    const e = document.documentElement;
+    const n = e.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    e.setAttribute('data-theme', n);
+    localStorage.setItem('tema', n);
+    const b = document.getElementById('themeToggle');
+    if(b) b.innerHTML = n === 'dark' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+    window.dispatchEvent(new CustomEvent('temaAlterado'));
+}
+</script>
+</body>
+</html>

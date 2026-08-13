@@ -1,0 +1,14 @@
+{
+  "pichau": {
+    "nome_loja": "Pichau",
+    "url_busca": "https://www.pichau.com.br/search?q={produto}",
+    "seletores": {
+      "container": "a[data-cy='product-card']",
+      "nome": "h2",
+      "preco": "div.MuiTypography-root",
+      "link": "",
+      "imagem": "img"
+    },
+    "observacao": "Bloqueada por antibot (Cloudflare) em 2026. Retorna 0 produtos. Para reativar: implementar Selenium visível com challenge Cloudflare."
+  }
+}

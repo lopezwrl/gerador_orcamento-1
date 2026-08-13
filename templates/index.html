@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard – OrçaTech</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy:#1e2a6e; --royal:#2d3a8c; --blue:#3d52c4; --sky:#5b78e0;
+            --ice:#dde5ff; --gold:#e69500; --gold-lt:#f5b800;
+            --teal:#0a8a79; --teal-lt:#0fb39e; --danger:#dc2626;
+            --bg:#f4f6fb; --surface:#ffffff; --surface2:#f0f2fa; --surface3:#e8ecf8;
+            --border:#d4d9ef; --border2:#b8c0e0;
+            --text:#1a2040; --text2:#374080; --muted:#8890b8; --muted2:#6070a8;
+            --sidebar-w:250px; --radius:12px; --radius-lg:18px;
+            --shadow:0 4px 20px rgba(30,42,110,.08);
+            --shadow-lg:0 12px 40px rgba(30,42,110,.14);
+        }
+        *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+        body{display:flex;background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased;}
+        body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(61,82,196,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(61,82,196,.025) 1px,transparent 1px);background-size:40px 40px;}
+
+        /* SIDEBAR */
+        .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--navy);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 24px rgba(30,42,110,.18);}
+        .sidebar-header{padding:28px 24px 22px;border-bottom:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.15);}
+        .sidebar-nav{padding:20px 14px;flex:1;display:flex;flex-direction:column;gap:3px;}
+        .nav-section-label{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:2px;text-transform:uppercase;font-weight:700;padding:0 10px;margin:12px 0 6px;}
+        .sidebar a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:rgba(255,255,255,.6);text-decoration:none;font-size:13.5px;font-weight:500;transition:color .22s,background .22s,transform .22s cubic-bezier(.4,0,.2,1);position:relative;}
+        .sidebar a .icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:rgba(255,255,255,.08);transition:all .2s;flex-shrink:0;}
+        .sidebar a:hover{color:white;background:rgba(255,255,255,.08);transform:translateX(2px);}
+        .sidebar a.ativo{color:white;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15);}
+        .sidebar a.ativo .icon{background:linear-gradient(135deg,var(--gold),var(--gold-lt));box-shadow:0 4px 12px rgba(240,165,0,.4);}
+        .sidebar a.ativo::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--gold-lt);border-radius:0 3px 3px 0;}
+        .sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.35);}
+        .sidebar-footer span{color:rgba(255,255,255,.6);font-weight:600;}
+
+        /* TOPBAR MOBILE */
+        .topbar-mobile{display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--navy);padding:12px 20px;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(30,42,110,.2);}
+        .hamburger{background:none;border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:8px;border-radius:8px;display:flex;flex-direction:column;gap:4px;}
+        .hamburger span{display:block;width:18px;height:2px;background:white;border-radius:2px;transition:all .3s;}
+        .hamburger.open span:nth-child(1){transform:translateY(6px) rotate(45deg);}
+        .hamburger.open span:nth-child(2){opacity:0;}
+        .hamburger.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
+        .overlay{display:none;position:fixed;inset:0;background:rgba(20,30,80,.5);z-index:99;backdrop-filter:blur(4px);}
+        .overlay.show{display:block;}
+
+        /* MAIN */
+        .main{margin-left:var(--sidebar-w);flex:1;padding:40px 44px 60px;position:relative;z-index:1;}
+        @keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+        .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;animation:fadeDown .5s ease both;gap:16px;}
+        .page-header h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--navy);letter-spacing:-.3px;}
+        .page-header p{color:var(--muted2);margin-top:6px;font-size:13px;}
+
+        /* SEARCH CARD */
+        .search-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;box-shadow:var(--shadow);animation:fadeUp .5s .1s ease both;position:relative;overflow:hidden;margin-bottom:32px;}
+        .search-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--navy),var(--sky),var(--teal));}
+
+        .form-grid{display:grid;grid-template-columns:2fr 1fr auto;gap:16px;align-items:end;}
+        .form-group{display:flex;flex-direction:column;gap:6px;}
+        .form-group label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted2);}
+        .form-input{padding:12px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:inherit;font-size:14px;outline:none;transition:all .2s;}
+        .form-input:focus{border-color:var(--blue);background:var(--surface);box-shadow:0 0 0 3px rgba(61,82,196,.15);}
+
+        .btn-submit{padding:12px 24px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--navy),var(--blue));color:white;font-weight:600;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .2s;box-shadow:0 4px 12px rgba(30,42,110,.25);}
+        .btn-submit:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(30,42,110,.35);}
+
+        /* SUGESTÕES DE PRODUTOS */
+        .search-suggestions {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px dashed var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            animation: fadeUp .5s .2s ease both;
+        }
+        .suggestions-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--muted2);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .suggestions-list {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .chip-suggestion {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text2);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            user-select: none;
+        }
+        .chip-suggestion:hover {
+            background: var(--surface3);
+            border-color: var(--sky);
+            color: var(--blue);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(61, 82, 196, 0.12);
+        }
+        .chip-suggestion:active {
+            transform: translateY(0);
+        }
+
+        .theme-btn{width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:18px;box-shadow:var(--shadow);transition:.2s;flex-shrink:0;}
+        .theme-btn:hover{transform:translateY(-2px)}
+
+        /* LOJAS INTEGRADAS */
+        .lojas-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;box-shadow:var(--shadow);animation:fadeUp .5s .15s ease both;position:relative;overflow:hidden;}
+        .lojas-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--navy),var(--sky),var(--teal));}
+        .lojas-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap;}
+        .lojas-card-header h2{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--navy);}
+        .lojas-card-header p{color:var(--muted2);font-size:12.5px;margin-top:4px;}
+        .lojas-count{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;background:linear-gradient(135deg,var(--navy),var(--blue));color:white;font-size:12px;font-weight:700;letter-spacing:.4px;box-shadow:0 3px 10px rgba(30,42,110,.25);}
+        .lojas-count strong{font-size:13px;font-family:'JetBrains Mono',monospace;}
+
+        .lojas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;}
+        .loja-chip{
+            display:flex;flex-direction:column;align-items:center;gap:6px;
+            padding:14px 10px;border:1px solid var(--border);border-radius:12px;
+            background:var(--surface2);transition:all .22s cubic-bezier(.4,0,.2,1);
+            text-align:center;position:relative;overflow:hidden;
+        }
+        .loja-chip::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 0%,rgba(61,82,196,.04) 100%);opacity:0;transition:opacity .2s;}
+        .loja-chip:hover{transform:translateY(-3px);border-color:var(--sky);box-shadow:var(--shadow);}
+        .loja-chip:hover::after{opacity:1;}
+        .loja-chip-emoji{font-size:24px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.08));}
+        .loja-chip-nome{font-size:12.5px;font-weight:700;color:var(--text);letter-spacing:.2px;}
+        .loja-chip-tipo{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;}
+        .loja-chip.comparador{border-style:dashed;background:linear-gradient(135deg,var(--surface2) 0%,var(--ice) 100%);}
+        .loja-chip.comparador .loja-chip-tipo{color:var(--teal);}
+
+        /* MODO ESCURO */
+        [data-theme='dark']{
+            --bg:#0b1220; --surface:#162033; --surface2:#1d2940; --surface3:#243550;
+            --border:#324764; --border2:#46607f; --text:#f4f7ff; --text2:#dfe7ff;
+            --muted:#aab7d3; --muted2:#c5d0ea; --navy:#3d52c4; --royal:#5b78e0;
+            --blue:#6f8cf0; --sky:#8fa6f5; --ice:#26345c; --gold:#f5b800;
+            --gold-lt:#ffd24d; --teal:#2dd4bf; --danger:#f87171;
+            --shadow:0 4px 20px rgba(0,0,0,.35);
+        }
+        [data-theme='dark'] body{background:var(--bg);color:var(--text);}
+        [data-theme='dark'] .sidebar, [data-theme='dark'] .topbar-mobile{background:#0a1322;}
+        [data-theme='dark'] .page-header h1{color:var(--text);}
+        [data-theme='dark'] .search-card{background:var(--surface);border-color:var(--border);}
+        [data-theme='dark'] .form-input{background:var(--surface2);border-color:var(--border);color:var(--text);}
+        [data-theme='dark'] .form-input:focus{background:var(--surface);border-color:var(--blue);}
+        [data-theme='dark'] .theme-btn{background:var(--surface2);border-color:var(--border2);color:var(--gold-lt);}
+        [data-theme='dark'] .lojas-card{background:var(--surface);border-color:var(--border);}
+        [data-theme='dark'] .loja-chip{background:var(--surface2);border-color:var(--border);}
+        [data-theme='dark'] .loja-chip-nome{color:var(--text);}
+        [data-theme='dark'] .loja-chip.comparador{background:linear-gradient(135deg,var(--surface2) 0%,rgba(45,212,191,.08) 100%);border-color:rgba(45,212,191,.25);}
+        [data-theme='dark'] .loja-chip-tipo{color:var(--muted);}
+
+        @media(max-width:768px){
+            .sidebar{transform:translateX(-100%);}
+            .sidebar.open{transform:translateX(0);box-shadow:12px 0 40px rgba(20,30,80,.3);}
+            .topbar-mobile{display:flex;}
+            .main{margin-left:0;padding:72px 16px 40px;}
+            .form-grid{grid-template-columns:1fr;}
+            .search-suggestions {flex-direction: column; align-items: flex-start;}
+            .lojas-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));}
+        }
+
+        @view-transition { navigation: auto; }
+        .sidebar { view-transition-name: app-sidebar; }
+        .topbar-mobile { view-transition-name: app-topbar; }
+        .main { view-transition-name: app-content; }
+    </style>
+</head>
+<body>
+
+<div class="overlay" id="overlay" onclick="fecharMenu()"></div>
+
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div style="padding:6px 0">
+            <h2 style="margin:0;color:#fff;letter-spacing:2px;">ORÇATECH</h2>
+            <div style="margin-top:6px;color:rgba(255,255,255,.75);font-size:12px">Comparador Inteligente</div>
+        </div>
+    </div>
+    <div class="sidebar-nav">
+        <div class="nav-section-label">Menu Principal</div>
+        <a href="/" class="ativo"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M3 9.5 12 2l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></div> Dashboard</a>
+        <a href="/orcamentos"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6M9 8h1"/></svg></div> Orçamentos</a>
+        <a href="/relatorios"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div> Relatórios</a>
+    </div>
+    <div class="sidebar-footer">OrçaTech v2.0 · <span>ORÇATECH</span></div>
+</nav>
+
+<div class="topbar-mobile">
+    <strong style="color:white;letter-spacing:2px;">ORÇATECH</strong>
+    <button class="hamburger" id="hamburger" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+</div>
+
+<div class="main">
+    <div class="page-header">
+        <div>
+            <h1>Dashboard de Cotações</h1>
+            <p>Pesquise em 7 lojas especializadas em tecnologia em uma única busca.</p>
+        </div>
+        <button class="theme-btn" id="themeToggle" onclick="toggleTheme()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+    </div>
+
+    <div class="search-card">
+        <form action="/buscar" method="POST" class="form-grid">
+            <div class="form-group">
+                <label for="produto">Nome do Produto ou Item</label>
+                <input type="text" id="produto" name="produto" class="form-input" placeholder="Ex: Notebook Gamer, SSD 1TB, Teclado Mecânico…" required>
+            </div>
+            <div class="form-group">
+                <label for="solicitante">Nome do Solicitante</label>
+                <input type="text" id="solicitante" name="solicitante" class="form-input" placeholder="Ex: Maria Silva">
+            </div>
+            <button type="submit" class="btn-submit">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                Buscar Preços
+            </button>
+        </form>
+
+        <!-- SUGESTÕES DE PRODUTOS -->
+        <div class="search-suggestions">
+            <span class="suggestions-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+                Sugestões Frequentes:
+            </span>
+            <div class="suggestions-list">
+                <button type="button" class="chip-suggestion" onclick="preencherProduto('SSD NVMe 1TB')">💾 SSD NVMe 1TB</button>
+                <button type="button" class="chip-suggestion" onclick="preencherProduto('Memória RAM 16GB DDR4')">📟 Memória RAM 16GB DDR4</button>
+                <button type="button" class="chip-suggestion" onclick="preencherProduto('Monitor 27 IPS')">🖥️ Monitor 27" IPS</button>
+                <button type="button" class="chip-suggestion" onclick="preencherProduto('Notebook i7 16GB')">💻 Notebook i7</button>
+                <button type="button" class="chip-suggestion" onclick="preencherProduto('Teclado Mecânico')">⌨️ Teclado Mecânico</button>
+                <button type="button" class="chip-suggestion" onclick="preencherProduto('Mouse Gamer')">🖱️ Mouse Gamer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOJAS INTEGRADAS -->
+    <div class="lojas-card">
+        <div class="lojas-card-header">
+            <div>
+                <h2>Lojas Integradas</h2>
+                <p>Comparamos preços em tempo real nestas lojas e comparadores de tecnologia.</p>
+            </div>
+            <span class="lojas-count">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                <strong>7</strong> lojas ativas
+            </span>
+        </div>
+        <div class="lojas-grid">
+            <div class="loja-chip">
+                <span class="loja-chip-emoji">💀</span>
+                <span class="loja-chip-nome">KaBuM</span>
+                <span class="loja-chip-tipo">Loja</span>
+            </div>
+            <div class="loja-chip">
+                <span class="loja-chip-emoji">⚡</span>
+                <span class="loja-chip-nome">Terabyte</span>
+                <span class="loja-chip-tipo">Loja</span>
+            </div>
+            <div class="loja-chip">
+                <span class="loja-chip-emoji">🖥️</span>
+                <span class="loja-chip-nome">iByte</span>
+                <span class="loja-chip-tipo">Loja</span>
+            </div>
+            <div class="loja-chip">
+                <span class="loja-chip-emoji">📦</span>
+                <span class="loja-chip-nome">Amazon</span>
+                <span class="loja-chip-tipo">Loja</span>
+            </div>
+            <div class="loja-chip">
+                <span class="loja-chip-emoji">🛒</span>
+                <span class="loja-chip-nome">Americanas</span>
+                <span class="loja-chip-tipo">Loja</span>
+            </div>
+            <div class="loja-chip">
+                <span class="loja-chip-emoji">🛍️</span>
+                <span class="loja-chip-nome">Mercado Livre</span>
+                <span class="loja-chip-tipo">Loja</span>
+            </div>
+            <div class="loja-chip">
+                <span class="loja-chip-emoji">🛡️</span>
+                <span class="loja-chip-nome">Gshield</span>
+                <span class="loja-chip-tipo">Loja</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleMenu(){
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('show');
+    document.getElementById('hamburger').classList.toggle('open');
+}
+function fecharMenu(){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('show');
+    document.getElementById('hamburger').classList.remove('open');
+}
+
+/* Preencher campo de busca ao clicar na sugestão */
+function preencherProduto(nome) {
+    const inputProduto = document.getElementById('produto');
+    if (inputProduto) {
+        inputProduto.value = nome;
+        inputProduto.focus();
+    }
+}
+
+(function(){
+    const t = localStorage.getItem('tema') || 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    const b = document.getElementById('themeToggle');
+    if (b) b.innerHTML = t === 'dark' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+})();
+
+function toggleTheme(){
+    const e = document.documentElement;
+    const n = e.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    e.setAttribute('data-theme', n);
+    localStorage.setItem('tema', n);
+    document.getElementById('themeToggle').innerHTML = n === 'dark' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+}
+</script>
+</body>
+</html>
