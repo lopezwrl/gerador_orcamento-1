@@ -253,16 +253,26 @@ def resultado(job_id):
 @app.route('/orcamentos')
 def orcamentos():
     historico = ler_historico()
+    orcamentos_view = []
+    for i, item in enumerate(historico):
+        item_com_id = dict(item)
+        item_com_id['id'] = i
+        orcamentos_view.append(item_com_id)
+    orcamentos_view.reverse()  # mais recentes primeiro
     with _jobs_lock:
         jobs_ativos = {jid: j for jid, j in _jobs.items()
                        if j["status"] in ("pending", "running")}
-    return render_template('orcamentos.html', historico=historico, jobs_ativos=jobs_ativos)
+    return render_template('orcamentos.html', orcamentos=orcamentos_view, jobs_ativos=jobs_ativos)
 
 
 @app.route('/relatorios')
 def relatorios():
     historico = ler_historico()
-    return render_template('relatorios.html', historico=historico, total_lojas=TOTAL_LOJAS)
+    total_cotacoes = len(historico)
+    economias = [_parse_valor_brl(h.get('economia', '0')) for h in historico]
+    economia_total = f"{sum(economias):,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+    return render_template('relatorios.html', historico=historico, total_lojas=TOTAL_LOJAS,
+                           total_cotacoes=total_cotacoes, economia_total=economia_total)
 
 
 @app.route('/api/relatorios_dados')
@@ -335,7 +345,7 @@ def baixar_pdf():
                      mimetype='application/pdf')
 
 
-@app.route('/gerar_pdf_historico/<int:indice>', methods=['POST'])
+@app.route('/gerar_pdf_historico/<int:indice>', methods=['GET', 'POST'])
 def gerar_pdf_historico(indice):
     historico = ler_historico()
     if indice < 0 or indice >= len(historico):
@@ -350,37 +360,10 @@ def gerar_pdf_historico(indice):
                      mimetype='application/pdf')
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PATCH para app.py — substitua APENAS o bloco do if __name__ == '__main__'
-#
-# PROBLEMA: pre_aquecer() abre uma janela Chrome VISÍVEL porque o driver_manager
-# provavelmente cria um driver sem as flags headless para testar a conexão.
-# Isso causa a "aba preta" que você vê ao iniciar o servidor.
-#
-# SOLUÇÃO: não chamar pre_aquecer() ao iniciar — o ChromeDriver já é
-# baixado automaticamente pelo webdriver-manager na primeira busca real.
-# Se quiser manter o pré-aquecimento, ele deve rodar headless e só baixar
-# o binário (sem abrir janela). Veja comentário abaixo.
-# ─────────────────────────────────────────────────────────────────────────────
-
-# SUBSTITUA o bloco final do app.py por este:
-
 if __name__ == '__main__':
     print("✓ OrçaTech iniciado")
 
-    # NÃO chame pre_aquecer() aqui.
-    # O webdriver-manager baixa o ChromeDriver automaticamente na primeira
-    # busca que usar Selenium. Chamar pre_aquecer() abre uma janela Chrome
-    # visível na área de trabalho antes mesmo de qualquer busca.
-    #
-    # Se quiser garantir que o driver está baixado sem abrir janela, faça:
-    #
-    #   from driver_manager import obter_driver_path
-    #   try:
-    #       obter_driver_path()   # só resolve o binário, não abre o Chrome
-    #       print("✓ ChromeDriver pronto")
-    #   except Exception as e:
-    #       print(f"⚠ ChromeDriver: {e}")
+    # NÃO chame pre_aquecer() aqui — abre uma janela Chrome visível à toa.
+    # O ChromeDriver é baixado automaticamente na primeira busca real.
 
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)),
-            debug=False, use_reloader=False, threaded=True)
+    app.run(debug=True, use_reloader=False, threaded=True)

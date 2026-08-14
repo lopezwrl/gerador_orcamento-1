@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Relatórios – OrçaTech</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
     <style>
         :root {
             --navy:#1e2a6e; --royal:#2d3a8c; --blue:#3d52c4; --sky:#5b78e0;
@@ -66,6 +67,16 @@
 
         .theme-btn{width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:18px;box-shadow:var(--shadow);transition:.2s;flex-shrink:0;}
         .theme-btn:hover{transform:translateY(-2px)}
+
+        /* GRÁFICOS */
+        .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;animation:fadeUp .5s .15s ease both;}
+        .chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px;box-shadow:var(--shadow);}
+        .chart-card.full{grid-column:1/-1;}
+        .chart-title{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:var(--navy);margin-bottom:16px;}
+        .chart-wrap{position:relative;height:260px;}
+        .sem-dados{background:var(--surface);border-radius:var(--radius-lg);padding:60px 40px;text-align:center;color:var(--muted2);border:2px dashed var(--border);animation:fadeUp .5s .1s ease both;box-shadow:var(--shadow);}
+        .sem-dados .sd-icon{width:64px;height:64px;border-radius:16px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 20px;}
+        .sem-dados h3{font-family:'Playfair Display',serif;font-size:18px;color:var(--text2);margin-bottom:8px;}
 
         /* MODO ESCURO */
         [data-theme='dark']{
@@ -143,6 +154,29 @@
             <div class="stat-val">{{ total_lojas or '7' }}</div>
         </div>
     </div>
+
+    <div id="semDados" class="sem-dados" style="display:none;">
+        <div class="sd-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:30px;height:30px;"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+        </div>
+        <h3>Ainda não há dados suficientes</h3>
+        <p>Realize pesquisas no Dashboard para que os gráficos sejam gerados.</p>
+    </div>
+
+    <div id="graficosGrid" class="charts-grid">
+        <div class="chart-card">
+            <div class="chart-title">Loja Mais Barata (frequência)</div>
+            <div class="chart-wrap"><canvas id="chartLojas"></canvas></div>
+        </div>
+        <div class="chart-card">
+            <div class="chart-title">Produtos Mais Pesquisados</div>
+            <div class="chart-wrap"><canvas id="chartProdutos"></canvas></div>
+        </div>
+        <div class="chart-card full">
+            <div class="chart-title">Economia Acumulada ao Longo do Tempo</div>
+            <div class="chart-wrap"><canvas id="chartEconomia"></canvas></div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -170,7 +204,98 @@ function toggleTheme(){
     e.setAttribute('data-theme', n);
     localStorage.setItem('tema', n);
     document.getElementById('themeToggle').innerHTML = n === 'dark' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+    if (window._graficosOrcaTech) window._graficosOrcaTech.forEach(c => atualizarCorGrafico(c));
 }
+
+// ── GRÁFICOS ──────────────────────────────────────────────────────
+const PALETA = ['#3d52c4','#e69500','#0a8a79','#5b78e0','#f5b800','#0fb39e','#8890b8'];
+
+function corTexto(){
+    return getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#374080';
+}
+function corGrade(){
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    return dark ? 'rgba(255,255,255,.08)' : 'rgba(30,42,110,.08)';
+}
+
+function atualizarCorGrafico(chart){
+    const cor = corTexto(), grade = corGrade();
+    if (chart.options.plugins?.legend?.labels) chart.options.plugins.legend.labels.color = cor;
+    if (chart.options.scales?.x) { chart.options.scales.x.ticks.color = cor; chart.options.scales.x.grid.color = grade; }
+    if (chart.options.scales?.y) { chart.options.scales.y.ticks.color = cor; chart.options.scales.y.grid.color = grade; }
+    chart.update();
+}
+
+async function carregarRelatorios(){
+    try {
+        const resp = await fetch('/api/relatorios_dados');
+        const dados = await resp.json();
+
+        if (dados.vazio) {
+            document.getElementById('semDados').style.display = 'block';
+            document.getElementById('graficosGrid').style.display = 'none';
+            return;
+        }
+
+        window._graficosOrcaTech = [];
+        const cor = corTexto(), grade = corGrade();
+
+        // Loja mais barata (rosca)
+        const lojas = Object.keys(dados.lojas_mais_baratas || {});
+        const lojasQtd = Object.values(dados.lojas_mais_baratas || {});
+        window._graficosOrcaTech.push(new Chart(document.getElementById('chartLojas'), {
+            type: 'doughnut',
+            data: { labels: lojas, datasets: [{ data: lojasQtd, backgroundColor: PALETA, borderWidth: 0 }] },
+            options: { plugins: { legend: { position: 'bottom', labels: { color: cor, boxWidth: 12, font: { size: 11 } } } } }
+        }));
+
+        // Produtos mais pesquisados (barras horizontais)
+        const produtos = (dados.top_produtos || []).map(p => p.produto);
+        const produtosQtd = (dados.top_produtos || []).map(p => p.vezes);
+        window._graficosOrcaTech.push(new Chart(document.getElementById('chartProdutos'), {
+            type: 'bar',
+            data: { labels: produtos, datasets: [{ label: 'Buscas', data: produtosQtd, backgroundColor: '#3d52c4', borderRadius: 6 }] },
+            options: {
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: cor, precision: 0 }, grid: { color: grade } },
+                    y: { ticks: { color: cor }, grid: { display: false } }
+                }
+            }
+        }));
+
+        // Economia acumulada (linha)
+        window._graficosOrcaTech.push(new Chart(document.getElementById('chartEconomia'), {
+            type: 'line',
+            data: {
+                labels: dados.datas || [],
+                datasets: [{
+                    label: 'Economia acumulada (R$)',
+                    data: dados.economia_acumulada || [],
+                    borderColor: '#0a8a79',
+                    backgroundColor: 'rgba(10,138,121,.12)',
+                    fill: true, tension: 0.35, pointRadius: 3,
+                }]
+            },
+            options: {
+                plugins: { legend: { labels: { color: cor } } },
+                scales: {
+                    x: { ticks: { color: cor }, grid: { color: grade } },
+                    y: { ticks: { color: cor }, grid: { color: grade } }
+                }
+            }
+        }));
+
+    } catch (e) {
+        console.error('[Relatórios] Erro ao carregar gráficos:', e);
+        document.getElementById('semDados').style.display = 'block';
+        document.getElementById('graficosGrid').style.display = 'none';
+    }
+}
+
+carregarRelatorios();
+
 </script>
 </body>
 </html>
