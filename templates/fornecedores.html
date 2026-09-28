@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fornecedores – OrçaTech</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('tema') || 'light');</script>
+<style>
+        :root {
+            --navy:#0F172A; --royal:#2563EB; --royal-lt:#3B82F6; --sky:#60A5FA;
+            --ice:#EFF6FF; --ice2:#F8FAFC; --amber:#D97706; --amber-lt:#FEF3C7;
+            --green:#059669; --green-lt:#D1FAE5; --red:#DC2626; --red-lt:#FEE2E2;
+            --bg:#F1F5F9; --surface:#FFFFFF; --surface2:#F8FAFC;
+            --border:#E2E8F0; --border2:#CBD5E1;
+            --text:#0F172A; --text2:#334155; --muted:#64748B; --muted2:#94A3B8;
+            --radius:12px; --radius-lg:16px; --radius-xl:22px;
+            --shadow-sm:0 1px 3px rgba(15,23,42,.05), 0 1px 2px rgba(15,23,42,.03);
+            --shadow:0 4px 20px -2px rgba(15,23,42,.08), 0 2px 6px -1px rgba(15,23,42,.04);
+            --shadow-lg:0 20px 25px -5px rgba(15,23,42,.1), 0 8px 10px -6px rgba(15,23,42,.05);
+        }
+        [data-theme='dark'] {
+            --bg:#0B0F17; --surface:#151D2A; --surface2:#1C2638;
+            --border:#2A384F; --border2:#3A4D6B;
+            --text:#F8FAFC; --text2:#E2E8F0; --muted:#94A3B8; --muted2:#64748B;
+            --navy:#3B82F6; --royal:#60A5FA; --royal-lt:#93C5FD; --sky:#93C5FD;
+            --ice:#1E293B; --ice2:#1C2638;
+            --amber:#F59E0B; --amber-lt:#2D2109;
+            --green:#10B981; --green-lt:#062C22; --red:#EF4444; --red-lt:#3B1212;
+            --shadow-sm:0 1px 3px rgba(0,0,0,.4);
+            --shadow:0 4px 20px -2px rgba(0,0,0,.5);
+            --shadow-lg:0 20px 25px -5px rgba(0,0,0,.55);
+        }
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior:smooth; }
+        body {
+            background:var(--bg); color:var(--text); font-family:'Inter',sans-serif;
+            font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased;
+            min-height:100vh; padding:40px 44px 64px; transition:background .25s, color .25s;
+        }
+        .wrap { max-width:1100px; margin:0 auto; }
+
+        @keyframes fadeDown { from{opacity:0;transform:translateY(-14px);} to{opacity:1;transform:translateY(0);} }
+        @keyframes fadeUp   { from{opacity:0;transform:translateY(18px);}  to{opacity:1;transform:translateY(0);} }
+
+        /* ── TOPBAR ── */
+        .topo {
+            display:flex; align-items:center; justify-content:space-between;
+            margin-bottom:28px; flex-wrap:wrap; gap:16px;
+            animation:fadeDown .45s cubic-bezier(.16,1,.3,1) both;
+            background:var(--surface); padding:20px 24px;
+            border-radius:var(--radius-lg); border:1px solid var(--border);
+            box-shadow:var(--shadow-sm); transition:background .25s, border-color .25s;
+        }
+        .topo h1 { font-size:22px; font-weight:800; color:var(--navy); letter-spacing:-.4px; line-height:1.3;
+                   display:flex; align-items:center; gap:10px; }
+        .acoes { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+        /* ── BOTÕES ── */
+        .btn {
+            padding:10px 18px; border:1px solid var(--border); border-radius:var(--radius);
+            background:var(--surface2); color:var(--text2); font:600 13px 'Inter',sans-serif;
+            letter-spacing:.2px; cursor:pointer; text-decoration:none;
+            display:inline-flex; align-items:center; gap:8px; box-shadow:var(--shadow-sm);
+            transition:all .22s cubic-bezier(.16,1,.3,1);
+        }
+        .btn:hover { color:var(--royal); border-color:var(--royal); transform:translateY(-1px); }
+        .btn-primary { background:var(--royal); border-color:var(--royal); color:#fff; box-shadow:0 4px 14px rgba(37,99,235,.25); }
+        .btn-primary:hover { color:#fff; background:var(--royal-lt); border-color:var(--royal-lt); transform:translateY(-2px); box-shadow:0 8px 20px rgba(37,99,235,.35); }
+        .btn-sm { padding:6px 12px; font-size:12px; }
+        .btn-danger { background:var(--red-lt); color:var(--red); border-color:transparent; box-shadow:none; }
+        .btn-danger:hover { background:var(--red); color:#fff; border-color:var(--red); }
+        .theme-btn {
+            width:40px; height:40px; border-radius:var(--radius); border:1px solid var(--border);
+            background:var(--surface2); color:var(--text); cursor:pointer; box-shadow:var(--shadow-sm);
+            transition:.2s; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+        }
+        .theme-btn:hover { transform:translateY(-2px); border-color:var(--royal); color:var(--royal); }
+        [data-theme='dark'] .theme-btn { color:var(--amber); }
+
+        /* ── CAMPOS ── */
+        label { display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:4px; }
+        input, select, textarea {
+            width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius);
+            background:var(--surface2); color:var(--text); font:14px 'Inter',sans-serif;
+            transition:border-color .2s, background .25s, box-shadow .2s;
+        }
+        input:focus, select:focus, textarea:focus { outline:none; border-color:var(--royal); box-shadow:0 0 0 3px rgba(37,99,235,.15); }
+        input::placeholder, textarea::placeholder { color:var(--muted2); }
+
+        /* ── FLASH ── */
+        .flash-msg { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+                     padding:12px 16px; border-radius:var(--radius); margin:0 0 16px; font-size:14px; font-weight:600;
+                     animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both; }
+        .flash-msg a { color:inherit; text-decoration:underline; }
+        .flash-msg.sucesso { background:rgba(5,150,105,.14); color:var(--green); }
+        .flash-msg.erro { background:rgba(220,38,38,.14); color:var(--red); }
+
+        /* ── TRANSIÇÃO ENTRE PÁGINAS ── */
+        @view-transition { navigation:auto; }
+        .wrap { view-transition-name:app-content; }
+        ::view-transition-old(app-content){animation:vt-out .22s cubic-bezier(.4,0,.6,1) both;}
+        ::view-transition-new(app-content){animation:vt-in .32s cubic-bezier(.16,1,.3,1) both;}
+        @keyframes vt-out{to{opacity:0;transform:translateY(-6px) scale(.992);}}
+        @keyframes vt-in{from{opacity:0;transform:translateY(10px) scale(.992);}}
+        @media (prefers-reduced-motion: reduce){
+            *, ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*){animation:none!important;transition:none!important;}
+        }
+
+        h2 { font-size:16px; font-weight:700; margin-bottom:14px; }
+        .card {
+            background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-xl);
+            padding:24px; margin-bottom:22px; box-shadow:var(--shadow-sm);
+            animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both;
+            transition:background .25s, border-color .25s, box-shadow .3s;
+        }
+        .wrap > .card:nth-of-type(1){animation-delay:.04s;}
+        .wrap > .card:nth-of-type(2){animation-delay:.10s;}
+        .wrap > .card:nth-of-type(3){animation-delay:.16s;}
+        .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; }
+        .row { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+               padding:14px 0; border-top:1px solid var(--border);
+               animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both; }
+        .row:nth-child(2){border-top:0;}
+        .row:nth-child(2){animation-delay:.02s;} .row:nth-child(3){animation-delay:.05s;}
+        .row:nth-child(4){animation-delay:.08s;} .row:nth-child(5){animation-delay:.11s;}
+        .row:nth-child(6){animation-delay:.14s;} .row:nth-child(n+7){animation-delay:.17s;}
+        .nome { font-weight:700; }
+        .meta { font-size:12px; color:var(--muted); }
+        .tag { font-size:11px; font-weight:700; padding:2px 10px; border-radius:999px;
+               background:rgba(37,99,235,.12); color:var(--royal); margin-left:6px; }
+        .tag.off { background:rgba(220,38,38,.14); color:var(--red); }
+        details { width:100%; }
+        details summary { list-style:none; cursor:pointer; display:inline-flex; }
+        details summary::-webkit-details-marker { display:none; }
+        details[open] > form { animation:fadeUp .3s cubic-bezier(.16,1,.3,1) both; }
+        details form { margin-top:12px; }
+        .vazio { color:var(--muted); padding:8px 0; }
+        @media (max-width:700px){ body{padding:24px 16px 48px;} }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topo">
+    <h1>Fornecedores</h1>
+    <div class="acoes">
+      <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" aria-label="Alternar tema"></button>
+      <a href="/orcamento/carrinho" class="btn">Carrinho{% if carrinho_count %} ({{ carrinho_count }}){% endif %}</a>
+      <a href="/" class="btn">Voltar</a>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for categoria, msg in messages %}
+      <div class="flash-msg {{ categoria }}">
+        <span>{{ msg }}</span>
+        {% if categoria == 'sucesso' and 'orçamento' in msg %}<a href="/orcamento/carrinho">Ver carrinho &rarr;</a>{% endif %}
+      </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="card">
+    <h2>Lançar cotação manual</h2>
+    {% set ativos = fornecedores | selectattr('ativo') | list %}
+    {% if ativos %}
+    <form action="{{ url_for('fornecedores.cotacao_manual') }}" method="POST">
+      <div class="form-grid">
+        <div><label>Fornecedor *</label>
+          <select name="fornecedor_id" required>
+            {% for f in ativos %}<option value="{{ f.id }}">{{ f.nome }}</option>{% endfor %}
+          </select></div>
+        <div><label>Produto (termo do orçamento) *</label><input name="produto_busca" required placeholder="ex: memória ram ddr4 8gb"></div>
+        <div><label>Descrição do item (opcional)</label><input name="nome" placeholder="nome exato oferecido"></div>
+        <div><label>Preço unitário (R$) *</label><input name="preco" required inputmode="decimal" placeholder="1.234,56"></div>
+        <div><label>Quantidade</label><input name="quantidade" type="number" min="1" value="1"></div>
+        <div><label>Frete (R$)</label><input name="frete" inputmode="decimal" placeholder="opcional"></div>
+        <div><label>Prazo de entrega</label><input name="prazo_entrega" placeholder="ex: 5 dias úteis"></div>
+        <div><label>Forma de pagamento</label><input name="forma_pagamento" placeholder="ex: Pix / 12x"></div>
+        <div><label>Link (opcional)</label><input name="link" placeholder="https://..."></div>
+      </div>
+      <div style="margin-top:16px"><button class="btn btn-primary" type="submit">Adicionar ao orçamento</button></div>
+    </form>
+    {% else %}
+      <p class="vazio">Cadastre um fornecedor ativo abaixo para lançar cotações.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Novo fornecedor</h2>
+    <form action="{{ url_for('fornecedores.novo') }}" method="POST">
+      <div class="form-grid">
+        <div><label>Nome *</label><input name="nome" required></div>
+        <div><label>Tipo</label>
+          <select name="tipo"><option value="manual">Manual (telefone, loja física)</option><option value="online">Online</option></select></div>
+        <div><label>Site</label><input name="site" placeholder="https://..."></div>
+        <div><label>Contato</label><input name="contato" placeholder="telefone / e-mail"></div>
+      </div>
+      <div style="margin-top:16px"><button class="btn btn-primary" type="submit">Cadastrar</button></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Cadastrados ({{ fornecedores|length }})</h2>
+    {% for f in fornecedores %}
+    <div class="row">
+      <div>
+        <span class="nome">{{ f.nome }}</span>
+        <span class="tag">{{ f.tipo }}</span>
+        {% if not f.ativo %}<span class="tag off">inativo</span>{% endif %}
+        <div class="meta">{{ f.site or '' }}{% if f.site and f.contato %} · {% endif %}{{ f.contato or '' }}</div>
+      </div>
+      <div class="acoes">
+        <form action="{{ url_for('fornecedores.alternar_ativo', fornecedor_id=f.id) }}" method="POST">
+          <button class="btn btn-sm" type="submit">{{ 'Desativar' if f.ativo else 'Ativar' }}</button>
+        </form>
+      </div>
+      <details>
+        <summary><span class="btn btn-sm">Editar</span></summary>
+        <form action="{{ url_for('fornecedores.editar', fornecedor_id=f.id) }}" method="POST">
+          <div class="form-grid">
+            <div><label>Nome</label><input name="nome" value="{{ f.nome }}" required></div>
+            <div><label>Tipo</label>
+              <select name="tipo">
+                <option value="manual" {{ 'selected' if f.tipo == 'manual' }}>Manual</option>
+                <option value="online" {{ 'selected' if f.tipo == 'online' }}>Online</option>
+              </select></div>
+            <div><label>Site</label><input name="site" value="{{ f.site or '' }}"></div>
+            <div><label>Contato</label><input name="contato" value="{{ f.contato or '' }}"></div>
+          </div>
+          <div style="margin-top:12px"><button class="btn btn-primary btn-sm" type="submit">Salvar</button></div>
+        </form>
+      </details>
+    </div>
+    {% else %}
+      <p class="vazio">Nenhum fornecedor ainda. As lojas da busca (Amazon, KaBuM…) aparecem aqui automaticamente depois que você adiciona um item ao orçamento.</p>
+    {% endfor %}
+  </div>
+</div>
+<script>
+(function(){
+    const LUA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+    const SOL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+    function aplicar(t){
+        document.documentElement.setAttribute('data-theme', t);
+        const b = document.getElementById('themeToggle');
+        if (b) b.innerHTML = t === 'dark' ? SOL : LUA;
+    }
+    aplicar(localStorage.getItem('tema') || 'light');
+    window.toggleTheme = function(){
+        const n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('tema', n);
+        aplicar(n);
+    };
+})();
+</script>
+
+</body>
+</html>

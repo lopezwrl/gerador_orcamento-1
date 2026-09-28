@@ -13,10 +13,11 @@ from scraping_americanas import buscar_americanas
 from scraping_ibyte import buscar_ibyte
 
 from scraping_gshield import buscar_gshield
+from scraping_aliexpress import buscar_aliexpress
 
 CACHE_DIR   = "cache"
 CACHE_HORAS = 6
-TOTAL_LOJAS = 7  # lojas nativas fixas (apenas lojas reais, sem comparadores)
+TOTAL_LOJAS = 8  # lojas nativas fixas (apenas lojas reais, sem comparadores)
 
 os.makedirs(CACHE_DIR, exist_ok=True)
 
@@ -367,7 +368,7 @@ def comparar(produto, forcar_busca=False, job=None):
         dados = _ler_cache(produto)
         dados['do_cache'] = True
         if job:
-            nomes_lojas = ['mercadolivre','kabum','amazon','terabyte','americanas','ibyte','gshield']
+            nomes_lojas = ['mercadolivre','kabum','amazon','terabyte','americanas','ibyte','gshield','aliexpress']
             total = len(nomes_lojas)
             with _job_lock:
                 for nome in nomes_lojas:
@@ -389,6 +390,7 @@ def comparar(produto, forcar_busca=False, job=None):
         ('americanas',   buscar_americanas),
         ('ibyte',        buscar_ibyte),
         ('gshield',      buscar_gshield),
+        ('aliexpress',   buscar_aliexpress),
     ]
 
     def _rodar(nome_loja, fn):

@@ -154,6 +154,7 @@
         .grid {
             display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr));
             gap:22px;
+            align-items:start; /* cada card com a própria altura: abrir um não estica o vizinho */
         }
         .card { animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both; }
         .grid .card:nth-child(1){animation-delay:.02s;}
@@ -487,7 +488,12 @@
         [data-theme='dark'] .vazio .v-icon{background:var(--surface2);border-color:var(--border);}
         [data-theme='dark'] .vazio h3{color:var(--text);}
         [data-theme='dark'] .vazio p{color:var(--muted);}
-    </style>
+            .flash-msg { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+                     padding:12px 16px; border-radius:12px; margin:0 0 16px; font-size:14px; font-weight:600; }
+        .flash-msg a { color:inherit; text-decoration:underline; }
+        .flash-msg.sucesso { background:rgba(5,150,105,.14); color:#059669; }
+        .flash-msg.erro { background:rgba(220,38,38,.14); color:#DC2626; }
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -498,6 +504,8 @@
         </div>
         <div class="acoes">
             <button class="theme-btn" id="themeToggle" onclick="toggleTheme()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
+            <a href="/orcamento/carrinho" class="btn btn-voltar" style="position:relative;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg> Carrinho{% if carrinho_count %}<span style="background:#2563EB;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;">{{ carrinho_count }}</span>{% endif %}</a>
+            <a href="/fornecedores/" class="btn btn-voltar">Fornecedores</a>
             <a href="/" class="btn btn-voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg> Voltar</a>
             <form action="/buscar" method="POST" style="display:contents">
                 <input type="hidden" name="produto" value="{{ produto }}">
@@ -512,6 +520,15 @@
             </form>
         </div>
     </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for categoria, msg in messages %}
+        <div class="flash-msg {{ categoria }}">
+          <span>{{ msg }}</span>
+          {% if categoria == 'sucesso' %}<a href="/orcamento/carrinho">Ver carrinho &rarr;</a>{% endif %}
+        </div>
+      {% endfor %}
+    {% endwith %}
 
     {% if produtos %}
     {% set validos = produtos | selectattr('preco', 'gt', 0) | list %}
@@ -593,6 +610,21 @@
                     </div>
                     {% endif %}
                     {% if item.link %}<a href="{{ item.link }}" target="_blank" class="btn-ver-prod" onclick="event.stopPropagation()">Ver Produto <span class="seta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></span></a>{% endif %}
+                    <form action="{{ url_for('orcamento.adicionar') }}" method="POST" onclick="event.stopPropagation()" style="margin-top:8px;">
+                        <input type="hidden" name="produto_busca" value="{{ produto }}">
+                        <input type="hidden" name="nome" value="{{ item.nome }}">
+                        <input type="hidden" name="preco" value="{{ item.preco }}">
+                        <input type="hidden" name="site" value="{{ item.site }}">
+                        <input type="hidden" name="link" value="{{ item.link }}">
+                        <input type="hidden" name="imagem" value="{{ item.imagem }}">
+                        <button type="submit" class="btn-ver-prod">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;">
+                                <circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
+                                <path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/>
+                            </svg>
+                            Adicionar ao orçamento
+                        </button>
+                    </form>
                 </div>
             </div>
 

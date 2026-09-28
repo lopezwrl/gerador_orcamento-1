@@ -22,10 +22,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 try:
-    from driver_manager import SELENIUM_SEMAPHORE
+    from driver_manager import SELENIUM_SEMAPHORE, versao_principal_chrome
 except Exception:
     import threading
     SELENIUM_SEMAPHORE = threading.Semaphore(2)
+
+    def versao_principal_chrome():
+        return None
 
 
 _SELETORES_CARD = [
@@ -222,7 +225,12 @@ def _buscar_mercadolivre(produto):
         # headless=False: abre janela visível. O ML detecta headless com
         # muito mais facilidade, então rodar com janela real evita o
         # bloqueio quase por completo.
-        driver = uc.Chrome(options=options, headless=False, use_subprocess=True, version_main=151)
+        # version_main detectado do Chrome instalado (não fixar: o Chrome se
+        # atualiza sozinho). None = o uc tenta detectar por conta própria.
+        driver = uc.Chrome(
+            options=options, headless=False, use_subprocess=True,
+            version_main=versao_principal_chrome(),
+        )
         driver.set_page_load_timeout(45)
 
         url = f"https://lista.mercadolivre.com.br/{produto.replace(' ', '-')}"

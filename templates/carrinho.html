@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrinho de Orçamento – OrçaTech</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #0F172A; --royal: #2563EB; --ice: #EFF6FF; --ice2: #F8FAFC;
+            --green: #059669; --green-lt: #D1FAE5; --red: #DC2626; --red-lt: #FEE2E2;
+            --bg: #F1F5F9; --surface: #FFFFFF; --border: #E2E8F0;
+            --text: #0F172A; --text2: #334155; --muted: #64748B;
+            --radius: 12px; --radius-lg: 16px;
+            --shadow: 0 4px 20px -2px rgba(15,23,42,.08), 0 2px 6px -1px rgba(15,23,42,.04);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); padding:32px 20px; }
+        .wrap { max-width: 920px; margin: 0 auto; }
+        .topo { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+        h1 { font-size:22px; font-weight:800; }
+        .voltar { color:var(--royal); text-decoration:none; font-weight:600; font-size:14px; }
+        .flash { padding:12px 16px; border-radius:var(--radius); margin-bottom:16px; font-size:14px; font-weight:600; }
+        .flash.sucesso { background:var(--green-lt); color:var(--green); }
+        .flash.erro { background:var(--red-lt); color:var(--red); }
+        .vazio { background:var(--surface); border:1px dashed var(--border); border-radius:var(--radius-lg);
+                 padding:48px 24px; text-align:center; color:var(--muted); }
+        .item { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+                padding:16px 18px; margin-bottom:12px; display:flex; align-items:center; gap:16px;
+                box-shadow: var(--shadow); flex-wrap:wrap; }
+        .item-info { flex:1; min-width:220px; }
+        .item-nome { font-weight:700; font-size:14.5px; margin-bottom:4px; }
+        .item-forn { font-size:12.5px; color:var(--muted); }
+        .item-preco { font-size:14px; font-weight:700; color:var(--royal); min-width:110px; text-align:right; }
+        .item-qtd input { width:56px; padding:6px 8px; border:1px solid var(--border); border-radius:8px; text-align:center; font-size:13px; }
+        .item-sub { font-weight:800; font-size:14.5px; min-width:100px; text-align:right; }
+        .btn-remover { background:var(--red-lt); color:var(--red); border:none; border-radius:8px;
+                       padding:8px 10px; cursor:pointer; font-size:12px; font-weight:700; }
+        form.inline { display:inline-flex; align-items:center; gap:6px; }
+        .resumo { background:var(--navy); color:#fff; border-radius:var(--radius-lg); padding:20px 24px;
+                  display:flex; justify-content:space-between; align-items:center; margin:20px 0; }
+        .resumo .total { font-size:22px; font-weight:800; }
+        .finalizar-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; }
+        .finalizar-box label { display:block; font-size:12.5px; font-weight:700; color:var(--text2); margin:14px 0 6px; }
+        .finalizar-box input, .finalizar-box textarea {
+            width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13.5px;
+        }
+        .btn-finalizar { margin-top:18px; background:var(--royal); color:#fff; border:none; border-radius:10px;
+                          padding:12px 22px; font-weight:700; font-size:14px; cursor:pointer; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="topo">
+        <h1 style="display:flex;align-items:center;gap:10px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;flex-shrink:0;color:var(--royal);"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg> Carrinho de Orçamento</h1>
+        <a href="/" class="voltar">← Continuar pesquisando</a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for categoria, msg in messages %}
+            <div class="flash {{ categoria }}">{{ msg }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    {% if not orcamento or not orcamento.itens %}
+        <div class="vazio">
+            Seu carrinho está vazio.<br>
+            Pesquise um produto e clique em <b>"Adicionar ao orçamento"</b> num dos resultados.
+        </div>
+    {% else %}
+        {% for item in orcamento.itens %}
+        <div class="item">
+            <div class="item-info">
+                <div class="item-nome">{{ item.cotacao_escolhida.nome_produto if item.cotacao_escolhida else item.produto_busca.nome_pesquisado }}</div>
+                <div class="item-forn">{{ item.cotacao_escolhida.fornecedor.nome if item.cotacao_escolhida else '—' }}</div>
+            </div>
+            <div class="item-preco">R$ {{ "%.2f"|format(item.cotacao_escolhida.preco) if item.cotacao_escolhida else "0.00" }}</div>
+            <form class="inline" action="{{ url_for('orcamento.atualizar_quantidade', item_id=item.id) }}" method="POST">
+                <span class="item-qtd"><input type="number" name="quantidade" value="{{ item.quantidade }}" min="0"></span>
+                <button type="submit" class="btn-remover" style="background:var(--ice2); color:var(--text2);">Atualizar</button>
+            </form>
+            <div class="item-sub">R$ {{ "%.2f"|format(item.subtotal) }}</div>
+            <form class="inline" action="{{ url_for('orcamento.remover_item', item_id=item.id) }}" method="POST">
+                <button type="submit" class="btn-remover">Remover</button>
+            </form>
+        </div>
+        {% endfor %}
+
+        <div class="resumo">
+            <span>{{ orcamento.itens|length }} item(ns) no orçamento</span>
+            <span class="total">R$ {{ "%.2f"|format(orcamento.total) }}</span>
+        </div>
+
+        <div class="finalizar-box">
+            <form action="{{ url_for('orcamento.finalizar') }}" method="POST">
+                <label>Solicitante</label>
+                <input type="text" name="solicitante" placeholder="Seu nome">
+                <label>Condições comerciais</label>
+                <textarea name="condicoes_comerciais" rows="2" placeholder="Ex: pagamento em 28 dias, frete incluso..."></textarea>
+                <label>Observações</label>
+                <textarea name="observacoes" rows="2" placeholder="Alguma observação sobre esse orçamento"></textarea>
+                <button type="submit" class="btn-finalizar">Finalizar e gerar PDF</button>
+            </form>
+        </div>
+    {% endif %}
+</div>
+</body>
+</html>

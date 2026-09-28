@@ -12,6 +12,7 @@ from comparador import (
 )
 from gerar_pdf import gerar_pdf
 from driver_manager import pre_aquecer
+from models import db
 import os
 import json
 import re
@@ -20,6 +21,17 @@ import threading
 from datetime import datetime
 
 app = Flask(__name__)
+
+
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///orcatech.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db.init_app(app)
+
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "troque-esta-chave-depois")
+from orcamento_routes import orcamento_bp
+app.register_blueprint(orcamento_bp)
+from fornecedores_routes import fornecedores_bp
+app.register_blueprint(fornecedores_bp)
 
 HISTORICO_FILE = "historico.json"
 
@@ -124,6 +136,7 @@ def buscar():
         "americanas":   {"status": "pending", "count": 0},
         "ibyte":        {"status": "pending", "count": 0},
         "gshield":      {"status": "pending", "count": 0},
+        "aliexpress":   {"status": "pending", "count": 0},
     }
 
     _jobs[job_id] = {

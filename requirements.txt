@@ -1,4 +1,6 @@
 flask
+flask-sqlalchemy
+werkzeug
 selenium
 undetected-chromedriver
 setuptools
@@ -7,3 +9,5 @@ reportlab
 requests
 beautifulsoup4
 python-dotenv
+curl_cffi
+playwright

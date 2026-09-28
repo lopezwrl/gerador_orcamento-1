@@ -289,6 +289,7 @@
 <div class="page">
     <header class="header">
         <nav class="nav-links">
+            <a href="/orcamento/carrinho" class="nav-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg> Carrinho{% if carrinho_count %}<span style="background:#2563EB;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;">{{ carrinho_count }}</span>{% endif %}</a>
             <a href="/orcamentos" class="nav-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6M9 8h1"/></svg> Orçamentos</a>
             <a href="/relatorios" class="nav-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg> Relatórios</a>
             <a href="/" class="nav-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;"><path d="M3 9.5 12 2l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg> Home</a>
@@ -366,10 +367,16 @@
                 <span class="loja-count" id="count-gs"></span>
                 <span class="loja-status" id="status-gs">Aguardando…</span>
             </div>
+            <div class="loja-item loja-extra" id="loja-ae" data-loja="aliexpress">
+                <div class="loja-dot"></div>
+                <span class="loja-nome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg> AliExpress</span>
+                <span class="loja-count" id="count-ae"></span>
+                <span class="loja-status" id="status-ae">Aguardando…</span>
+            </div>
         </div>
 
         <button type="button" class="ver-mais-lojas" id="verMaisLojas" onclick="alternarLojasExtras()">
-            <span id="verMaisTexto">Mostrar todas as <strong id="verMaisTotal">7</strong> lojas</span>
+            <span id="verMaisTexto">Mostrar todas as <strong id="verMaisTotal">8</strong> lojas</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;" id="verMaisSeta"><path d="m6 9 6 6 6-6"/></svg>
         </button>
 
@@ -408,6 +415,7 @@ const LOJAS = [
     { key:'americanas',   itemId:'loja-am', statusId:'status-am', countId:'count-am' },
     { key:'ibyte',        itemId:'loja-ib', statusId:'status-ib', countId:'count-ib' },
     { key:'gshield',      itemId:'loja-gs', statusId:'status-gs', countId:'count-gs' },
+    { key:'aliexpress',   itemId:'loja-ae', statusId:'status-ae', countId:'count-ae' },
 ];
 const lojasContainer = document.querySelector('.lojas');
 

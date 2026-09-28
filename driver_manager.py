@@ -50,6 +50,12 @@ _lock        = threading.Lock()
 # ─────────────────────────────────────────────────────────────────────────
 SELENIUM_SEMAPHORE = threading.Semaphore(2)
 
+# O undetected-chromedriver "remenda" o chromedriver.exe em disco ao iniciar.
+# Dois uc.Chrome() iniciando ao mesmo tempo (ex: Mercado Livre + Amazon)
+# disputam esse arquivo (PermissionError / WinError 32). Este lock serializa
+# só a CRIAÇÃO do driver; depois de aberto, as buscas rodam em paralelo.
+UC_START_LOCK = threading.Lock()
+
 
 def aplicar_flags_economia_memoria(options):
     """
@@ -112,6 +118,44 @@ def localizar_chrome_binary() -> str:
         )
         _binary_cache = ""
         return _binary_cache
+
+
+def versao_principal_chrome():
+    """
+    Retorna a versão principal do Chrome instalado (ex: 154) ou None.
+
+    Evita fixar version_main no código: o Chrome se atualiza sozinho e um
+    número fixo (ex: 151) quebra o undetected-chromedriver com
+    "This version of ChromeDriver only supports Chrome version X".
+    Se retornar None, o undetected-chromedriver tenta detectar sozinho.
+    """
+    # 1) Registro do Windows (mais confiável)
+    try:
+        import winreg
+        for raiz in (winreg.HKEY_CURRENT_USER, winreg.HKEY_LOCAL_MACHINE):
+            try:
+                with winreg.OpenKey(raiz, r"Software\Google\Chrome\BLBeacon") as k:
+                    return int(str(winreg.QueryValueEx(k, "version")[0]).split(".")[0])
+            except OSError:
+                continue
+    except Exception:
+        pass
+
+    # 2) Fallback: pasta de versão ao lado do chrome.exe (ex: ...\Application\154.0.8037.57)
+    try:
+        import re
+        binario = localizar_chrome_binary()
+        if binario:
+            versoes = [
+                int(d.name.split(".")[0])
+                for d in Path(binario).parent.iterdir()
+                if d.is_dir() and re.fullmatch(r"\d+\.\d+\.\d+\.\d+", d.name)
+            ]
+            if versoes:
+                return max(versoes)
+    except Exception:
+        pass
+    return None
 
 
 def aplicar_binary_location(options):
