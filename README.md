@@ -20,6 +20,7 @@ Aplicação web em **Flask** que pesquisa um produto simultaneamente em **8 loja
 - [Banco de dados](#banco-de-dados)
 - [Stack utilizada](#stack-utilizada)
 - [Como rodar localmente](#como-rodar-localmente)
+- [Executar no Windows passo a passo](#executar-no-windows-passo-a-passo)
 - [Rodando com Docker](#rodando-com-docker)
 - [Variáveis de ambiente](#variáveis-de-ambiente)
 - [Rotas da aplicação](#rotas-da-aplicação)
@@ -56,7 +57,7 @@ Fluxo geral, disparado pelo formulário da tela inicial (`produto` + `solicitant
 2. O usuário é redirecionado para `/aguardando/<job_id>`, que acompanha o progresso via `/stream/<job_id>` (SSE).
 3. Internamente (`comparador.py`), as lojas são consultadas **em paralelo** com `ThreadPoolExecutor`.
 4. Os resultados são somados, **deduplicados**, **filtrados** por relevância, **classificados** e ordenados por preço.
-5. O resultado é salvo em cache (`cache/<produto>.json`) e no histórico (`historico.json`); o usuário é levado para a tela de resultados.
+5. O resultado é salvo em `instance/cache/` e no histórico `instance/historico.json`; o usuário é levado para a tela de resultados.
 
 ---
 
@@ -86,7 +87,7 @@ Em `/fornecedores/`:
 
 ## Estratégia de coleta por loja
 
-Cada loja tem seu módulo `scraping_<loja>.py`, com a técnica mais estável encontrada para aquele site:
+Cada loja tem seu módulo em `orcatech/scrapers/`, com a técnica mais estável encontrada para aquele site:
 
 | Loja              | Técnica                                                                                     | Observação                                                                                                                              |
 | ----------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -97,9 +98,9 @@ Cada loja tem seu módulo `scraping_<loja>.py`, com a técnica mais estável enc
 | **Americanas**    | Selenium com scroll lento (lazy-load) + fallback via `__NEXT_DATA__`/JSON embutido          | Estratégia dupla para garantir link e imagem do produto.                                                                                |
 | **iBytes**        | API pública VTEX (`catalog_system`) via `requests`, com fallback em `BeautifulSoup`         | Resposta rápida, sem navegador.                                                                                                         |
 | **Gshield**       | `requests` + `BeautifulSoup` (loja VTEX)                                                    | Pode retornar 403 (proteção anti-bot). Ver [limitações](#limitações-conhecidas).                                                        |
-| **AliExpress**    | Módulo próprio de coleta                                                                    | Ver o arquivo correspondente em `scraping_*.py`.                                                                                        |
+| **AliExpress**    | Módulo próprio de coleta                                                                    | Ver o arquivo correspondente em `orcatech/scrapers/`.                                                                                  |
 
-### Controle de concorrência do Selenium (`driver_manager.py`)
+### Controle de concorrência do Selenium (`scrapers/driver_manager.py`)
 
 Rodar vários Chromes ao mesmo tempo causou instabilidades no Windows (`DevToolsActivePort file doesn't exist`, crash `0xC0000005`, estouro do arquivo de paginação). Por isso:
 
@@ -107,10 +108,6 @@ Rodar vários Chromes ao mesmo tempo causou instabilidades no Windows (`DevTools
 - Um **lock (`UC_START_LOCK`)** serializa apenas a *criação* do `undetected-chromedriver`, evitando disputa pelo chromedriver remendado em disco quando Mercado Livre e Amazon abrem juntos.
 - **`versao_principal_chrome()`** detecta a versão do Chrome instalado (registro do Windows, com fallback pela pasta de versão ao lado do `chrome.exe`), evitando o erro de "ChromeDriver only supports Chrome version X". Se o erro voltar, apague `%APPDATA%\undetected_chromedriver`.
 - Cada sessão do Chrome recebe um `--user-data-dir` temporário isolado.
-
-### `lojas_customizadas.json`
-
-Configuração de lojas "genéricas" (seletores CSS de container, nome, preço, link e imagem), pensada para estender a lista sem escrever um scraper dedicado. Hoje contém apenas a **Pichau**, marcada como bloqueada por antibot (Cloudflare). **Não está integrado ao `comparador.py`**; serve de rascunho para uma futura loja "plugável".
 
 ---
 
@@ -134,7 +131,7 @@ Dois geradores, com a mesma identidade visual ("OrçaTech"), usando **ReportLab*
 - **`gerar_pdf.py`**: PDF de uma busca (tabela comparativa, destaque do mais barato e do mais caro, resumo com preço médio e economia possível, área de assinatura).
 - **`gerar_pdf_orcamento.py`**: PDF do orçamento multi-produto (itens, fornecedor, quantidade, preço unitário, subtotal e total geral).
 
-Emojis (💰 🔥 ⭐) são convertidos em marcadores coloridos, pois não renderizam no ReportLab. Os PDFs são salvos em `orcamentos/`.
+Emojis (💰 🔥 ⭐) são convertidos em marcadores coloridos, pois não renderizam no ReportLab. Os PDFs são salvos em `instance/orcamentos/`.
 
 ---
 
@@ -151,31 +148,27 @@ Emojis (💰 🔥 ⭐) são convertidos em marcadores coloridos, pois não rende
 
 ```
 gerador_orcamento-1-main/
-├── app.py                       # Rotas principais, jobs em background, SSE, config do banco
-├── comparador.py                # Busca paralela, filtro, dedup e classificação
-├── driver_manager.py            # Chrome/ChromeDriver (versão, flags, semáforo, lock do uc)
-├── models.py                    # Modelos SQLAlchemy (Usuario, Fornecedor, ProdutoBusca, Cotacao, ...)
-├── init_db.py                   # Cria as tabelas e o primeiro usuário admin
-├── migrar_dados.py              # Importa cache/*.json e historico.json para o banco
-├── orcamento_service.py         # Helpers: fornecedor/produto/cotação e rascunho ativo na sessão
-├── orcamento_routes.py          # Blueprint /orcamento (carrinho, finalizar, PDF)
-├── fornecedores_routes.py       # Blueprint /fornecedores (cadastro e cotação manual)
-├── gerar_pdf.py                 # PDF de uma busca
-├── gerar_pdf_orcamento.py       # PDF do orçamento multi-produto
-├── scraping_*.py                # Um módulo de coleta por loja
-├── lojas_customizadas.json      # Config de lojas genéricas (rascunho, não integrado)
-├── requirements.txt
-├── Dockerfile                   # Imagem com Chrome + Xvfb para servidor headless
-├── instance/orcatech.db         # Banco SQLite (gerado; não versionado)
-├── templates/
-│   ├── index.html               # Formulário de busca + acesso ao histórico
-│   ├── aguardando.html          # Progresso em tempo real (SSE)
-│   ├── resultados.html          # Cards comparativos + "Adicionar ao orçamento"
-│   ├── carrinho.html            # Carrinho e finalização do orçamento
-│   ├── fornecedores.html        # Fornecedores e cotação manual
-│   ├── orcamentos.html          # Histórico de buscas
-│   └── relatorios.html          # Dashboards (Chart.js)
-└── .gitignore
+├── run.py                       # Inicializador da aplicação
+├── requirements.txt             # Dependências Python
+├── Dockerfile                   # Imagem com Chrome + Xvfb
+├── README.md
+├── .gitignore
+├── orcatech/                    # Código e recursos da aplicação Flask
+│   ├── app.py                   # Rotas principais, jobs em background e SSE
+│   ├── comparador.py            # Busca paralela, filtro, dedup e classificação
+│   ├── models.py                # Modelos SQLAlchemy
+│   ├── *_routes.py              # Rotas de orçamento e fornecedores
+│   ├── *_service.py             # Serviços de orçamento
+│   ├── gerar_pdf*.py            # Geração de PDFs
+│   ├── paths.py                 # Caminhos dos dados locais
+│   ├── scrapers/                # Scrapers e gerenciador do Chrome
+│   ├── templates/               # Templates HTML do Flask
+│   └── static/                  # Arquivos estáticos
+├── scripts/                     # Comandos de banco e testes manuais
+│   ├── init_db.py
+│   ├── migrar_dados.py
+│   └── testar_*.py
+└── instance/                    # Banco, histórico, cache e PDFs (não versionados)
 ```
 
 ---
@@ -219,34 +212,141 @@ SQLite via **Flask-SQLAlchemy** (`sqlite:///orcatech.db`, criado em `instance/`)
 
 - Python 3.10+
 - Google Chrome instalado (para as lojas via Selenium)
+- Windows, macOS ou Linux
+- Acesso à internet para instalar as dependências e consultar as lojas
 
-### Passos
+### Windows — execução passo a passo
 
-```bash
-# 1. Entrar na pasta do projeto
-cd gerador_orcamento-1-main
+Os comandos abaixo são para **PowerShell** e devem ser executados na pasta raiz do projeto, onde estão `run.py`, `requirements.txt` e a pasta `orcatech/`.
 
-# 2. Criar e ativar um ambiente virtual
-python -m venv venv
-source venv/bin/activate        # Linux/Mac
-venv\Scripts\activate           # Windows
+#### 1. Abrir o PowerShell na pasta do projeto
 
-# 3. Instalar dependências
-pip install -r requirements.txt
+Abra o PowerShell pelo menu Iniciar. Entre na pasta do projeto (ajuste o caminho caso ela esteja em outro local):
 
-# 4. Criar o arquivo .env (veja "Variáveis de ambiente")
-
-# 5. Criar o banco e o usuário admin (interativo)
-python init_db.py
-
-# 6. (Opcional) Importar dados antigos (cache/*.json e historico.json)
-python migrar_dados.py
-
-# 7. Rodar a aplicação
-python app.py
+```powershell
+Set-Location 'C:\Users\Suporte\Desktop\gerador_orcamento-1-main'
 ```
 
-A aplicação sobe em `http://localhost:5000` (modo debug, sem reloader, para não duplicar as threads de scraping).
+Confirme que está na pasta correta:
+
+```powershell
+Get-ChildItem
+```
+
+Você deve encontrar `run.py`, `requirements.txt`, `orcatech/`, `scripts/` e, normalmente, `.venv/`.
+
+#### 2. Conferir o Python
+
+```powershell
+python --version
+```
+
+É necessário Python 3.10 ou superior. Se o comando `python` não for reconhecido, instale o Python e habilite a opção **Add Python to PATH** durante a instalação.
+
+#### 3. Criar ou conferir o ambiente virtual
+
+Este projeto usa o ambiente virtual `.venv`. Se a pasta `.venv` já existir, pule a criação e use o Python dela nos próximos passos.
+
+Para criar o ambiente quando ele ainda não existir:
+
+```powershell
+python -m venv .venv
+```
+
+Não é obrigatório ativar o ambiente virtual: os comandos abaixo chamam diretamente o Python instalado dentro de `.venv`, evitando diferenças entre versões do Python.
+
+#### 4. Instalar as dependências
+
+Execute este passo na primeira instalação ou depois de uma alteração em `requirements.txt`:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+#### 5. Preparar o banco de dados na primeira execução
+
+O projeto guarda o banco em `instance/orcatech.db`. Se esse arquivo já existir, o banco local já está criado e **não é necessário repetir esta etapa**.
+
+Somente em uma instalação nova, crie as tabelas e o usuário administrador:
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.init_db
+```
+
+O comando pode solicitar nome, e-mail e senha do administrador. Se já existir um administrador, o script informa que não há nada a fazer. Não apague `instance/orcatech.db`: esse arquivo contém os fornecedores, cotações, orçamentos e usuários salvos.
+
+`scripts.migrar_dados` é um comando opcional para importar cache e histórico de uma instalação antiga. Não o execute no uso normal; os dados atuais já ficam em `instance/`.
+
+#### 6. Iniciar o servidor local
+
+Na mesma janela do PowerShell, execute:
+
+```powershell
+.\.venv\Scripts\python.exe run.py
+```
+
+Por padrão, o servidor usa a porta `5000`. Se essa porta já estiver ocupada por outro processo, inicie o OrçaTech em `5001`:
+
+```powershell
+$env:PORT = '5001'
+.\.venv\Scripts\python.exe run.py
+```
+
+O valor de `PORT` vale para a janela atual do PowerShell. Se abrir outra janela ou quiser voltar para a porta padrão, remova a variável antes de iniciar:
+
+```powershell
+Remove-Item Env:PORT -ErrorAction SilentlyContinue
+```
+
+Deixe a janela do servidor aberta enquanto estiver usando o sistema. As mensagens de inicialização e de busca aparecem nela.
+
+#### 7. Abrir o sistema no navegador
+
+Abra o endereço correspondente à porta escolhida:
+
+- Porta padrão: `http://127.0.0.1:5000`
+- Porta alternativa `5001`: `http://127.0.0.1:5001`
+
+Na tela inicial, digite o nome do produto, informe o solicitante se desejar e clique em **Buscar Preços**. A busca consulta as lojas em paralelo e pode levar alguns minutos, dependendo do Chrome, da internet e das respostas dos sites.
+
+#### 8. Encerrar o servidor
+
+Volte para a janela do PowerShell em que o servidor está rodando e pressione **Ctrl+C**. Os dados salvos em `instance/` permanecem no computador.
+
+### macOS e Linux
+
+Instale Python 3.10 ou superior e Google Chrome. A partir da pasta raiz do projeto, execute:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m scripts.init_db  # somente na primeira instalação
+python run.py
+```
+
+Abra `http://127.0.0.1:5000`. Para usar outra porta, defina `PORT` antes de iniciar, por exemplo `PORT=5001 python run.py`. Encerre o servidor com **Ctrl+C**.
+
+### Solução de problemas ao iniciar localmente
+
+- **“Address already in use” ou erro de porta ocupada:** feche o outro servidor ou escolha uma porta livre com `$env:PORT = '5001'` no PowerShell antes de iniciar.
+- **O navegador mostra erro 500:** confira as mensagens na janela do servidor. Confirme que está iniciando `run.py` a partir da raiz correta do projeto.
+- **O comando Python ou dependências falham:** confira se está na pasta certa e execute novamente `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`.
+- **Uma loja retorna poucos ou nenhum produto:** os sites podem bloquear temporariamente consultas automatizadas ou alterar suas páginas. Confira os logs do servidor e tente novamente mais tarde. As outras lojas podem continuar funcionando.
+- **Chrome/ChromeDriver falha:** confirme que o Google Chrome está instalado e atualizado. O Chrome é necessário para os scrapers que usam Selenium.
+- **Não encontra histórico, cache ou banco:** não mova nem apague `instance/`; o banco, o histórico, o cache e os PDFs do orçamento ficam nessa pasta.
+
+### Atalhos para iniciar depois da configuração inicial
+
+Para uso diário, basta abrir o PowerShell, entrar na pasta do projeto e iniciar o servidor:
+
+```powershell
+Set-Location 'C:\Users\Suporte\Desktop\gerador_orcamento-1-main'
+$env:PORT = '5001'  # opcional; use se a porta 5000 estiver ocupada
+.\.venv\Scripts\python.exe run.py
+```
+
+Depois, abra `http://127.0.0.1:5001` se definiu a porta alternativa; caso contrário, abra `http://127.0.0.1:5000`.
 
 ---
 
@@ -259,19 +359,19 @@ docker build -t orcatech .
 docker run -p 5000:5000 orcatech
 ```
 
-O container usa `xvfb-run` para criar um display virtual (`:99`, 1920x1080) antes de iniciar `python app.py`. Como o banco fica em `instance/`, monte essa pasta como volume se quiser que os dados sobrevivam ao container, e rode o `init_db.py` uma vez para criar as tabelas.
+O container usa `xvfb-run` para criar um display virtual (`:99`, 1920x1080) antes de iniciar `python run.py`. Como os dados ficam em `instance/`, monte essa pasta como volume se quiser que eles sobrevivam ao container. Para criar as tabelas e o usuário admin, execute `python -m scripts.init_db`.
 
 ---
 
 ## Variáveis de ambiente
 
-Lidas de um arquivo `.env` na raiz (via `python-dotenv`), carregado antes de qualquer outro import em `app.py`. **Não versione o `.env`.**
+Lidas de um arquivo `.env` na raiz (via `python-dotenv`), carregado antes dos módulos de scraping. **Não versione o `.env`.**
 
 | Variável             | Obrigatória | Descrição                                                                                                                             |
 | -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | `SECRET_KEY`         | Recomendada | Chave usada para assinar a sessão (o carrinho depende dela). Sem ela, o app usa um valor padrão inseguro. Defina uma chave longa e aleatória. |
 | `CHROME_BINARY_PATH` | Não         | Caminho completo do `chrome.exe`, quando o Chrome não está em um local padrão (comum em instalação só para o usuário, no Windows).   |
-| `PORT`               | Não         | Porta exposta pelo container Docker (padrão `5000`).                                                                                  |
+| `PORT`               | Não         | Porta local do servidor (padrão `5000`); também define a porta do container Docker.                                                   |
 
 ---
 
@@ -321,9 +421,10 @@ Lidas de um arquivo `.env` na raiz (via `python-dotenv`), carregado antes de qua
 ## Persistência de dados
 
 - **`instance/orcatech.db`** (SQLite): fornecedores, produtos pesquisados, cotações, orçamentos, itens e usuários.
-- **`historico.json`**: lista das buscas já realizadas (usada pelas telas de histórico e relatórios).
-- **`cache/<produto>.json`**: resultado completo de uma busca, reaproveitado por até **6 horas**.
-- **`orcamentos/*.pdf`**: PDFs gerados.
+- **`instance/historico.json`**: lista das buscas já realizadas (usada pelas telas de histórico e relatórios).
+- **`instance/cache/<produto>.json`**: resultado completo de uma busca, reaproveitado por até **6 horas**.
+- **`instance/orcamentos/*.pdf`**: PDFs gerados.
+- **`instance/debug/`**: HTMLs de diagnóstico dos scrapers, quando necessário.
 
 Nenhum desses arquivos deve ser versionado (veja o `.gitignore`).
 
@@ -332,11 +433,10 @@ Nenhum desses arquivos deve ser versionado (veja o `.gitignore`).
 ## Limitações conhecidas
 
 - Depende da **estrutura de HTML/JSON de terceiros**: mudanças nos sites podem quebrar um scraper específico. Cada loja falha de forma isolada, sem derrubar as demais.
-- **Amazon**: pode devolver a página "Algo deu errado" (bloqueio leve de automação), principalmente após muitas buscas seguidas. Nesse caso, aguardar algumas horas costuma resolver. Em falha, o scraper salva `debug_amazon_*.html` para diagnóstico.
+- **Amazon**: pode devolver a página "Algo deu errado" (bloqueio leve de automação), principalmente após muitas buscas seguidas. Nesse caso, aguardar algumas horas costuma resolver. Em falha, o scraper salva o HTML em `instance/debug/`.
 - **Gshield**: retorna 403 (anti-bot) no `requests`, resultando em 0 produtos. Ainda não investigado.
 - **Americanas**: às vezes devolve cards duplicados sem foto; o código tenta recuperar as imagens via `__NEXT_DATA__`.
 - Lojas via Selenium exigem o **Chrome instalado** e são mais lentas. O semáforo (limite 2) pode alongar a busca em máquinas com pouca memória.
-- `lojas_customizadas.json` ainda não está integrado à busca.
 - **Sem autenticação**: qualquer pessoa com acesso à aplicação vê o histórico e pode mexer nos fornecedores. O carrinho é por navegador (sessão), não por usuário.
 
 ---

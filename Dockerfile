@@ -22,9 +22,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 ENV PORT=5000
+ENV HOST=0.0.0.0
 EXPOSE 5000
 
 # xvfb-run cria o display virtual (":99") automaticamente e roda o app
 # dentro dele — o Chrome não-headless funciona normal, sem precisar de
 # monitor de verdade.
-CMD ["xvfb-run", "-a", "--server-args=-screen 0 1920x1080x24", "python", "app.py"]
+CMD ["xvfb-run", "-a", "--server-args=-screen 0 1920x1080x24", "python", "run.py"]

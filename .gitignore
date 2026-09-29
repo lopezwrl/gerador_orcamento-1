@@ -2,10 +2,5 @@
 .venv/
 venv/
 __pycache__/
+**/__pycache__/
 instance/
-*.db
-cache/
-orcamentos/
-historico.json
-debug_*.html
-*.pdf
