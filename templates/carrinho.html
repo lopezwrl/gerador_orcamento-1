@@ -1,108 +1,195 @@
+{% macro logo(nome, tam='md') %}{% set slug = (nome or '')|lower|replace(' ','')|replace('!','')|replace('.','') %}<span class="logo-box {{ tam }}"><img src="{{ url_for('static', filename='logos/' ~ slug ~ '.png') }}" alt="{{ nome }}" loading="lazy" onerror="imgFb(this)"><span class="fb">🏪</span></span>{% endmacro %}
+{% macro imagem(src, alt='') %}{% if src %}<img src="{{ src }}" alt="{{ alt }}" loading="lazy" referrerpolicy="no-referrer" onerror="imgFb(this)"><span class="fb">📦</span>{% else %}<span class="fb show">📦</span>{% endif %}{% endmacro %}
+{% macro brl(v) %}R$ {{ "{:,.2f}".format(v or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}{% endmacro %}
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carrinho de Orçamento – OrçaTech</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --navy: #0F172A; --royal: #2563EB; --ice: #EFF6FF; --ice2: #F8FAFC;
-            --green: #059669; --green-lt: #D1FAE5; --red: #DC2626; --red-lt: #FEE2E2;
-            --bg: #F1F5F9; --surface: #FFFFFF; --border: #E2E8F0;
-            --text: #0F172A; --text2: #334155; --muted: #64748B;
-            --radius: 12px; --radius-lg: 16px;
-            --shadow: 0 4px 20px -2px rgba(15,23,42,.08), 0 2px 6px -1px rgba(15,23,42,.04);
-        }
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); padding:32px 20px; }
-        .wrap { max-width: 920px; margin: 0 auto; }
-        .topo { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
-        h1 { font-size:22px; font-weight:800; }
-        .voltar { color:var(--royal); text-decoration:none; font-weight:600; font-size:14px; }
-        .flash { padding:12px 16px; border-radius:var(--radius); margin-bottom:16px; font-size:14px; font-weight:600; }
-        .flash.sucesso { background:var(--green-lt); color:var(--green); }
-        .flash.erro { background:var(--red-lt); color:var(--red); }
-        .vazio { background:var(--surface); border:1px dashed var(--border); border-radius:var(--radius-lg);
-                 padding:48px 24px; text-align:center; color:var(--muted); }
-        .item { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
-                padding:16px 18px; margin-bottom:12px; display:flex; align-items:center; gap:16px;
-                box-shadow: var(--shadow); flex-wrap:wrap; }
-        .item-info { flex:1; min-width:220px; }
-        .item-nome { font-weight:700; font-size:14.5px; margin-bottom:4px; }
-        .item-forn { font-size:12.5px; color:var(--muted); }
-        .item-preco { font-size:14px; font-weight:700; color:var(--royal); min-width:110px; text-align:right; }
-        .item-qtd input { width:56px; padding:6px 8px; border:1px solid var(--border); border-radius:8px; text-align:center; font-size:13px; }
-        .item-sub { font-weight:800; font-size:14.5px; min-width:100px; text-align:right; }
-        .btn-remover { background:var(--red-lt); color:var(--red); border:none; border-radius:8px;
-                       padding:8px 10px; cursor:pointer; font-size:12px; font-weight:700; }
-        form.inline { display:inline-flex; align-items:center; gap:6px; }
-        .resumo { background:var(--navy); color:#fff; border-radius:var(--radius-lg); padding:20px 24px;
-                  display:flex; justify-content:space-between; align-items:center; margin:20px 0; }
-        .resumo .total { font-size:22px; font-weight:800; }
-        .finalizar-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:24px; }
-        .finalizar-box label { display:block; font-size:12.5px; font-weight:700; color:var(--text2); margin:14px 0 6px; }
-        .finalizar-box input, .finalizar-box textarea {
-            width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:13.5px;
-        }
-        .btn-finalizar { margin-top:18px; background:var(--royal); color:#fff; border:none; border-radius:10px;
-                          padding:12px 22px; font-weight:700; font-size:14px; cursor:pointer; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carrinho de Orçamento – OrçaTech</title>
+<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}">
+<link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon/favicon-16x16.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon/favicon-180x180.png') }}">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('tema') || 'light');</script>
+<style>
+:root{--navy:#1e2a6e;--royal:#2d3a8c;--blue:#3d52c4;--sky:#5b78e0;--ice:#dde5ff;--gold:#e69500;--gold-lt:#f5b800;--teal:#0a8a79;--teal-lt:#0fb39e;--danger:#dc2626;--bg:#f4f6fb;--surface:#fff;--surface2:#f0f2fa;--surface3:#e8ecf8;--border:#d4d9ef;--border2:#b8c0e0;--text:#1a2040;--text2:#374080;--muted:#8890b8;--muted2:#6070a8;--radius:12px;--radius-lg:16px;--radius-xl:22px;--shadow-sm:0 1px 3px rgba(30,42,110,.06);--shadow:0 4px 20px rgba(30,42,110,.08);--shadow-lg:0 12px 40px rgba(30,42,110,.14)}
+[data-theme='dark']{--bg:#0b1220;--surface:#162033;--surface2:#1d2940;--surface3:#243550;--border:#324764;--border2:#46607f;--text:#f4f7ff;--text2:#dfe7ff;--muted:#aab7d3;--muted2:#c5d0ea;--navy:#3d52c4;--royal:#5b78e0;--blue:#6f8cf0;--sky:#8fa6f5;--ice:#26345c;--gold:#f5b800;--gold-lt:#ffd24d;--teal:#2dd4bf;--danger:#f87171;--shadow-sm:0 1px 3px rgba(0,0,0,.4);--shadow:0 4px 20px rgba(0,0,0,.35);--shadow-lg:0 12px 40px rgba(0,0,0,.5)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font:14px/1.6 'Inter',sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;transition:background .25s,color .25s}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+svg.i{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.shell{display:flex;min-height:100vh}
+.main{flex:1;min-width:0;padding:32px 40px 64px}
+.conteudo{max-width:1180px;margin:0 auto}
+/* sidebar */
+.side{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:22px 16px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:4px;animation:fadeDown .45s cubic-bezier(.16,1,.3,1) both}
+.brand{display:flex;align-items:center;gap:12px;padding:0 8px 20px;text-decoration:none}
+.brand i{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;display:grid;place-items:center;font-style:normal;font-weight:800;font-size:18px;box-shadow:0 4px 12px rgba(30,42,110,.3)}
+.brand b{display:block;font-size:17px;font-weight:800;color:var(--navy);letter-spacing:-.3px;line-height:1.2}.brand small{color:var(--muted2);font-size:11.5px}
+.nav{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:var(--radius);color:var(--text2);text-decoration:none;font-weight:600;font-size:13.5px;transition:all .22s cubic-bezier(.16,1,.3,1)}
+.nav:hover{background:var(--surface2);color:var(--blue);transform:translateX(2px)}
+.nav.on{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;box-shadow:0 6px 16px rgba(30,42,110,.28)}
+.badge-n{margin-left:auto;background:var(--blue);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:0 8px;min-width:20px;text-align:center}
+.nav.on .badge-n,.btn .badge-n{background:#fff;color:var(--navy)}
+.side-card{margin-top:auto;padding:14px;border-radius:var(--radius-lg);background:var(--surface2);border:1px solid var(--border);display:flex;gap:10px;align-items:center}
+.side-card i{width:34px;height:34px;border-radius:10px;background:var(--ice);color:var(--blue);display:grid;place-items:center;flex-shrink:0}
+.side-card b{display:block;font-size:13px;color:var(--navy);line-height:1.2}.side-card small{color:var(--muted2);font-size:11.5px}
+/* cabeçalho da página (sem pesquisa) */
+.page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;animation:fadeDown .5s cubic-bezier(.16,1,.3,1) both}
+.ph-left{display:flex;align-items:center;gap:14px}
+.ph-icon{width:48px;height:48px;border-radius:14px;background:var(--ice);color:var(--blue);display:grid;place-items:center}.ph-icon svg.i{width:24px;height:24px}
+.page-header h1{font-size:26px;font-weight:800;color:var(--navy);letter-spacing:-.5px;line-height:1.2}.page-header p{color:var(--muted2);font-size:13px}
+.acoes{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+/* controles */
+.btn{padding:10px 18px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text2);font:600 13px 'Inter',sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:var(--shadow-sm);transition:all .22s cubic-bezier(.16,1,.3,1)}
+.btn:hover{color:var(--blue);border-color:var(--blue);transform:translateY(-1px)}
+.btn-primary{background:linear-gradient(135deg,var(--navy),var(--blue));border-color:transparent;color:#fff;box-shadow:0 4px 14px rgba(30,42,110,.25)}
+.btn-primary:hover{color:#fff;border-color:transparent;transform:translateY(-2px);box-shadow:0 8px 20px rgba(30,42,110,.35)}
+.btn-sm{padding:7px 14px;font-size:12px}
+.btn-danger{background:rgba(220,38,38,.1);color:var(--danger);border-color:transparent;box-shadow:none}
+.btn-danger:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
+.theme-btn{width:40px;height:40px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;box-shadow:var(--shadow-sm);display:grid;place-items:center;transition:.2s}
+.theme-btn:hover{transform:translateY(-2px);border-color:var(--blue);color:var(--blue)}
+[data-theme='dark'] .theme-btn{color:var(--gold-lt)}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted2);margin-bottom:4px}
+input,select,textarea{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font:14px 'Inter',sans-serif;transition:border-color .2s,background .25s,box-shadow .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);background:var(--surface);box-shadow:0 0 0 3px rgba(61,82,196,.15)}
+input::placeholder,textarea::placeholder{color:var(--muted)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.flash-msg{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-radius:var(--radius);margin-bottom:16px;font-weight:600;animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both}
+.flash-msg a{color:inherit;text-decoration:underline}
+.flash-msg.sucesso{background:rgba(15,179,158,.14);color:var(--teal)}.flash-msg.erro{background:rgba(220,38,38,.12);color:var(--danger)}
+/* logo / imagem com fallback */
+.logo-box,.thumb{background:#fff;border:1px solid var(--border);border-radius:var(--radius);display:grid;place-items:center;overflow:hidden;flex-shrink:0}
+.logo-box.md{width:120px;height:56px;padding:6px 10px}.logo-box.sm{width:64px;height:24px;padding:3px 6px;border-radius:6px}
+.logo-box img,.thumb img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .35s cubic-bezier(.16,1,.3,1)}
+.fb{display:none;place-items:center;font-size:26px;width:100%;height:100%;background:var(--surface2)}.logo-box.sm .fb{font-size:12px}.fb.show{display:grid}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:22px;box-shadow:var(--shadow-sm);animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both;transition:background .25s,border-color .25s}
+.vazio{background:var(--surface);border:1px dashed var(--border2);border-radius:var(--radius-xl);padding:44px 24px;text-align:center;color:var(--muted2);animation:fadeUp .5s .05s cubic-bezier(.16,1,.3,1) both}
+@view-transition{navigation:auto}
+.main{view-transition-name:app-content}
+::view-transition-old(app-content){animation:vt-out .22s cubic-bezier(.4,0,.6,1) both}
+::view-transition-new(app-content){animation:vt-in .32s cubic-bezier(.16,1,.3,1) both}
+@keyframes vt-out{to{opacity:0;transform:translateY(-6px) scale(.992)}}
+@keyframes vt-in{from{opacity:0;transform:translateY(10px) scale(.992)}}
+@media(prefers-reduced-motion:reduce){*,::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important;transition:none!important}}
+.conteudo{max-width:980px}
+.item{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:16px 20px;margin-bottom:14px;border-radius:var(--radius-lg);transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s,border-color .3s}
+.item:nth-child(2){animation-delay:.04s}.item:nth-child(3){animation-delay:.08s}.item:nth-child(4){animation-delay:.12s}.item:nth-child(n+5){animation-delay:.16s}
+.item:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--sky)}.item:hover .thumb img{transform:scale(1.06)}
+.thumb{width:104px;height:104px;padding:8px}
+.item-info{flex:1;min-width:220px}.item-nome{font-weight:700;font-size:15px;line-height:1.35;margin-bottom:6px}
+.item-forn{display:flex;align-items:center;gap:8px;color:var(--muted2);font-size:12.5px}
+.item-val{text-align:right;min-width:130px}.item-val .sub{font-size:20px;font-weight:800;color:var(--teal)}.item-val .un{font-size:12px;color:var(--muted2)}
+.qty{display:inline-flex;align-items:center;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);overflow:hidden}
+.qty button{width:34px;height:38px;border:0;background:transparent;color:var(--text2);font-size:17px;cursor:pointer;transition:.2s}.qty button:hover{background:var(--ice);color:var(--blue)}
+.qty input{width:44px;border:0;border-radius:0;background:transparent;text-align:center;padding:0;box-shadow:none}
+.total-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0 20px;padding:20px 26px;border-radius:var(--radius-lg);background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;box-shadow:0 10px 28px rgba(30,42,110,.3);animation:fadeUp .5s .15s cubic-bezier(.16,1,.3,1) both}
+.total-bar span{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px}.total-bar b{font-size:26px;font-weight:800}
+.fin-grid{display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start}
+.fin-grid h2{font-size:16px;font-weight:800;margin-bottom:2px}.fin-grid .sub2{color:var(--muted2);font-size:12.5px;margin-bottom:14px}
+.fin-form label{margin-top:12px;color:var(--text2);font-weight:700}
+.fin-form .btn-primary{width:100%;margin-top:18px;padding:13px}
+.bene{display:grid;gap:12px;animation-delay:.25s}
+.bene div{display:flex;align-items:center;gap:12px;font-weight:600;font-size:13px}
+.bene i{width:34px;height:34px;border-radius:10px;background:var(--ice);color:var(--blue);display:grid;place-items:center;flex-shrink:0}
+@media(max-width:800px){.fin-grid{grid-template-columns:1fr}.item-val{text-align:left}}
+
+</style>
 </head>
 <body>
-<div class="wrap">
-    <div class="topo">
-        <h1 style="display:flex;align-items:center;gap:10px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;flex-shrink:0;color:var(--royal);"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg> Carrinho de Orçamento</h1>
-        <a href="/" class="voltar">← Continuar pesquisando</a>
+<div class="shell"><main class="main"><div class="conteudo">
+  <div class="page-header">
+    <div class="ph-left">
+      <div class="ph-icon"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg></div>
+      <div><h1>Carrinho de Orçamento</h1><p>Confira os itens selecionados no seu orçamento.</p></div>
     </div>
+    <div class="acoes">
+      <button class="theme-btn" type="button" onclick="toggleTheme()" aria-label="Alternar tema"></button>
+      <a class="btn" href="{{ url_for('fornecedores.listar') }}?origem=resultados">Fornecedores</a>
+      <a class="btn" href="/" onclick="if(history.length>1){history.back();return false;}">← Continuar pesquisando</a>
+    </div>
+  </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for categoria, msg in messages %}
-            <div class="flash {{ categoria }}">{{ msg }}</div>
-        {% endfor %}
-    {% endwith %}
+  {% with messages = get_flashed_messages(with_categories=true) %}{% for categoria, msg in messages %}
+    <div class="flash-msg {{ categoria }}"><span>{{ msg }}</span></div>
+  {% endfor %}{% endwith %}
 
-    {% if not orcamento or not orcamento.itens %}
-        <div class="vazio">
-            Seu carrinho está vazio.<br>
-            Pesquise um produto e clique em <b>"Adicionar ao orçamento"</b> num dos resultados.
-        </div>
-    {% else %}
-        {% for item in orcamento.itens %}
-        <div class="item">
-            <div class="item-info">
-                <div class="item-nome">{{ item.cotacao_escolhida.nome_produto if item.cotacao_escolhida else item.produto_busca.nome_pesquisado }}</div>
-                <div class="item-forn">{{ item.cotacao_escolhida.fornecedor.nome if item.cotacao_escolhida else '—' }}</div>
-            </div>
-            <div class="item-preco">R$ {{ "%.2f"|format(item.cotacao_escolhida.preco) if item.cotacao_escolhida else "0.00" }}</div>
-            <form class="inline" action="{{ url_for('orcamento.atualizar_quantidade', item_id=item.id) }}" method="POST">
-                <span class="item-qtd"><input type="number" name="quantidade" value="{{ item.quantidade }}" min="0"></span>
-                <button type="submit" class="btn-remover" style="background:var(--ice2); color:var(--text2);">Atualizar</button>
-            </form>
-            <div class="item-sub">R$ {{ "%.2f"|format(item.subtotal) }}</div>
-            <form class="inline" action="{{ url_for('orcamento.remover_item', item_id=item.id) }}" method="POST">
-                <button type="submit" class="btn-remover">Remover</button>
-            </form>
-        </div>
-        {% endfor %}
+  {% if not orcamento or not orcamento.itens %}
+    <div class="vazio">Seu carrinho está vazio.<br>Pesquise um produto e clique em <b>"Adicionar ao orçamento"</b> num dos resultados.</div>
+  {% else %}
+  <section>
+    {% for item in orcamento.itens %}{% set c = item.cotacao_escolhida %}
+    <article class="card item">
+      <div class="thumb">{{ imagem(c.imagem if c else None, c.nome_produto if c else '') }}</div>
+      <div class="item-info">
+        <div class="item-nome">{{ c.nome_produto if c else item.produto_busca.nome_pesquisado }}</div>
+        <div class="item-forn">{% if c %}{{ logo(c.fornecedor.nome, 'sm') }}<span>{{ c.fornecedor.nome }}</span>{% else %}—{% endif %}</div>
+      </div>
+      <div class="item-val"><div class="sub">{{ brl(item.subtotal) }}</div><div class="un">{{ brl(c.preco if c else 0) }} / un.</div></div>
+      <form class="qty" action="{{ url_for('orcamento.atualizar_quantidade', item_id=item.id) }}" method="POST">
+        <button type="button" data-step="-1" aria-label="Diminuir">−</button>
+        <input type="number" name="quantidade" value="{{ item.quantidade }}" min="1">
+        <button type="button" data-step="1" aria-label="Aumentar">+</button>
+      </form>
+      <form action="{{ url_for('orcamento.remover_item', item_id=item.id) }}" method="POST"><button type="submit" class="btn btn-danger btn-sm">Remover</button></form>
+    </article>
+    {% endfor %}
+  </section>
 
-        <div class="resumo">
-            <span>{{ orcamento.itens|length }} item(ns) no orçamento</span>
-            <span class="total">R$ {{ "%.2f"|format(orcamento.total) }}</span>
-        </div>
+  <div class="total-bar"><span><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg>Total do Orçamento · {{ orcamento.itens|length }} item(ns)</span><b>{{ brl(orcamento.total) }}</b></div>
 
-        <div class="finalizar-box">
-            <form action="{{ url_for('orcamento.finalizar') }}" method="POST">
-                <label>Solicitante</label>
-                <input type="text" name="solicitante" placeholder="Seu nome">
-                <label>Condições comerciais</label>
-                <textarea name="condicoes_comerciais" rows="2" placeholder="Ex: pagamento em 28 dias, frete incluso..."></textarea>
-                <label>Observações</label>
-                <textarea name="observacoes" rows="2" placeholder="Alguma observação sobre esse orçamento"></textarea>
-                <button type="submit" class="btn-finalizar">Finalizar e gerar PDF</button>
-            </form>
+  <div class="fin-grid">
+    <div class="card">
+      <h2>Finalizar Orçamento</h2><p class="sub2">Preencha seus dados para gerar o orçamento.</p>
+      <form class="fin-form" action="{{ url_for('orcamento.finalizar') }}" method="POST">
+        <div class="form-grid">
+          <div><label>Nome</label><input type="text" name="solicitante" placeholder="Seu nome completo"></div>
+          <div><label>Condições comerciais</label><input type="text" name="condicoes_comerciais" placeholder="Ex: pagamento em 28 dias, frete incluso"></div>
         </div>
-    {% endif %}
-</div>
+        <label>Observações (opcional)</label>
+        <textarea name="observacoes" rows="3" placeholder="Alguma observação especial?"></textarea>
+        <button type="submit" class="btn btn-primary">Finalizar Orçamento (gerar PDF)</button>
+      </form>
+    </div>
+    <div class="card bene">
+      <div><i><svg class="i" viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/></svg></i>Orçamento sem compromisso</div>
+      <div><i><svg class="i" viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></svg></i>Várias lojas em um só lugar</div>
+      <div><i><svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></i>PDF pronto para aprovação</div>
+    </div>
+  </div>
+  {% endif %}
+</div></main></div>
+<script>
+(function(){
+var LUA='<svg class="i" viewBox="0 0 24 24"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+var SOL='<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+function tema(t){document.documentElement.setAttribute('data-theme',t);document.querySelectorAll('.theme-btn').forEach(function(b){b.innerHTML=t==='dark'?SOL:LUA});}
+tema(localStorage.getItem('tema')||'light');
+window.toggleTheme=function(){var n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';localStorage.setItem('tema',n);tema(n);};
+window.imgFb=function(el){el.style.display='none';if(el.nextElementSibling)el.nextElementSibling.classList.add('show');};
+document.addEventListener('click',function(e){
+  var s=e.target.closest('[data-step]');
+  if(s){var f=s.closest('form'),i=f.querySelector('input[name=quantidade]');var v=Math.max(1,(parseInt(i.value)||1)+parseInt(s.dataset.step));if(v!==parseInt(i.value)){i.value=v;f.submit();}return;}
+  var o=e.target.closest('[data-open]');if(o){var d=document.getElementById(o.dataset.open);if(d){if(o.dataset.nome!==undefined)preencher(d,o);d.showModal();}return;}
+  if(e.target.closest('[data-close]')){e.target.closest('dialog').close();return;}
+  if(e.target.tagName==='DIALOG')e.target.close();
+});
+document.addEventListener('change',function(e){if(e.target.matches('.qty input'))e.target.form.submit();});
+function preencher(d,o){var f=d.querySelector('form.edit');f.action=o.dataset.edit;f.nome.value=o.dataset.nome;f.tipo.value=o.dataset.tipo;f.site.value=o.dataset.site;f.contato.value=o.dataset.contato;
+  var t=d.querySelector('form.tog');t.action=o.dataset.toggle;t.querySelector('button').textContent=o.dataset.status==='ativo'?'Desativar':'Ativar';}
+var q=document.getElementById('fq');
+if(q){var grid=document.getElementById('gridForn'),vazio=document.getElementById('semResultado'),tipo=document.getElementById('ftipo'),st=document.getElementById('fstatus'),ord=document.getElementById('ford');
+  function aplicar(){var t=q.value.trim().toLowerCase(),n=0,cards=[].slice.call(grid.children);
+    cards.sort(function(a,b){if(ord.value==='za')return b.dataset.nome.localeCompare(a.dataset.nome);if(ord.value==='cot')return b.dataset.cot-a.dataset.cot;return a.dataset.nome.localeCompare(b.dataset.nome);}).forEach(function(c){grid.appendChild(c)});
+    cards.forEach(function(c){var ok=(!t||c.dataset.busca.indexOf(t)>-1)&&(!tipo.value||c.dataset.tipo===tipo.value)&&(!st.value||c.dataset.status===st.value);c.style.display=ok?'':'none';if(ok)n++;});
+    vazio.style.display=n?'none':'block';}
+  [q,tipo,st,ord].forEach(function(el){el.addEventListener('input',aplicar)});aplicar();}
+})();
+
+</script>
 </body>
 </html>

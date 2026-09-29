@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resultados – OrçaTech</title>
+        <title>Resultados – OrçaTech</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon/favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon/favicon-180x180.png') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter...
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -493,18 +499,234 @@
         .flash-msg a { color:inherit; text-decoration:underline; }
         .flash-msg.sucesso { background:rgba(5,150,105,.14); color:#059669; }
         .flash-msg.erro { background:rgba(220,38,38,.14); color:#DC2626; }
+
+        /* ════════ REFINO VISUAL ════════ */
+        body { background:radial-gradient(1100px 480px at 50% -140px, rgba(37,99,235,.10), transparent 70%), var(--bg); }
+        .grid { grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:20px; }
+        .pc { padding:14px 16px 16px; }
+        .pc-top { margin-bottom:12px; }
+        .pc-main { position:relative; gap:16px; }
+        .pc-img-wrap { width:92px; height:92px; border-radius:14px; }
+        .pc-img-wrap img { padding:8px; }
+        .card.expanded .pc-img-wrap { width:132px; height:132px; }
+        .pc-headinfo .nome {
+            font-size:13px; font-weight:600; color:var(--text); line-height:1.4; margin-bottom:6px;
+            white-space:normal; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+        }
+        .card.expanded .pc-headinfo .nome { display:block; -webkit-line-clamp:unset; line-clamp:unset; font-size:14px; }
+        .preco-chip { font-size:13px; padding:5px 12px; }
+        .card.expanded .pc-extra { max-height:380px; }
+
+        .cart-badge {
+            position:absolute; left:74px; top:-9px; z-index:3;
+            min-width:22px; height:22px; padding:0 6px; border-radius:999px;
+            background:var(--royal); color:#fff; text-align:center;
+            font:700 11px/22px 'JetBrains Mono',monospace;
+            box-shadow:0 0 0 3px var(--surface), 0 4px 10px rgba(37,99,235,.35);
+            transition:left .38s cubic-bezier(.34,1.32,.64,1);
+        }
+        .card.expanded .cart-badge { left:114px; }
+        .cart-badge[hidden], .cart-count[hidden] { display:none; }
+        .cart-badge.pop { animation:badgePop .45s cubic-bezier(.34,1.56,.64,1); }
+        @keyframes badgePop { 0%{transform:scale(.3)} 60%{transform:scale(1.35)} 100%{transform:scale(1)} }
+        [data-theme='dark'] .cart-badge, [data-theme='dark'] .cart-count { color:#0B0F17; }
+        .cart-count { background:var(--royal); color:#fff; border-radius:999px; padding:1px 7px; font-size:11px; font-weight:700; margin-left:6px; }
+        .btn-ver-prod.ok { background:var(--green); color:#fff; border-color:var(--green); }
+
+        .flash-msg { display:none; }
+        .toast-stack {
+            position:fixed; right:20px; bottom:20px; z-index:1000;
+            display:flex; flex-direction:column; gap:10px;
+            width:min(360px, calc(100vw - 32px)); pointer-events:none;
+        }
+        .toast {
+            pointer-events:auto; position:relative; overflow:hidden; cursor:pointer;
+            display:flex; align-items:center; gap:12px; padding:12px 14px 15px;
+            background:var(--surface); border:1px solid var(--border); border-left:4px solid var(--green);
+            border-radius:14px; box-shadow:var(--shadow-lg);
+            animation:toastIn .4s cubic-bezier(.16,1,.3,1) both;
+        }
+        .toast.erro { border-left-color:var(--red); }
+        .toast.saindo { animation:toastOut .3s ease forwards; }
+        .toast-ico {
+            width:28px; height:28px; border-radius:50%; flex-shrink:0;
+            display:flex; align-items:center; justify-content:center;
+            background:var(--green-lt); color:var(--green); font-weight:800;
+        }
+        .toast.erro .toast-ico { background:var(--red-lt); color:var(--red); }
+        .toast-txt { min-width:0; flex:1; }
+        .toast-txt strong { display:block; font-size:12.5px; color:var(--text); }
+        .toast-txt span { display:block; font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .toast a { font-size:12px; font-weight:700; color:var(--royal); text-decoration:none; white-space:nowrap; }
+        .toast-bar { position:absolute; left:0; bottom:0; height:3px; width:100%; background:var(--green); transform-origin:left; animation:toastBar 3.4s linear forwards; }
+        .toast.erro .toast-bar { background:var(--red); }
+        @keyframes toastIn { from{opacity:0; transform:translateY(16px) scale(.97)} to{opacity:1; transform:none} }
+        @keyframes toastOut { to{opacity:0; transform:translateX(24px)} }
+        @keyframes toastBar { to{transform:scaleX(0)} }
+        @media (max-width:640px) { .grid { grid-template-columns:1fr; } .toast-stack { right:16px; bottom:16px; } }
+
+        /* ════════ REDESIGN v2 (referência) ════════ */
+        .topo { background:linear-gradient(135deg,#0B2A6B 0%,#1D4ED8 100%); border:none; padding:14px 22px; box-shadow:0 10px 30px -10px rgba(29,78,216,.55); }
+        [data-theme='dark'] .topo { background:linear-gradient(135deg,#0B1A3D 0%,#173F94 100%); }
+        .topo-left { display:flex; align-items:center; gap:22px; flex:1; min-width:280px; }
+        .logo { display:flex; align-items:center; gap:10px; color:#fff; text-decoration:none; }
+        .logo span { display:flex; flex-direction:column; line-height:1.15; }
+        .logo b { font-size:20px; font-weight:800; letter-spacing:-.3px; }
+        .logo small { font-size:9.5px; opacity:.75; }
+        .search-pill { display:flex; align-items:center; gap:10px; flex:1; max-width:380px; padding:0 16px; height:42px; border-radius:999px; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.22); color:#fff; transition:background .2s, box-shadow .2s; }
+        .search-pill:focus-within { background:rgba(255,255,255,.22); box-shadow:0 0 0 3px rgba(255,255,255,.18); }
+        .search-pill input { flex:1; background:none; border:none; outline:none; color:#fff; font:500 13px 'Inter',sans-serif; min-width:0; }
+        .topo .btn-voltar, .topo .theme-btn { background:rgba(255,255,255,.12); color:#fff; border-color:rgba(255,255,255,.2); }
+        .topo .btn-voltar:hover, .topo .theme-btn:hover { background:rgba(255,255,255,.22); color:#fff; border-color:rgba(255,255,255,.4); }
+        .topo .btn-novo { background:#10B981; color:#fff; border:none; }
+        .topo .btn-pdf { background:#2563EB; color:#fff; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+        .cart-count { background:#fff; color:#1D4ED8; }
+
+        .resumo { display:grid; grid-template-columns:minmax(260px,1fr) 3fr; gap:16px; margin-bottom:20px; }
+        .resumo .stats { margin-bottom:0; }
+        .titulo-card { display:flex; gap:14px; align-items:flex-start; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; box-shadow:var(--shadow-sm); animation:fadeUp .45s both; }
+        .tc-ico { width:44px; height:44px; border-radius:12px; background:var(--ice); color:var(--royal); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .titulo-card small { font-size:11.5px; color:var(--muted); font-weight:600; }
+        .titulo-card h1 { font-size:20px; font-weight:800; color:var(--royal); letter-spacing:-.3px; line-height:1.2; }
+        .titulo-card p { font-size:11.5px; color:var(--muted); margin-top:6px; line-height:1.45; }
+        .stat-card .delta { font-size:10.5px; font-weight:700; color:var(--green); margin-top:2px; }
+
+        .melhor { background:linear-gradient(135deg,var(--green-lt),var(--surface)); border:1px solid rgba(5,150,105,.28); border-radius:var(--radius-xl); padding:16px 20px 18px; margin-bottom:26px; animation:fadeUp .5s .1s both; }
+        .melhor-tag { display:inline-flex; align-items:center; gap:7px; color:var(--green); font-weight:800; font-size:13px; margin-bottom:12px; }
+        .melhor-corpo { display:grid; grid-template-columns:minmax(240px,1.4fr) auto 1.2fr auto; gap:26px; align-items:center; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:14px 20px; }
+        .melhor-prod { display:flex; gap:14px; align-items:center; min-width:0; }
+        .melhor-img { width:84px; height:64px; flex-shrink:0; border-radius:10px; background:#fff; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+        .melhor-img img { width:100%; height:100%; object-fit:contain; padding:4px; }
+        .melhor-nome { font-size:13.5px; font-weight:700; color:var(--text); line-height:1.35; margin-bottom:4px; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .melhor-preco { display:flex; flex-direction:column; gap:2px; align-items:flex-start; }
+        .melhor-preco strong { font:700 26px 'JetBrains Mono',monospace; color:var(--green); letter-spacing:-.8px; }
+        .melhor-preco .pct { background:var(--green); color:#fff; font-size:11px; font-weight:800; padding:2px 9px; border-radius:20px; }
+        .melhor-preco small { font-size:11px; color:var(--muted); }
+        .btn-go-lg { padding:12px 24px; font-size:13px; background:var(--green); box-shadow:0 6px 16px rgba(5,150,105,.3); }
+        .btn-go-lg:hover { background:#047857; }
+
+        .lista-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+        .lista-head h2 { font-size:16px; font-weight:800; }
+        .lista-head h2 span { color:var(--muted); font-weight:600; }
+        .vt { display:flex; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:3px; }
+        .vt-btn { border:none; background:none; color:var(--muted); font:600 12px 'Inter',sans-serif; padding:6px 14px; border-radius:8px; cursor:pointer; transition:all .2s; }
+        .vt-btn.on { background:var(--ice); color:var(--royal); }
+
+        .grid { grid-template-columns:repeat(auto-fill,minmax(400px,1fr)); }
+        .grid.lista { grid-template-columns:1fr; }
+        .pc-img-wrap { position:relative; width:108px; height:108px; border-radius:14px; }
+        .card.expanded .pc-img-wrap { width:124px; height:124px; }
+        .pc-img-wrap .ph { position:absolute; color:var(--muted2); }
+        .pc-img-wrap img { position:relative; background:#fff; }
+        .cart-badge, .card.expanded .cart-badge { left:88px; top:-8px; }
+        .pc-headinfo { display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
+        .pc-headinfo .badge-tipo { margin-bottom:0; padding:3px 10px; font-size:10px; }
+        .pc-headinfo .nome { margin-bottom:0; font-size:13.5px; }
+        .chips-spec { display:flex; flex-wrap:wrap; gap:6px; }
+        .chip-spec { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:600; color:var(--text2); background:var(--surface2); border:1px solid var(--border); padding:3px 9px; border-radius:20px; }
+        .chip-spec::before { content:''; width:4px; height:4px; border-radius:50%; background:var(--royal); }
+        .pc-bar { display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:14px; padding-top:12px; border-top:1px solid var(--border); cursor:default; }
+        .pc-loja { display:flex; flex-direction:column; gap:2px; }
+        .pc-loja .badge-loja { margin:0; font-size:11.5px; }
+        .preco-big { font:700 20px 'JetBrains Mono',monospace; color:var(--text); letter-spacing:-.6px; }
+        .preco-big.barato { color:var(--green); } .preco-big.premium { color:var(--purple); }
+        .pc-acoes { display:flex; gap:8px; align-items:center; }
+        .pc-acoes form { display:contents; }
+        .btn-cart, .btn-go { display:inline-flex; align-items:center; justify-content:center; gap:6px; height:36px; padding:0 14px; border-radius:10px; font:600 12px 'Inter',sans-serif; cursor:pointer; text-decoration:none; transition:all .22s cubic-bezier(.16,1,.3,1); white-space:nowrap; }
+        .btn-cart { background:var(--surface); color:var(--text2); border:1px solid var(--border2); }
+        .btn-cart:hover { border-color:var(--royal); color:var(--royal); transform:translateY(-1px); }
+        .btn-cart.ok { background:var(--green); border-color:var(--green); color:#fff; }
+        .btn-go { background:var(--royal); color:#fff; border:none; box-shadow:0 4px 12px rgba(37,99,235,.28); }
+        [data-theme='dark'] .btn-go, [data-theme='dark'] .btn-go-lg { color:#0B0F17; }
+        .btn-go:hover { background:var(--royal-lt); transform:translateY(-1px); }
+        .btn-go:hover .seta { transform:none; }
+        .pc-extra-inner { padding-top:12px; }
+        @media (max-width:1100px) { .resumo { grid-template-columns:1fr; } .melhor-corpo { grid-template-columns:1fr; gap:14px; } }
+        @media (max-width:640px) { .grid { grid-template-columns:1fr; } .topo-left { flex-direction:column; align-items:stretch; } .search-pill { max-width:none; } }
+
+        /* ════════ REDESIGN v3 ════════ */
+        .topo, [data-theme='light'] .topo { background:linear-gradient(135deg,#1E40AF 0%,#2563EB 55%,#3B82F6 100%); }
+        [data-theme='dark'] .topo { background:linear-gradient(135deg,#0B1A3D 0%,#173F94 100%); }
+        .search-pill { position:relative; }
+        .search-pill input { padding-right:26px; }
+        .sp-x { position:absolute; right:10px; top:50%; transform:translateY(-50%); width:22px; height:22px; border:none; border-radius:50%; background:rgba(255,255,255,.2); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background .2s; }
+        .sp-x:hover { background:rgba(255,255,255,.35); }
+        .sp-x[hidden] { display:none; }
+        .search-pill.shake { animation:shake .35s; }
+        @keyframes shake { 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+
+        .stat-card { display:grid; grid-template-columns:auto 1fr; column-gap:14px; align-items:center; }
+        .stat-ico { grid-row:1 / span 3; width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:var(--ice); color:var(--royal); }
+        .stat-card:nth-child(2) .stat-ico { background:var(--green-lt); color:var(--green); }
+        .stat-card:nth-child(3) .stat-ico { background:var(--purple-lt); color:var(--purple); }
+        .stat-card:nth-child(4) .stat-ico { background:var(--amber-lt); color:var(--amber); }
+
+        .melhor-tag { margin-bottom:2px; letter-spacing:.4px; }
+        .melhor-sub { font-size:12px; color:var(--muted); margin-bottom:12px; }
+        .melhor-img { width:128px; height:92px; }
+
+        .tipo-custo { background:var(--amber-lt); color:var(--amber); border:1px solid rgba(217,119,6,.25); }
+        [data-theme='dark'] .tipo-custo { background:var(--amber-lt); color:var(--amber); border-color:rgba(245,158,11,.3); }
+
+        .grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:22px; }
+        .grid.lista { grid-template-columns:1fr; gap:14px; }
+        @media (max-width:1100px) { .grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+        @media (max-width:640px)  { .grid { grid-template-columns:1fr; } }
+
+        .card:hover { transform:translateY(-3px); }
+        .pc { padding:0; }
+        .pc-media { position:relative; height:210px; background:#fff; display:flex; align-items:center; justify-content:center; border-bottom:1px solid var(--border); overflow:hidden; }
+        .pc-media .ph { position:absolute; color:var(--muted2); opacity:.5; }
+        .pc-media img { position:relative; width:100%; height:100%; object-fit:contain; padding:18px; background:#fff; transition:transform .5s cubic-bezier(.16,1,.3,1); }
+        .card:hover .pc-media img { transform:scale(1.05); }
+        .pc-media .badge-tipo { position:absolute; left:12px; top:12px; z-index:3; margin:0; padding:4px 11px; font-size:10.5px; box-shadow:var(--shadow-sm); }
+        .pc-media .cart-badge, .card.expanded .pc-media .cart-badge { left:auto; right:12px; top:12px; }
+        .pc-body { padding:16px 18px 18px; display:flex; flex-direction:column; gap:10px; }
+        .pc-body .nome { font-size:14px; font-weight:700; color:var(--text); line-height:1.4; margin:0; white-space:normal; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+        .card.expanded .pc-body .nome { display:block; -webkit-line-clamp:unset; line-clamp:unset; }
+        .chip-spec::before { content:'✓'; width:auto; height:auto; background:none; color:var(--green); font-size:10px; font-weight:800; }
+        .pc-loja-row { display:flex; align-items:center; justify-content:space-between; }
+        .pc-loja-row .badge-loja { margin:0; font-size:12px; }
+        .pc-loja-row .pc-chevron { align-self:auto; gap:4px; font-size:11px; font-weight:600; }
+        .pc-fim { display:flex; flex-direction:column; gap:12px; cursor:default; }
+        .preco-big { font-size:24px; }
+        .pc-acoes { display:grid; grid-template-columns:1fr 1.4fr; gap:8px; }
+        .pc-acoes form { display:contents; }
+        .btn-cart, .btn-go { height:40px; }
+        .card.expanded .pc-extra { max-height:360px; }
+
+        .grid.lista .pc { display:grid; grid-template-columns:200px 1fr; }
+        .grid.lista .pc-media { height:100%; min-height:170px; border-bottom:none; border-right:1px solid var(--border); }
+        .grid.lista .pc-fim { flex-direction:row; align-items:center; justify-content:space-between; }
+        .grid.lista .pc-acoes { grid-template-columns:auto auto; }
+        @media (max-width:640px) { .grid.lista .pc { grid-template-columns:1fr; } .grid.lista .pc-media { border-right:none; border-bottom:1px solid var(--border); } }
+
+        /* Cabeçalho na mesma paleta da página inicial (navy #1e2a6e -> blue #3d52c4) */
+        .topo, [data-theme='light'] .topo, [data-theme='dark'] .topo {
+            background:linear-gradient(135deg,#1e2a6e 0%,#3d52c4 100%);
+            box-shadow:0 10px 30px -10px rgba(30,42,110,.55);
+        }
+        .topo .btn-pdf, [data-theme='dark'] .topo .btn-pdf { background:#fff; color:#1e2a6e; box-shadow:0 4px 14px rgba(0,0,0,.2); }
+        .topo .btn-pdf:hover, [data-theme='dark'] .topo .btn-pdf:hover { background:#eef1ff; }
+        .topo .cart-count, [data-theme='dark'] .topo .cart-count { background:#fff; color:#1e2a6e; }
 </style>
 </head>
 <body>
 <div class="wrap">
+{% macro brl(v) %}R$ {{ "{:,.2f}".format(v).replace(",", "X").replace(".", ",").replace("X", ".") }}{% endmacro %}
     <div class="topo">
         <div class="topo-left">
-            <h1>Resultados: <span>"{{ produto }}"</span></h1>
-            {% if do_cache %}<span class="badge-cache"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg> Resultado em cache</span>{% endif %}
+            <a href="/" class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:30px;height:30px;flex-shrink:0;"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5M12 13v8"/></svg><span><b>OrçaTech</b><small>Compare. Economize. Compre melhor.</small></span></a>
+            <form action="/buscar" method="POST" class="search-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;flex-shrink:0;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="text" name="produto" value="{{ produto }}" aria-label="Nova busca">
+                <input type="hidden" name="solicitante" value="{{ solicitante }}">
+                <button type="button" class="sp-x" aria-label="Limpar" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </form>
         </div>
         <div class="acoes">
             <button class="theme-btn" id="themeToggle" onclick="toggleTheme()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
-            <a href="/orcamento/carrinho" class="btn btn-voltar" style="position:relative;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg> Carrinho{% if carrinho_count %}<span style="background:#2563EB;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;">{{ carrinho_count }}</span>{% endif %}</a>
+            <a href="/orcamento/carrinho" class="btn btn-voltar" style="position:relative;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg> Carrinho<span id="cartCount" class="cart-count" {% if not carrinho_count %}hidden{% endif %}>{{ carrinho_count }}</span></a>
             <a href="/fornecedores/" class="btn btn-voltar">Fornecedores</a>
             <a href="/" class="btn btn-voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg> Voltar</a>
             <form action="/buscar" method="POST" style="display:contents">
@@ -521,37 +743,59 @@
         </div>
     </div>
 
+    <div class="toast-stack" id="toastStack">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% for categoria, msg in messages %}
-        <div class="flash-msg {{ categoria }}">
-          <span>{{ msg }}</span>
-          {% if categoria == 'sucesso' %}<a href="/orcamento/carrinho">Ver carrinho &rarr;</a>{% endif %}
+        <div class="toast {{ categoria }}">
+          <span class="toast-ico">{% if categoria == 'sucesso' %}✓{% else %}!{% endif %}</span>
+          <div class="toast-txt"><strong>{{ msg }}</strong></div>
+          {% if categoria == 'sucesso' %}<a href="/orcamento/carrinho">Ver carrinho →</a>{% endif %}
+          <i class="toast-bar"></i>
         </div>
       {% endfor %}
     {% endwith %}
+    </div>
 
     {% if produtos %}
     {% set validos = produtos | selectattr('preco', 'gt', 0) | list %}
     {% set sem_preco = produtos | rejectattr('preco', 'gt', 0) | list %}
     {% set produtos_ordenados = (validos | sort(attribute='preco')) + sem_preco %}
     {% if validos %}
+    {% set media = (validos | sum(attribute="preco")) / (validos | length) %}
+    {% set melhor = validos | min(attribute="preco") %}
+    <div class="resumo">
+    <div class="titulo-card">
+        <div class="tc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;flex-shrink:0;"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></div>
+        <div>
+            <small>Resultados para</small>
+            <h1>"{{ produto }}"</h1>
+            <p>Compare preços, encontre a melhor oferta e compre com segurança.</p>
+            {% if do_cache %}<span class="badge-cache"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z"/></svg> Resultado em cache</span>{% endif %}
+        </div>
+    </div>
     <div class="stats">
         <div class="stat-card">
+            <div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;flex-shrink:0;"><path d="m7.5 4.3 9 5.2"/><path d="M21 8v8l-9 5-9-5V8l9-5 9 5Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg></div>
             <div class="valor">{{ produtos | length }}</div>
             <div class="rotulo">Produtos encontrados</div>
         </div>
         <div class="stat-card">
+            <div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;flex-shrink:0;"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8Z"/><circle cx="7" cy="7" r="1.2"/></svg></div>
             <div class="valor">{{ (validos | min(attribute='preco')).preco_texto }}</div>
+            {% if media > melhor.preco %}<div class="delta">↓ {{ brl(media - melhor.preco) }} abaixo da média</div>{% endif %}
             <div class="rotulo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;vertical-align:-2px;margin-right:6px;"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v9"/><path d="M15 9.8c0-1.3-1.4-2.3-3-2.3s-3 .9-3 2.2 1.3 1.9 3 2.3c1.7.4 3 1 3 2.3s-1.4 2.2-3 2.2-3-1-3-2.3"/></svg>Menor Preço</div>
         </div>
         <div class="stat-card">
+            <div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;flex-shrink:0;"><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg></div>
             <div class="valor">{{ (validos | max(attribute='preco')).preco_texto }}</div>
             <div class="rotulo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;vertical-align:-2px;margin-right:6px;"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>Maior Preço</div>
         </div>
         <div class="stat-card">
+            <div class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;flex-shrink:0;"><path d="M3 9 5 3h14l2 6"/><path d="M4 9v10a1 1 0 0 0 1 1h4v-6h6v6h4a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/></svg></div>
             <div class="valor">{{ validos | map(attribute='site') | unique | list | length }}</div>
             <div class="rotulo">Lojas pesquisadas</div>
         </div>
+    </div>
     </div>
     {% endif %}
 
@@ -569,68 +813,70 @@
     </div>
     {% endif %}
 
+    {% if validos %}
+    <section class="melhor">
+        <div class="melhor-tag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;flex-shrink:0;"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.7V17c0 .6-.5 1-1.2 1.2C7.8 18.7 7 20.2 7 22"/><path d="M14 14.7V17c0 .6.5 1 1.2 1.2 1 .5 1.8 2 1.8 3.8"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg> MELHOR OFERTA</div>
+        <p class="melhor-sub">O menor preço encontrado para o seu produto.</p>
+        <div class="melhor-corpo">
+            <div class="melhor-prod">
+                <div class="melhor-img">{% if melhor.imagem %}<img src="{{ melhor.imagem }}" alt="" onerror="this.remove()">{% endif %}</div>
+                <div><p class="melhor-nome">{{ melhor.nome }}</p><span class="badge-loja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;"><path d="M3 9 5 3h14l2 6"/><path d="M4 9v10a1 1 0 0 0 1 1h4v-6h6v6h4a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/></svg>&nbsp;{{ melhor.site }}</span></div>
+            </div>
+            <div class="melhor-preco">
+                <strong>{{ melhor.preco_texto }}</strong>
+                {% if media > melhor.preco %}<span class="pct">−{{ ((media - melhor.preco) / media * 100) | round | int }}%</span><small>média geral {{ brl(media) }}</small>{% endif %}
+            </div>
+            <div class="chips-spec">{% for sp in (melhor.specs or [])[:4] %}{% set rot, _, val = sp.partition(': ') %}<span class="chip-spec" title="{{ rot }}">{{ val }}</span>{% endfor %}</div>
+            {% if melhor.link %}<a href="{{ melhor.link }}" target="_blank" class="btn-go btn-go-lg">Ver oferta <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></a>{% endif %}
+        </div>
+    </section>
+    {% endif %}
+    <div class="lista-head">
+        <h2>Todos os resultados <span>({{ produtos | length }})</span></h2>
+        <div class="vt"><button type="button" class="vt-btn on" data-modo="grade">Grade</button><button type="button" class="vt-btn" data-modo="lista">Lista</button></div>
+    </div>
+
     <div class="grid">
     {% for item in produtos_ordenados %}
+    {% set qtd_carrinho = (carrinho_qtds or {}).get(item.nome[:255] ~ "|" ~ item.site, 0) %}
     <div class="card {% if '💰' in item.tipo %}tipo-barato-card{% elif '🔥' in item.tipo %}tipo-premium-card{% endif %}"
          data-site="{{ item.site }}" data-preco="{{ item.preco }}" data-nome="{{ item.nome }}">
         <div class="pc" onclick="toggleCard(this)">
-            <div class="pc-top">
+            <div class="pc-media">
                 {% if '💰' in item.tipo %}<span class="badge-tipo tipo-barato">{{ item.tipo }}</span>
                 {% elif '🔥' in item.tipo %}<span class="badge-tipo tipo-premium">{{ item.tipo }}</span>
                 {% else %}<span class="badge-tipo tipo-custo">{{ item.tipo }}</span>{% endif %}
-                <span class="preco-chip">{{ item.preco_texto }}</span>
+                <span class="cart-badge" {% if not qtd_carrinho %}hidden{% endif %}>{{ qtd_carrinho }}</span>
+                <svg class="ph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:34px;height:34px;flex-shrink:0;"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                {% if item.imagem %}<img src="{{ item.imagem }}" alt="{{ item.nome }}" loading="lazy" onerror="this.remove()">{% endif %}
             </div>
-
-            <div class="pc-main">
-                <div class="pc-img-wrap">
-                    {% if item.imagem %}
-                    <img src="{{ item.imagem }}" alt="{{ item.nome }}" onerror="this.parentNode.innerHTML='<div class=\'card-img-placeholder\'><svg viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\' style=\'width:22px;height:22px;flex-shrink:0;\'><circle cx=\'9\' cy=\'21\' r=\'1\'/><circle cx=\'19\' cy=\'21\' r=\'1\'/><path d=\'M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6\'/></svg></div>'">
-                    {% else %}
-                    <div class="card-img-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;flex-shrink:0;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg></div>
-                    {% endif %}
+            <div class="pc-body">
+                <p class="nome">{{ item.nome }}</p>
+                {% if item.specs %}<div class="chips-spec">{% for sp in item.specs[:4] %}{% set rot, _, val = sp.partition(': ') %}<span class="chip-spec" title="{{ rot }}">{{ val }}</span>{% endfor %}</div>{% endif %}
+                <div class="pc-loja-row">
+                    <span class="badge-loja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;"><path d="M3 9 5 3h14l2 6"/><path d="M4 9v10a1 1 0 0 0 1 1h4v-6h6v6h4a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/></svg>&nbsp;{{ item.site }}</span>
+                    {% if item.specs %}<span class="pc-chevron">Detalhes <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><path d="m6 9 6 6 6-6"/></svg></span>{% endif %}
                 </div>
-                <div class="pc-headinfo">
-                    <p class="nome">{{ item.nome }}</p>
-                    <div class="badge-loja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex-shrink:0;vertical-align:-2px;margin-right:6px;"><path d="M3 9 5 3h14l2 6"/><path d="M4 9v10a1 1 0 0 0 1 1h4v-6h6v6h4a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/></svg>{{ item.site }}</div>
-                </div>
-                <span class="pc-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><path d="m6 9 6 6 6-6"/></svg></span>
-            </div>
-
-            <div class="pc-extra">
-                <div class="pc-extra-inner">
-                    {% if item.specs %}
-                    <div class="pc-specs">
-                        {% for s in item.specs %}
-                        {% set rotulo, _, valor = s.partition(': ') %}
-                        <div class="spec-row">
-                            <span class="spec-label">{{ rotulo }}</span>
-                            <span class="spec-value">{{ valor }}</span>
-                        </div>
-                        {% endfor %}
+                <div class="pc-extra"><div class="pc-extra-inner">
+                    {% if item.specs %}<div class="pc-specs">{% for sp in item.specs %}{% set rot, _, val = sp.partition(': ') %}
+                        <div class="spec-row"><span class="spec-label">{{ rot }}</span><span class="spec-value">{{ val }}</span></div>{% endfor %}
+                    </div>{% endif %}
+                </div></div>
+                <div class="pc-fim" onclick="event.stopPropagation()">
+                    <span class="preco-big {% if '💰' in item.tipo %}barato{% elif '🔥' in item.tipo %}premium{% endif %}">{{ item.preco_texto }}</span>
+                    <div class="pc-acoes">
+                        <form action="{{ url_for('orcamento.adicionar') }}" method="POST">
+                            <input type="hidden" name="produto_busca" value="{{ produto }}">
+                            <input type="hidden" name="nome" value="{{ item.nome }}">
+                            <input type="hidden" name="preco" value="{{ item.preco }}">
+                            <input type="hidden" name="site" value="{{ item.site }}">
+                            <input type="hidden" name="link" value="{{ item.link }}">
+                            <input type="hidden" name="imagem" value="{{ item.imagem }}">
+                            <button type="submit" class="btn-cart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg> Carrinho</button>
+                        </form>
+                        {% if item.link %}<a href="{{ item.link }}" target="_blank" class="btn-go">Ver produto <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></a>{% endif %}
                     </div>
-                    {% endif %}
-                    {% if item.link %}<a href="{{ item.link }}" target="_blank" class="btn-ver-prod" onclick="event.stopPropagation()">Ver Produto <span class="seta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></span></a>{% endif %}
-                    <form action="{{ url_for('orcamento.adicionar') }}" method="POST" onclick="event.stopPropagation()" style="margin-top:8px;">
-                        <input type="hidden" name="produto_busca" value="{{ produto }}">
-                        <input type="hidden" name="nome" value="{{ item.nome }}">
-                        <input type="hidden" name="preco" value="{{ item.preco }}">
-                        <input type="hidden" name="site" value="{{ item.site }}">
-                        <input type="hidden" name="link" value="{{ item.link }}">
-                        <input type="hidden" name="imagem" value="{{ item.imagem }}">
-                        <button type="submit" class="btn-ver-prod">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;">
-                                <circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
-                                <path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/>
-                            </svg>
-                            Adicionar ao orçamento
-                        </button>
-                    </form>
                 </div>
-            </div>
-
-            <div class="pc-footer">
-                <span>{{ item.site }}</span>
-                <span>{{ item.tipo }}</span>
             </div>
         </div>
     </div>
@@ -753,6 +999,72 @@ function toggleTheme(){
     const b = document.getElementById('themeToggle');
     if(b) b.innerHTML = n === 'dark' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
 }
+</script>
+<script>
+(function(){
+    const stack = document.getElementById('toastStack');
+    const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M20 6 9 17l-5-5"/></svg>';
+    function fechar(t){ if (t.classList.contains('saindo')) return; t.classList.add('saindo'); setTimeout(() => t.remove(), 300); }
+    function armar(t){ setTimeout(() => fechar(t), 3400); t.addEventListener('click', e => { if (!e.target.closest('a')) fechar(t); }); }
+    function toast(titulo, texto, tipo, link){
+        if (!stack) return;
+        const t = document.createElement('div');
+        t.className = 'toast ' + (tipo || 'sucesso');
+        t.innerHTML = '<span class="toast-ico">' + (tipo === 'erro' ? '!' : CHECK) + '</span>'
+            + '<div class="toast-txt"><strong></strong><span></span></div>'
+            + (link ? '<a href="' + link + '">Ver carrinho →</a>' : '') + '<i class="toast-bar"></i>';
+        t.querySelector('strong').textContent = titulo;
+        t.querySelector('.toast-txt span').textContent = texto || '';
+        stack.appendChild(t);
+        while (stack.children.length > 3) stack.firstElementChild.remove();
+        armar(t);
+    }
+    if (stack) stack.querySelectorAll('.toast').forEach(armar);
+
+    document.addEventListener('submit', async e => {
+        const f = e.target;
+        if (!f.matches || !f.matches('form[action*="/orcamento/adicionar"]')) return;
+        e.preventDefault();
+        const btn = f.querySelector('button');
+        if (btn.disabled) return;
+        btn.disabled = true;
+        const original = btn.innerHTML;
+        try {
+            const r = await fetch(f.action, { method:'POST', body:new FormData(f), headers:{'X-Requested-With':'fetch'} });
+            const d = await r.json();
+            if (!d.ok) throw new Error(d.msg);
+            const card = f.closest('.card');
+            const b = card.querySelector('.cart-badge');
+            b.textContent = d.quantidade; b.hidden = false;
+            b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
+            const cc = document.getElementById('cartCount');
+            if (cc) { cc.textContent = d.count; cc.hidden = false; }
+            toast('Adicionado ao orçamento', card.dataset.nome, 'sucesso', '/orcamento/carrinho');
+            btn.classList.add('ok'); btn.innerHTML = CHECK + ' Adicionado';
+        } catch (err) {
+            toast('Não foi possível adicionar', '', 'erro');
+        }
+        setTimeout(() => { btn.disabled = false; btn.classList.remove('ok'); btn.innerHTML = original; }, 1100);
+    });
+})();
+</script>
+<script>
+document.querySelectorAll('.vt-btn').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.vt-btn').forEach(x => x.classList.toggle('on', x === b));
+    const g = document.querySelector('.grid'); if (g) g.classList.toggle('lista', b.dataset.modo === 'lista');
+}));
+</script>
+<script>
+(function(){
+    const f = document.querySelector('.search-pill'); if (!f) return;
+    const inp = f.querySelector('input[name="produto"]'), x = f.querySelector('.sp-x');
+    const sync = () => { x.hidden = !inp.value; };
+    inp.addEventListener('input', sync); sync();
+    x.addEventListener('click', () => { inp.value = ''; sync(); inp.focus(); });
+    f.addEventListener('submit', e => {
+        if (!inp.value.trim()) { e.preventDefault(); inp.focus(); f.classList.add('shake'); setTimeout(() => f.classList.remove('shake'), 400); }
+    });
+})();
 </script>
 </body>
 </html>

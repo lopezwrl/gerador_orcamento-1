@@ -316,7 +316,7 @@
 
         <div class="progress-wrap">
             <div class="progress-meta">
-                <span class="label">Lojas concluídas: <strong id="lojasFeitas" style="color:var(--text)">0</strong> / <strong id="lojaTotal" style="color:var(--text)">7</strong></span>
+                <span class="label">Lojas concluídas: <strong id="lojasFeitas" style="color:var(--text)">0</strong> / <strong id="lojaTotal" style="color:var(--text)">8</strong></span>
                 <span class="pct" id="pctLabel">0%</span>
             </div>
             <div class="progress-bar">
@@ -361,24 +361,19 @@
                 <span class="loja-count" id="count-ib"></span>
                 <span class="loja-status" id="status-ib">Aguardando…</span>
             </div>
-            <div class="loja-item loja-extra" id="loja-gs" data-loja="gshield">
+            <div class="loja-item" id="loja-gs" data-loja="gshield">
                 <div class="loja-dot"></div>
                 <span class="loja-nome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Gshield</span>
                 <span class="loja-count" id="count-gs"></span>
                 <span class="loja-status" id="status-gs">Aguardando…</span>
             </div>
-            <div class="loja-item loja-extra" id="loja-ae" data-loja="aliexpress">
+            <div class="loja-item" id="loja-ae" data-loja="aliexpress">
                 <div class="loja-dot"></div>
                 <span class="loja-nome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg> AliExpress</span>
                 <span class="loja-count" id="count-ae"></span>
                 <span class="loja-status" id="status-ae">Aguardando…</span>
             </div>
         </div>
-
-        <button type="button" class="ver-mais-lojas" id="verMaisLojas" onclick="alternarLojasExtras()">
-            <span id="verMaisTexto">Mostrar todas as <strong id="verMaisTotal">8</strong> lojas</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;" id="verMaisSeta"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
 
         <div class="dica">
             <span class="dica-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M15 14c.3-1 .8-1.6 1.6-2.5A5.5 5.5 0 1 0 9 11.5c.7.9 1.4 1.5 1.6 2.5"/><path d="M9.5 18h5"/><path d="M10.3 22h3.4"/></svg></span>
@@ -419,36 +414,8 @@ const LOJAS = [
 ];
 const lojasContainer = document.querySelector('.lojas');
 
-/* Botão "Mostrar todas as lojas": a lista fica colapsada (só as 6
-   primeiras visíveis) até o usuário clicar, evitando que a página
-   fique gigante com as 7 lojas de uma vez. */
-const lojasEl        = document.querySelector('.lojas');
-const btnVerMais     = document.getElementById('verMaisLojas');
-const verMaisTexto   = document.getElementById('verMaisTexto');
-let lojasExpandidas  = false;
-
-function atualizarBotaoVerMais() {
-    const totalExtras = lojasContainer.querySelectorAll('.loja-extra').length;
-    if (totalExtras > 0) {
-        btnVerMais.classList.add('visivel');
-        const totalEl = document.getElementById('verMaisTotal');
-        if (totalEl) totalEl.textContent = LOJAS.length;
-    } else {
-        btnVerMais.classList.remove('visivel');
-    }
-}
-
-function alternarLojasExtras() {
-    lojasExpandidas = !lojasExpandidas;
-    lojasEl.classList.toggle('colapsado', !lojasExpandidas);
-    btnVerMais.classList.toggle('aberto', lojasExpandidas);
-    verMaisTexto.innerHTML = lojasExpandidas
-        ? 'Mostrar menos lojas'
-        : `Mostrar todas as <strong id="verMaisTotal">${LOJAS.length}</strong> lojas`;
-}
-
-lojasEl.classList.add('colapsado');
-atualizarBotaoVerMais();
+// Todas as 8 lojas visíveis simultaneamente
+const lojasEl = document.querySelector('.lojas');
 
 const progressFill  = document.getElementById('progressFill');
 const pctLabel      = document.getElementById('pctLabel');
@@ -510,7 +477,6 @@ function marcarTudo(lojas_data) {
     });
     setProgresso(100);
     lojasFeitas.textContent = LOJAS.length;
-    if (!lojasExpandidas) alternarLojasExtras();
 }
 
 function processarEstado(data) {
@@ -532,10 +498,12 @@ function processarEstado(data) {
 
     if (jobDone) {
         concluido = true;
-        marcarTudo(data.lojas);
+        // Agenda o redirecionamento ANTES de qualquer outra coisa, para que
+        // um erro na animação nunca impeça a ida para os resultados.
         setTimeout(() => {
             window.location.href = `/resultado/${jobId}?solicitante=${encodeURIComponent(solicitante)}`;
         }, 1200);
+        try { marcarTudo(data.lojas); } catch (e) { console.error(e); }
         return true;
     }
 

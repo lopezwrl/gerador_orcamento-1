@@ -9,12 +9,18 @@ import re
 import json
 from bs4 import BeautifulSoup
 
+try:
+    from driver_manager import versao_principal_chrome
+    _v_chrome = versao_principal_chrome() or 124
+except Exception:
+    _v_chrome = 124
+
 _SESSION = requests.Session()
 _SESSION.headers.update({
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
+        f"Chrome/{_v_chrome}.0.0.0 Safari/537.36"
     ),
     "Accept": "application/json, text/html, */*;q=0.8",
     "Accept-Language": "pt-BR,pt;q=0.9",

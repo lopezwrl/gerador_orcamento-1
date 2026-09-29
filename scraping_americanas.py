@@ -74,7 +74,10 @@ def _buscar_americanas(produto):
         from selenium.webdriver.chrome.options import Options
         from selenium.webdriver.support.ui import WebDriverWait
         from selenium.webdriver.support import expected_conditions as EC
-        from driver_manager import obter_driver_path, aplicar_binary_location, aplicar_perfil_temporario, aplicar_flags_economia_memoria
+        from driver_manager import (
+            obter_driver_path, aplicar_binary_location, aplicar_perfil_temporario,
+            aplicar_flags_economia_memoria, versao_principal_chrome
+        )
 
         options = Options()
         options.add_argument("--headless=new")
@@ -86,10 +89,11 @@ def _buscar_americanas(produto):
         # NÃO bloqueamos imagens — precisamos delas
         options.add_experimental_option("excludeSwitches", ["enable-automation","enable-logging"])
         options.add_experimental_option("useAutomationExtension", False)
+        versao = versao_principal_chrome() or 124
         options.add_argument(
             "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-            "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/124.0.0.0 Safari/537.36"
+            f"AppleWebKit/537.36 (KHTML, like Gecko) "
+            f"Chrome/{versao}.0.0.0 Safari/537.36"
         )
         # Garante imagens habilitadas
         prefs = {"profile.managed_default_content_settings.images": 1}
@@ -243,7 +247,7 @@ def _buscar_americanas(produto):
                         "preco_texto": preco_texto, "preco": preco_float,
                         "imagem": imagem, "link": link, "specs": [],
                     })
-                    status_img = "✓ foto" if imagem else "✗ sem foto"
+                    status_img = "[com foto]" if imagem else "[sem foto]"
                     print(f"[Americanas] {status_img} | {nome[:40]} | {preco_texto}")
 
                 except Exception as e:
@@ -252,7 +256,7 @@ def _buscar_americanas(produto):
             # Se não veio nenhuma imagem, tenta fallback via __NEXT_DATA__
             sem_foto = [p for p in produtos if not p.get("imagem")]
             if sem_foto:
-                print(f"[Americanas] {len(sem_foto)} sem foto → tentando __NEXT_DATA__ para imagens")
+                print(f"[Americanas] {len(sem_foto)} sem foto -> tentando __NEXT_DATA__ para imagens")
                 extra = _fallback_next_data(driver)
                 # Enriquecer com imagem pelo nome
                 mapa = {p["nome"][:60].lower(): p.get("imagem","") for p in extra}

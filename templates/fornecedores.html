@@ -1,259 +1,282 @@
+{% macro logo(nome, tam='md') %}{% set slug = (nome or '')|lower|replace(' ','')|replace('!','')|replace('.','') %}<span class="logo-box {{ tam }}"><img src="{{ url_for('static', filename='logos/' ~ slug ~ '.png') }}" alt="{{ nome }}" loading="lazy" onerror="imgFb(this)"><span class="fb"><svg class="i" viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></svg></span></span>{% endmacro %}
+{% set com_side = request.args.get('origem') != 'resultados' %}
+{% set origem = request.args.get('origem', '') %}
+{% set ativos = fornecedores|selectattr('ativo')|list %}
+{% set ns = namespace(cot=0) %}{% for f in fornecedores %}{% set ns.cot = ns.cot + f.cotacoes|length %}{% endfor %}
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fornecedores – OrçaTech</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}">
+<link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon/favicon-16x16.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon/favicon-180x180.png') }}">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('tema') || 'light');</script>
 <style>
-        :root {
-            --navy:#0F172A; --royal:#2563EB; --royal-lt:#3B82F6; --sky:#60A5FA;
-            --ice:#EFF6FF; --ice2:#F8FAFC; --amber:#D97706; --amber-lt:#FEF3C7;
-            --green:#059669; --green-lt:#D1FAE5; --red:#DC2626; --red-lt:#FEE2E2;
-            --bg:#F1F5F9; --surface:#FFFFFF; --surface2:#F8FAFC;
-            --border:#E2E8F0; --border2:#CBD5E1;
-            --text:#0F172A; --text2:#334155; --muted:#64748B; --muted2:#94A3B8;
-            --radius:12px; --radius-lg:16px; --radius-xl:22px;
-            --shadow-sm:0 1px 3px rgba(15,23,42,.05), 0 1px 2px rgba(15,23,42,.03);
-            --shadow:0 4px 20px -2px rgba(15,23,42,.08), 0 2px 6px -1px rgba(15,23,42,.04);
-            --shadow-lg:0 20px 25px -5px rgba(15,23,42,.1), 0 8px 10px -6px rgba(15,23,42,.05);
-        }
-        [data-theme='dark'] {
-            --bg:#0B0F17; --surface:#151D2A; --surface2:#1C2638;
-            --border:#2A384F; --border2:#3A4D6B;
-            --text:#F8FAFC; --text2:#E2E8F0; --muted:#94A3B8; --muted2:#64748B;
-            --navy:#3B82F6; --royal:#60A5FA; --royal-lt:#93C5FD; --sky:#93C5FD;
-            --ice:#1E293B; --ice2:#1C2638;
-            --amber:#F59E0B; --amber-lt:#2D2109;
-            --green:#10B981; --green-lt:#062C22; --red:#EF4444; --red-lt:#3B1212;
-            --shadow-sm:0 1px 3px rgba(0,0,0,.4);
-            --shadow:0 4px 20px -2px rgba(0,0,0,.5);
-            --shadow-lg:0 20px 25px -5px rgba(0,0,0,.55);
-        }
-        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-        html { scroll-behavior:smooth; }
-        body {
-            background:var(--bg); color:var(--text); font-family:'Inter',sans-serif;
-            font-size:14px; line-height:1.6; -webkit-font-smoothing:antialiased;
-            min-height:100vh; padding:40px 44px 64px; transition:background .25s, color .25s;
-        }
-        .wrap { max-width:1100px; margin:0 auto; }
+:root{--navy:#1e2a6e;--royal:#2d3a8c;--blue:#3d52c4;--sky:#5b78e0;--ice:#dde5ff;--gold:#e69500;--gold-lt:#f5b800;--teal:#0a8a79;--teal-lt:#0fb39e;--danger:#dc2626;--bg:#f4f6fb;--surface:#fff;--surface2:#f0f2fa;--surface3:#e8ecf8;--border:#d4d9ef;--border2:#b8c0e0;--text:#1a2040;--text2:#374080;--muted:#8890b8;--muted2:#6070a8;--radius:12px;--radius-lg:16px;--radius-xl:22px;--shadow-sm:0 1px 3px rgba(30,42,110,.06);--shadow:0 4px 20px rgba(30,42,110,.08);--shadow-lg:0 12px 40px rgba(30,42,110,.14)}
+[data-theme='dark']{--bg:#0b1220;--surface:#162033;--surface2:#1d2940;--surface3:#243550;--border:#324764;--border2:#46607f;--text:#f4f7ff;--text2:#dfe7ff;--muted:#aab7d3;--muted2:#c5d0ea;--navy:#3d52c4;--royal:#5b78e0;--blue:#6f8cf0;--sky:#8fa6f5;--ice:#26345c;--gold:#f5b800;--gold-lt:#ffd24d;--teal:#2dd4bf;--danger:#f87171;--shadow-sm:0 1px 3px rgba(0,0,0,.4);--shadow:0 4px 20px rgba(0,0,0,.35);--shadow-lg:0 12px 40px rgba(0,0,0,.5)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font:14px/1.6 'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;transition:background .25s,color .25s}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(61,82,196,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(61,82,196,.025) 1px,transparent 1px);background-size:40px 40px}
+.shell{position:relative;z-index:1}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+svg.i{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.shell{display:flex;min-height:100vh}
+.main{flex:1;min-width:0;padding:32px 40px 64px}
+.conteudo{max-width:1180px;margin:0 auto}
+/* sidebar */
+/* sidebar (padrão das demais páginas: azul-marinho) */
+.side{width:250px;flex-shrink:0;background:var(--navy);box-shadow:4px 0 24px rgba(30,42,110,.18);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:100;animation:fadeDown .45s cubic-bezier(.16,1,.3,1) both}
+[data-theme='dark'] .side,[data-theme='dark'] .topbar-mobile{background:#0a1322}
+.side-header{padding:28px 24px 22px;border-bottom:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.15)}
+.side-header h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;letter-spacing:2px;margin:0}
+.side-header div{margin-top:6px;color:rgba(255,255,255,.75);font-size:12px}
+.side-nav{padding:20px 14px;flex:1;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+.nav-section-label{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:2px;text-transform:uppercase;font-weight:700;padding:0 10px;margin:12px 0 6px}
+.nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:rgba(255,255,255,.6);text-decoration:none;font-size:13.5px;font-weight:500;position:relative;transition:color .22s,background .22s,transform .22s cubic-bezier(.4,0,.2,1)}
+.nav .icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);transition:all .2s;flex-shrink:0}
+.nav .icon svg.i{width:16px;height:16px}
+.nav:hover{color:#fff;background:rgba(255,255,255,.08);transform:translateX(2px)}
+.nav.on{color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15)}
+.nav.on .icon{background:linear-gradient(135deg,var(--gold),var(--gold-lt));box-shadow:0 4px 12px rgba(240,165,0,.4)}
+.nav.on::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--gold-lt);border-radius:0 3px 3px 0}
+.badge-n{margin-left:6px;background:#2563EB;color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 7px;min-width:20px;text-align:center}
+.btn .badge-n{background:var(--blue);color:#fff}
+.side-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.35)}
+.side-footer span{color:rgba(255,255,255,.6);font-weight:600}
+.topbar-mobile{display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--navy);padding:12px 20px;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(30,42,110,.2)}
+.topbar-mobile strong{color:#fff;letter-spacing:2px;font-family:'Playfair Display',serif}
+.hamburger{background:none;border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:8px;border-radius:8px;display:flex;flex-direction:column;gap:4px}
+.hamburger span{display:block;width:18px;height:2px;background:#fff;border-radius:2px;transition:all .3s}
+.hamburger.open span:nth-child(1){transform:translateY(6px) rotate(45deg)}.hamburger.open span:nth-child(2){opacity:0}.hamburger.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+.overlay{display:none;position:fixed;inset:0;background:rgba(20,30,80,.5);z-index:99;backdrop-filter:blur(4px)}.overlay.show{display:block}
+/* cabeçalho da página (sem pesquisa) */
+.page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;animation:fadeDown .5s cubic-bezier(.16,1,.3,1) both}
+.ph-left{display:flex;align-items:center;gap:14px}
+.ph-icon{width:48px;height:48px;border-radius:14px;background:var(--ice);color:var(--blue);display:grid;place-items:center}.ph-icon svg.i{width:24px;height:24px}
+.page-header h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--navy);letter-spacing:-.5px;line-height:1.2}.page-header p{color:var(--muted2);font-size:13px}
+.acoes{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+/* controles */
+.btn{padding:10px 18px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text2);font:600 13px 'Plus Jakarta Sans',sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:var(--shadow-sm);transition:all .22s cubic-bezier(.16,1,.3,1)}
+.btn:hover{color:var(--blue);border-color:var(--blue);transform:translateY(-1px)}
+.btn-primary{background:linear-gradient(135deg,var(--navy),var(--blue));border-color:transparent;color:#fff;box-shadow:0 4px 14px rgba(30,42,110,.25)}
+.btn-primary:hover{color:#fff;border-color:transparent;transform:translateY(-2px);box-shadow:0 8px 20px rgba(30,42,110,.35)}
+.btn-sm{padding:7px 14px;font-size:12px}
+.btn-danger{background:rgba(220,38,38,.1);color:var(--danger);border-color:transparent;box-shadow:none}
+.btn-danger:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
+.theme-btn{width:40px;height:40px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;box-shadow:var(--shadow-sm);display:grid;place-items:center;transition:.2s}
+.theme-btn:hover{transform:translateY(-2px);border-color:var(--blue);color:var(--blue)}
+[data-theme='dark'] .theme-btn{color:var(--gold-lt)}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted2);margin-bottom:4px}
+input,select,textarea{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font:14px 'Plus Jakarta Sans',sans-serif;transition:border-color .2s,background .25s,box-shadow .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);background:var(--surface);box-shadow:0 0 0 3px rgba(61,82,196,.15)}
+input::placeholder,textarea::placeholder{color:var(--muted)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.flash-msg{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-radius:var(--radius);margin-bottom:16px;font-weight:600;animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both}
+.flash-msg a{color:inherit;text-decoration:underline}
+.flash-msg.sucesso{background:rgba(15,179,158,.14);color:var(--teal)}.flash-msg.erro{background:rgba(220,38,38,.12);color:var(--danger)}
+/* logo / imagem com fallback */
+.logo-box,.thumb{background:#fff;border:1px solid var(--border);border-radius:var(--radius);display:grid;place-items:center;overflow:hidden;flex-shrink:0}
+.logo-box.md{width:120px;height:56px;padding:6px 10px}.logo-box.sm{width:64px;height:24px;padding:3px 6px;border-radius:6px}
+.logo-box img,.thumb img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .35s cubic-bezier(.16,1,.3,1)}
+.fb{display:none;place-items:center;color:var(--muted);font-size:26px;width:100%;height:100%;background:var(--surface2)}.logo-box.sm .fb{font-size:12px}.fb.show{display:grid}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:22px;box-shadow:var(--shadow-sm);animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both;transition:background .25s,border-color .25s}
+.vazio{background:var(--surface);border:1px dashed var(--border2);border-radius:var(--radius-xl);padding:44px 24px;text-align:center;color:var(--muted2);animation:fadeUp .5s .05s cubic-bezier(.16,1,.3,1) both}
+@view-transition{navigation:auto}
+.main{view-transition-name:app-content}
+::view-transition-old(app-content){animation:vt-out .22s cubic-bezier(.4,0,.6,1) both}
+::view-transition-new(app-content){animation:vt-in .32s cubic-bezier(.16,1,.3,1) both}
+@keyframes vt-out{to{opacity:0;transform:translateY(-6px) scale(.992)}}
+@keyframes vt-in{from{opacity:0;transform:translateY(10px) scale(.992)}}
+@media(prefers-reduced-motion:reduce){*,::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important;transition:none!important}}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px}
+.stat{display:flex;align-items:center;gap:14px;padding:18px 20px}
+.stat:nth-child(2){animation-delay:.05s}.stat:nth-child(3){animation-delay:.1s}.stat:nth-child(4){animation-delay:.15s}
+.stat .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--ice);color:var(--blue);flex-shrink:0}
+.stat:nth-child(2) .ic{background:rgba(15,179,158,.14);color:var(--teal)}.stat:nth-child(3) .ic{background:rgba(220,38,38,.12);color:var(--danger)}.stat:nth-child(4) .ic{background:rgba(245,184,0,.16);color:var(--gold)}
+.stat b{display:block;font-family:'Playfair Display',serif;font-size:24px;font-weight:700;line-height:1.15}.stat span{color:var(--muted2);font-size:12.5px}
+.filtros{display:grid;grid-template-columns:1fr 170px 170px 210px;gap:12px;margin-bottom:20px;animation:fadeUp .5s .15s cubic-bezier(.16,1,.3,1) both}
+.grid-forn{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start}
+.f-card{display:flex;flex-direction:column;gap:14px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s,border-color .3s}
+.f-card:nth-child(1){animation-delay:.05s}.f-card:nth-child(2){animation-delay:.09s}.f-card:nth-child(3){animation-delay:.13s}.f-card:nth-child(n+4){animation-delay:.17s}
+.f-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);border-color:var(--sky)}.f-card:hover .logo-box img{transform:scale(1.06)}
+.f-head{display:flex;gap:14px;align-items:center}.f-head h3{font-size:16px;font-weight:800;line-height:1.25}.f-head small{color:var(--muted2)}
+.tag{font-size:11px;font-weight:700;padding:2px 10px;border-radius:999px;margin-left:6px;background:rgba(15,179,158,.14);color:var(--teal);vertical-align:middle}.tag.off{background:rgba(220,38,38,.12);color:var(--danger)}
+.f-meta{color:var(--text2);font-size:13px;display:grid;gap:2px;word-break:break-all}
+.f-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid var(--border);padding-top:14px}
+.f-foot .mini{display:flex;gap:18px}.f-foot b{display:block;font-size:14px;line-height:1.2}.f-foot span{color:var(--muted2);font-size:11.5px}
+dialog{border:1px solid var(--border);border-radius:var(--radius-xl);background:var(--surface);color:var(--text);padding:24px;width:min(600px,92vw);margin:auto;box-shadow:var(--shadow-lg)}
+dialog[open]{animation:fadeUp .3s cubic-bezier(.16,1,.3,1) both}dialog::backdrop{background:rgba(20,30,80,.55)}
+dialog h2{font-size:18px;font-weight:800;margin-bottom:16px}.dlg-acoes{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:18px}
+@media(max-width:1100px){.grid-forn{grid-template-columns:repeat(2,1fr)}.filtros{grid-template-columns:1fr 1fr}.filtros .busca{grid-column:1/-1}}
+@media(max-width:900px){.side{position:fixed;top:0;left:0;bottom:0;height:auto;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}.side.open{transform:translateX(0);box-shadow:12px 0 40px rgba(20,30,80,.3)}.topbar-mobile{display:flex}.main{padding:76px 16px 48px}.stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.grid-forn,.filtros{grid-template-columns:1fr}}
 
-        @keyframes fadeDown { from{opacity:0;transform:translateY(-14px);} to{opacity:1;transform:translateY(0);} }
-        @keyframes fadeUp   { from{opacity:0;transform:translateY(18px);}  to{opacity:1;transform:translateY(0);} }
-
-        /* ── TOPBAR ── */
-        .topo {
-            display:flex; align-items:center; justify-content:space-between;
-            margin-bottom:28px; flex-wrap:wrap; gap:16px;
-            animation:fadeDown .45s cubic-bezier(.16,1,.3,1) both;
-            background:var(--surface); padding:20px 24px;
-            border-radius:var(--radius-lg); border:1px solid var(--border);
-            box-shadow:var(--shadow-sm); transition:background .25s, border-color .25s;
-        }
-        .topo h1 { font-size:22px; font-weight:800; color:var(--navy); letter-spacing:-.4px; line-height:1.3;
-                   display:flex; align-items:center; gap:10px; }
-        .acoes { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-
-        /* ── BOTÕES ── */
-        .btn {
-            padding:10px 18px; border:1px solid var(--border); border-radius:var(--radius);
-            background:var(--surface2); color:var(--text2); font:600 13px 'Inter',sans-serif;
-            letter-spacing:.2px; cursor:pointer; text-decoration:none;
-            display:inline-flex; align-items:center; gap:8px; box-shadow:var(--shadow-sm);
-            transition:all .22s cubic-bezier(.16,1,.3,1);
-        }
-        .btn:hover { color:var(--royal); border-color:var(--royal); transform:translateY(-1px); }
-        .btn-primary { background:var(--royal); border-color:var(--royal); color:#fff; box-shadow:0 4px 14px rgba(37,99,235,.25); }
-        .btn-primary:hover { color:#fff; background:var(--royal-lt); border-color:var(--royal-lt); transform:translateY(-2px); box-shadow:0 8px 20px rgba(37,99,235,.35); }
-        .btn-sm { padding:6px 12px; font-size:12px; }
-        .btn-danger { background:var(--red-lt); color:var(--red); border-color:transparent; box-shadow:none; }
-        .btn-danger:hover { background:var(--red); color:#fff; border-color:var(--red); }
-        .theme-btn {
-            width:40px; height:40px; border-radius:var(--radius); border:1px solid var(--border);
-            background:var(--surface2); color:var(--text); cursor:pointer; box-shadow:var(--shadow-sm);
-            transition:.2s; flex-shrink:0; display:flex; align-items:center; justify-content:center;
-        }
-        .theme-btn:hover { transform:translateY(-2px); border-color:var(--royal); color:var(--royal); }
-        [data-theme='dark'] .theme-btn { color:var(--amber); }
-
-        /* ── CAMPOS ── */
-        label { display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:4px; }
-        input, select, textarea {
-            width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:var(--radius);
-            background:var(--surface2); color:var(--text); font:14px 'Inter',sans-serif;
-            transition:border-color .2s, background .25s, box-shadow .2s;
-        }
-        input:focus, select:focus, textarea:focus { outline:none; border-color:var(--royal); box-shadow:0 0 0 3px rgba(37,99,235,.15); }
-        input::placeholder, textarea::placeholder { color:var(--muted2); }
-
-        /* ── FLASH ── */
-        .flash-msg { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
-                     padding:12px 16px; border-radius:var(--radius); margin:0 0 16px; font-size:14px; font-weight:600;
-                     animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both; }
-        .flash-msg a { color:inherit; text-decoration:underline; }
-        .flash-msg.sucesso { background:rgba(5,150,105,.14); color:var(--green); }
-        .flash-msg.erro { background:rgba(220,38,38,.14); color:var(--red); }
-
-        /* ── TRANSIÇÃO ENTRE PÁGINAS ── */
-        @view-transition { navigation:auto; }
-        .wrap { view-transition-name:app-content; }
-        ::view-transition-old(app-content){animation:vt-out .22s cubic-bezier(.4,0,.6,1) both;}
-        ::view-transition-new(app-content){animation:vt-in .32s cubic-bezier(.16,1,.3,1) both;}
-        @keyframes vt-out{to{opacity:0;transform:translateY(-6px) scale(.992);}}
-        @keyframes vt-in{from{opacity:0;transform:translateY(10px) scale(.992);}}
-        @media (prefers-reduced-motion: reduce){
-            *, ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*){animation:none!important;transition:none!important;}
-        }
-
-        h2 { font-size:16px; font-weight:700; margin-bottom:14px; }
-        .card {
-            background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-xl);
-            padding:24px; margin-bottom:22px; box-shadow:var(--shadow-sm);
-            animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both;
-            transition:background .25s, border-color .25s, box-shadow .3s;
-        }
-        .wrap > .card:nth-of-type(1){animation-delay:.04s;}
-        .wrap > .card:nth-of-type(2){animation-delay:.10s;}
-        .wrap > .card:nth-of-type(3){animation-delay:.16s;}
-        .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; }
-        .row { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
-               padding:14px 0; border-top:1px solid var(--border);
-               animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both; }
-        .row:nth-child(2){border-top:0;}
-        .row:nth-child(2){animation-delay:.02s;} .row:nth-child(3){animation-delay:.05s;}
-        .row:nth-child(4){animation-delay:.08s;} .row:nth-child(5){animation-delay:.11s;}
-        .row:nth-child(6){animation-delay:.14s;} .row:nth-child(n+7){animation-delay:.17s;}
-        .nome { font-weight:700; }
-        .meta { font-size:12px; color:var(--muted); }
-        .tag { font-size:11px; font-weight:700; padding:2px 10px; border-radius:999px;
-               background:rgba(37,99,235,.12); color:var(--royal); margin-left:6px; }
-        .tag.off { background:rgba(220,38,38,.14); color:var(--red); }
-        details { width:100%; }
-        details summary { list-style:none; cursor:pointer; display:inline-flex; }
-        details summary::-webkit-details-marker { display:none; }
-        details[open] > form { animation:fadeUp .3s cubic-bezier(.16,1,.3,1) both; }
-        details form { margin-top:12px; }
-        .vazio { color:var(--muted); padding:8px 0; }
-        @media (max-width:700px){ body{padding:24px 16px 48px;} }
-
+.fb svg.i{width:26px;height:26px}.logo-box.sm .fb svg.i{width:14px;height:14px}
+.busca{position:relative}.busca svg.i{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted);pointer-events:none}.busca input{padding-left:40px}
+.meta-i{display:flex;align-items:center;gap:8px}.meta-i svg.i{width:14px;height:14px;color:var(--muted2)}
+.btn svg.i{width:15px;height:15px}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="topo">
-    <h1>Fornecedores</h1>
-    <div class="acoes">
-      <button class="theme-btn" id="themeToggle" onclick="toggleTheme()" aria-label="Alternar tema"></button>
-      <a href="/orcamento/carrinho" class="btn">Carrinho{% if carrinho_count %} ({{ carrinho_count }}){% endif %}</a>
-      <a href="/" class="btn">Voltar</a>
+<div class="shell">
+  {% if com_side %}
+  <div class="overlay" id="overlay" onclick="fecharMenu()"></div>
+  <div class="topbar-mobile"><strong>ORÇATECH</strong><button class="hamburger" id="hamburger" type="button" onclick="toggleMenu()" aria-label="Menu"><span></span><span></span><span></span></button></div>
+  <aside class="side" id="sidebar">
+    <div class="side-header"><h2>ORÇATECH</h2><div>Comparador Inteligente</div></div>
+    <div class="side-nav">
+      <div class="nav-section-label">Menu Principal</div>
+    <a class="nav" href="/"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M3 9.5 12 2l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></div> Dashboard</a>
+    <a class="nav" href="/orcamentos"><div class="icon"><svg class="i" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6M9 8h1"/></svg></div> Orçamentos</a>
+    <a class="nav" href="/relatorios"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div> Relatórios</a>
+    <a class="nav on" href="{{ url_for('fornecedores.listar') }}"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div> Fornecedores</a>
+    <a class="nav" href="{{ url_for('orcamento.carrinho') }}"><div class="icon"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg></div> Carrinho{% if carrinho_count %}<span class="badge-n">{{ carrinho_count }}</span>{% endif %}</a>
     </div>
-  </div>
-
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for categoria, msg in messages %}
-      <div class="flash-msg {{ categoria }}">
-        <span>{{ msg }}</span>
-        {% if categoria == 'sucesso' and 'orçamento' in msg %}<a href="/orcamento/carrinho">Ver carrinho &rarr;</a>{% endif %}
-      </div>
-    {% endfor %}
-  {% endwith %}
-
-  <div class="card">
-    <h2>Lançar cotação manual</h2>
-    {% set ativos = fornecedores | selectattr('ativo') | list %}
-    {% if ativos %}
-    <form action="{{ url_for('fornecedores.cotacao_manual') }}" method="POST">
-      <div class="form-grid">
-        <div><label>Fornecedor *</label>
-          <select name="fornecedor_id" required>
-            {% for f in ativos %}<option value="{{ f.id }}">{{ f.nome }}</option>{% endfor %}
-          </select></div>
-        <div><label>Produto (termo do orçamento) *</label><input name="produto_busca" required placeholder="ex: memória ram ddr4 8gb"></div>
-        <div><label>Descrição do item (opcional)</label><input name="nome" placeholder="nome exato oferecido"></div>
-        <div><label>Preço unitário (R$) *</label><input name="preco" required inputmode="decimal" placeholder="1.234,56"></div>
-        <div><label>Quantidade</label><input name="quantidade" type="number" min="1" value="1"></div>
-        <div><label>Frete (R$)</label><input name="frete" inputmode="decimal" placeholder="opcional"></div>
-        <div><label>Prazo de entrega</label><input name="prazo_entrega" placeholder="ex: 5 dias úteis"></div>
-        <div><label>Forma de pagamento</label><input name="forma_pagamento" placeholder="ex: Pix / 12x"></div>
-        <div><label>Link (opcional)</label><input name="link" placeholder="https://..."></div>
-      </div>
-      <div style="margin-top:16px"><button class="btn btn-primary" type="submit">Adicionar ao orçamento</button></div>
-    </form>
-    {% else %}
-      <p class="vazio">Cadastre um fornecedor ativo abaixo para lançar cotações.</p>
-    {% endif %}
-  </div>
-
-  <div class="card">
-    <h2>Novo fornecedor</h2>
-    <form action="{{ url_for('fornecedores.novo') }}" method="POST">
-      <div class="form-grid">
-        <div><label>Nome *</label><input name="nome" required></div>
-        <div><label>Tipo</label>
-          <select name="tipo"><option value="manual">Manual (telefone, loja física)</option><option value="online">Online</option></select></div>
-        <div><label>Site</label><input name="site" placeholder="https://..."></div>
-        <div><label>Contato</label><input name="contato" placeholder="telefone / e-mail"></div>
-      </div>
-      <div style="margin-top:16px"><button class="btn btn-primary" type="submit">Cadastrar</button></div>
-    </form>
-  </div>
-
-  <div class="card">
-    <h2>Cadastrados ({{ fornecedores|length }})</h2>
-    {% for f in fornecedores %}
-    <div class="row">
-      <div>
-        <span class="nome">{{ f.nome }}</span>
-        <span class="tag">{{ f.tipo }}</span>
-        {% if not f.ativo %}<span class="tag off">inativo</span>{% endif %}
-        <div class="meta">{{ f.site or '' }}{% if f.site and f.contato %} · {% endif %}{{ f.contato or '' }}</div>
+    <div class="side-footer">OrçaTech v2.0 · <span>ORÇATECH</span></div>
+  </aside>
+  {% endif %}
+  <main class="main"><div class="conteudo">
+    <div class="page-header">
+      <div class="ph-left">
+        <div class="ph-icon"><svg class="i" viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></svg></div>
+        <div><h1>Fornecedores</h1><p>Gerencie seus fornecedores, lojas e cotações.</p></div>
       </div>
       <div class="acoes">
-        <form action="{{ url_for('fornecedores.alternar_ativo', fornecedor_id=f.id) }}" method="POST">
-          <button class="btn btn-sm" type="submit">{{ 'Desativar' if f.ativo else 'Ativar' }}</button>
-        </form>
+        {% if not com_side %}
+        <a class="btn" href="{{ url_for('orcamento.carrinho') }}">Carrinho{% if carrinho_count %}<span class="badge-n">{{ carrinho_count }}</span>{% endif %}</a>
+        <a class="btn" href="/" onclick="if(history.length>1){history.back();return false;}"><svg class="i" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg> Voltar</a>
+        {% endif %}
+        <button class="theme-btn" type="button" onclick="toggleTheme()" aria-label="Alternar tema"></button>
+        <button class="btn" type="button" data-open="dlgCotacao">Cotação manual</button>
+        <button class="btn btn-primary" type="button" data-open="dlgNovo">+ Novo Fornecedor</button>
       </div>
-      <details>
-        <summary><span class="btn btn-sm">Editar</span></summary>
-        <form action="{{ url_for('fornecedores.editar', fornecedor_id=f.id) }}" method="POST">
-          <div class="form-grid">
-            <div><label>Nome</label><input name="nome" value="{{ f.nome }}" required></div>
-            <div><label>Tipo</label>
-              <select name="tipo">
-                <option value="manual" {{ 'selected' if f.tipo == 'manual' }}>Manual</option>
-                <option value="online" {{ 'selected' if f.tipo == 'online' }}>Online</option>
-              </select></div>
-            <div><label>Site</label><input name="site" value="{{ f.site or '' }}"></div>
-            <div><label>Contato</label><input name="contato" value="{{ f.contato or '' }}"></div>
-          </div>
-          <div style="margin-top:12px"><button class="btn btn-primary btn-sm" type="submit">Salvar</button></div>
-        </form>
-      </details>
     </div>
-    {% else %}
-      <p class="vazio">Nenhum fornecedor ainda. As lojas da busca (Amazon, KaBuM…) aparecem aqui automaticamente depois que você adiciona um item ao orçamento.</p>
-    {% endfor %}
-  </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}{% for categoria, msg in messages %}
+      <div class="flash-msg {{ categoria }}"><span>{{ msg }}</span>{% if categoria == 'sucesso' and 'orçamento' in msg %}<a href="{{ url_for('orcamento.carrinho') }}">Ver carrinho &rarr;</a>{% endif %}</div>
+    {% endfor %}{% endwith %}
+
+    <div class="stats">
+      <div class="card stat"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></svg></div><div><b>{{ fornecedores|length }}</b><span>Total de fornecedores</span></div></div>
+      <div class="card stat"><div class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg></div><div><b>{{ ativos|length }}</b><span>Ativos</span></div></div>
+      <div class="card stat"><div class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg></div><div><b>{{ fornecedores|length - ativos|length }}</b><span>Inativos</span></div></div>
+      <div class="card stat"><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></div><div><b>{{ ns.cot }}</b><span>Cotações realizadas</span></div></div>
+    </div>
+
+    <div class="filtros">
+      <div class="busca"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input id="fq" type="search" placeholder="Buscar fornecedor..." autocomplete="off"></div>
+      <select id="ftipo"><option value="">Todos os tipos</option><option value="online">Online</option><option value="manual">Manual</option></select>
+      <select id="fstatus"><option value="">Todos os status</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option></select>
+      <select id="ford"><option value="az">Ordenar por: Nome (A-Z)</option><option value="za">Ordenar por: Nome (Z-A)</option><option value="cot">Ordenar por: Mais cotações</option></select>
+    </div>
+
+    <div class="grid-forn" id="gridForn">
+      {% for f in fornecedores %}
+      {% set datas = f.cotacoes|map(attribute='coletado_em')|select|list %}
+      <article class="card f-card" data-nome="{{ f.nome|lower }}" data-busca="{{ (f.nome ~ ' ' ~ (f.site or '') ~ ' ' ~ (f.contato or ''))|lower }}" data-tipo="{{ f.tipo }}" data-status="{{ 'ativo' if f.ativo else 'inativo' }}" data-cot="{{ f.cotacoes|length }}">
+        <div class="f-head">
+          {{ logo(f.nome) }}
+          <div><h3>{{ f.nome }}<span class="tag {{ '' if f.ativo else 'off' }}">{{ 'Ativo' if f.ativo else 'Inativo' }}</span></h3><small>{{ 'Loja online' if f.tipo == 'online' else 'Fornecedor manual' }}</small></div>
+        </div>
+        <div class="f-meta">
+          {% if f.site %}<span class="meta-i"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>{{ f.site }}</span>{% endif %}
+          {% if f.contato %}<span class="meta-i"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>{{ f.contato }}</span>{% endif %}
+          {% if not f.site and not f.contato %}<span style="color:var(--muted2)">Sem site ou contato cadastrado</span>{% endif %}
+        </div>
+        <div class="f-foot">
+          <div class="mini">
+            <div><b>{{ f.cotacoes|length }}</b><span>Cotações</span></div>
+            <div><b>{{ (datas|max).strftime('%d/%m/%Y') if datas else '—' }}</b><span>Última cotação</span></div>
+          </div>
+          {% if f.ativo %}
+          <button class="btn btn-primary btn-sm" type="button" data-open="dlgEditar" data-nome="{{ f.nome }}" data-tipo="{{ f.tipo }}" data-site="{{ f.site or '' }}" data-contato="{{ f.contato or '' }}" data-status="ativo" data-edit="{{ url_for('fornecedores.editar', fornecedor_id=f.id) }}" data-toggle="{{ url_for('fornecedores.alternar_ativo', fornecedor_id=f.id) }}">Abrir <svg class="i" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button>
+          {% else %}
+          <form action="{{ url_for('fornecedores.alternar_ativo', fornecedor_id=f.id) }}" method="POST"><input type="hidden" name="origem" value="{{ origem }}"><button class="btn btn-sm" type="submit"><svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.4 6.4L3 16"/><path d="M3 12a9 9 0 0 1 15.4-6.4L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg> Reativar</button></form>
+          {% endif %}
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    <div id="semResultado" class="vazio" style="display:none">Nenhum fornecedor encontrado com esses filtros.</div>
+    {% if not fornecedores %}<div class="vazio">Nenhum fornecedor ainda. Cadastre um em <b>+ Novo Fornecedor</b> ou adicione um item ao orçamento para as lojas da busca aparecerem aqui.</div>{% endif %}
+  </div></main>
 </div>
+
+<dialog id="dlgNovo"><h2>Novo fornecedor</h2>
+  <form action="{{ url_for('fornecedores.novo') }}" method="POST"><input type="hidden" name="origem" value="{{ origem }}">
+    <div class="form-grid">
+      <div><label>Nome *</label><input name="nome" required></div>
+      <div><label>Tipo</label><select name="tipo"><option value="manual">Manual (telefone, loja física)</option><option value="online">Online</option></select></div>
+      <div><label>Site</label><input name="site" placeholder="www..."></div>
+      <div><label>Contato</label><input name="contato" placeholder="telefone / e-mail"></div>
+    </div>
+    <div class="dlg-acoes"><button class="btn" type="button" data-close>Cancelar</button><button class="btn btn-primary" type="submit">Cadastrar</button></div>
+  </form>
+</dialog>
+<dialog id="dlgEditar"><h2>Fornecedor</h2>
+  <form class="edit" method="POST"><input type="hidden" name="origem" value="{{ origem }}">
+    <div class="form-grid">
+      <div><label>Nome</label><input name="nome" required></div>
+      <div><label>Tipo</label><select name="tipo"><option value="manual">Manual</option><option value="online">Online</option></select></div>
+      <div><label>Site</label><input name="site"></div>
+      <div><label>Contato</label><input name="contato"></div>
+    </div>
+    <div class="dlg-acoes"><button class="btn" type="button" data-close>Fechar</button><button class="btn btn-primary" type="submit">Salvar</button></div>
+  </form>
+  <form class="tog" method="POST" style="margin-top:10px;text-align:right"><input type="hidden" name="origem" value="{{ origem }}"><button class="btn btn-danger btn-sm" type="submit">Desativar</button></form>
+</dialog>
+<dialog id="dlgCotacao"><h2>Lançar cotação manual</h2>
+  {% if ativos %}
+  <form action="{{ url_for('fornecedores.cotacao_manual') }}" method="POST"><input type="hidden" name="origem" value="{{ origem }}">
+    <div class="form-grid">
+      <div><label>Fornecedor *</label><select name="fornecedor_id" required>{% for f in ativos %}<option value="{{ f.id }}">{{ f.nome }}</option>{% endfor %}</select></div>
+      <div><label>Produto (termo do orçamento) *</label><input name="produto_busca" required placeholder="ex: memória ram ddr4 8gb"></div>
+      <div><label>Descrição do item</label><input name="nome" placeholder="nome exato oferecido"></div>
+      <div><label>Preço unitário (R$) *</label><input name="preco" required inputmode="decimal" placeholder="1.234,56"></div>
+      <div><label>Quantidade</label><input name="quantidade" type="number" min="1" value="1"></div>
+      <div><label>Frete (R$)</label><input name="frete" inputmode="decimal"></div>
+      <div><label>Prazo de entrega</label><input name="prazo_entrega" placeholder="ex: 5 dias úteis"></div>
+      <div><label>Forma de pagamento</label><input name="forma_pagamento" placeholder="ex: Pix / 12x"></div>
+      <div><label>Link</label><input name="link" placeholder="https://..."></div>
+    </div>
+    <div class="dlg-acoes"><button class="btn" type="button" data-close>Cancelar</button><button class="btn btn-primary" type="submit">Adicionar ao orçamento</button></div>
+  </form>
+  {% else %}<p style="color:var(--muted2)">Cadastre um fornecedor ativo para lançar cotações.</p><div class="dlg-acoes"><button class="btn" type="button" data-close>Fechar</button></div>{% endif %}
+</dialog>
 <script>
 (function(){
-    const LUA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
-    const SOL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
-    function aplicar(t){
-        document.documentElement.setAttribute('data-theme', t);
-        const b = document.getElementById('themeToggle');
-        if (b) b.innerHTML = t === 'dark' ? SOL : LUA;
-    }
-    aplicar(localStorage.getItem('tema') || 'light');
-    window.toggleTheme = function(){
-        const n = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        localStorage.setItem('tema', n);
-        aplicar(n);
-    };
+var LUA='<svg class="i" viewBox="0 0 24 24"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+var SOL='<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+function tema(t){document.documentElement.setAttribute('data-theme',t);document.querySelectorAll('.theme-btn').forEach(function(b){b.innerHTML=t==='dark'?SOL:LUA});}
+tema(localStorage.getItem('tema')||'light');
+window.toggleTheme=function(){var n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';localStorage.setItem('tema',n);tema(n);};
+window.toggleMenu=function(){['sidebar','overlay','hamburger'].forEach(function(id,i){var e=document.getElementById(id);if(e)e.classList.toggle(i==0?'open':i==1?'show':'open')})};
+window.fecharMenu=function(){var a=document.getElementById('sidebar'),b=document.getElementById('overlay'),c=document.getElementById('hamburger');if(a)a.classList.remove('open');if(b)b.classList.remove('show');if(c)c.classList.remove('open')};
+window.imgFb=function(el){el.style.display='none';if(el.nextElementSibling)el.nextElementSibling.classList.add('show');};
+document.addEventListener('click',function(e){
+  var s=e.target.closest('[data-step]');
+  if(s){var f=s.closest('form'),i=f.querySelector('input[name=quantidade]');var v=Math.max(1,(parseInt(i.value)||1)+parseInt(s.dataset.step));if(v!==parseInt(i.value)){i.value=v;f.submit();}return;}
+  var o=e.target.closest('[data-open]');if(o){var d=document.getElementById(o.dataset.open);if(d){if(o.dataset.nome!==undefined)preencher(d,o);d.showModal();}return;}
+  if(e.target.closest('[data-close]')){e.target.closest('dialog').close();return;}
+  if(e.target.tagName==='DIALOG')e.target.close();
+});
+document.addEventListener('change',function(e){if(e.target.matches('.qty input'))e.target.form.submit();});
+function preencher(d,o){var f=d.querySelector('form.edit');f.action=o.dataset.edit;f.nome.value=o.dataset.nome;f.tipo.value=o.dataset.tipo;f.site.value=o.dataset.site;f.contato.value=o.dataset.contato;
+  var t=d.querySelector('form.tog');t.action=o.dataset.toggle;t.querySelector('button').textContent=o.dataset.status==='ativo'?'Desativar':'Ativar';}
+var q=document.getElementById('fq');
+if(q){var grid=document.getElementById('gridForn'),vazio=document.getElementById('semResultado'),tipo=document.getElementById('ftipo'),st=document.getElementById('fstatus'),ord=document.getElementById('ford');
+  function aplicar(){var t=q.value.trim().toLowerCase(),n=0,cards=[].slice.call(grid.children);
+    cards.sort(function(a,b){if(ord.value==='za')return b.dataset.nome.localeCompare(a.dataset.nome);if(ord.value==='cot')return b.dataset.cot-a.dataset.cot;return a.dataset.nome.localeCompare(b.dataset.nome);}).forEach(function(c){grid.appendChild(c)});
+    cards.forEach(function(c){var ok=(!t||c.dataset.busca.indexOf(t)>-1)&&(!tipo.value||c.dataset.tipo===tipo.value)&&(!st.value||c.dataset.status===st.value);c.style.display=ok?'':'none';if(ok)n++;});
+    vazio.style.display=n?'none':'block';}
+  [q,tipo,st,ord].forEach(function(el){el.addEventListener('input',aplicar)});aplicar();}
 })();
-</script>
 
+</script>
 </body>
 </html>

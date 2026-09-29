@@ -4,7 +4,10 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from driver_manager import obter_driver_path, aplicar_binary_location, aplicar_perfil_temporario, aplicar_flags_economia_memoria, SELENIUM_SEMAPHORE
+from driver_manager import (
+    obter_driver_path, aplicar_binary_location, aplicar_perfil_temporario,
+    aplicar_flags_economia_memoria, SELENIUM_SEMAPHORE, versao_principal_chrome
+)
 import time
 import re
 
@@ -25,10 +28,11 @@ def _buscar_terabyte(produto):
     options.add_argument("--disable-notifications")
     options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])
     options.add_experimental_option("useAutomationExtension", False)
+    v = versao_principal_chrome() or 124
     options.add_argument(
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/148.0.0.0 Safari/537.36"
+        f"Chrome/{v}.0.0.0 Safari/537.36"
     )
     aplicar_binary_location(options)
     aplicar_perfil_temporario(options)

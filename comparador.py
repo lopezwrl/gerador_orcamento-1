@@ -19,6 +19,10 @@ CACHE_DIR   = "cache"
 CACHE_HORAS = 6
 TOTAL_LOJAS = 8  # lojas nativas fixas (apenas lojas reais, sem comparadores)
 
+# True  = descarta itens que o filtro considera irrelevantes/acessórios.
+# False = TUDO que as lojas encontraram vai para os resultados (só remove duplicados).
+FILTRAR_RESULTADOS = False
+
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 # ═══════════════════════════════════════════════════════════════════
@@ -277,7 +281,7 @@ def _filtrar(produto, produtos):
             c_relev += 1
 
     print(
-        f"[Filtro] '{produto}': {len(produtos)} → {len(resultado)} "
+        f"[Filtro] '{produto}': {len(produtos)} -> {len(resultado)} "
         f"| acess:{c_acess} incompat:{c_incompat} modelo:{c_modelo} irrelevante:{c_relev}"
     )
     return resultado
@@ -396,15 +400,15 @@ def comparar(produto, forcar_busca=False, job=None):
     def _rodar(nome_loja, fn):
         _iniciar(job, nome_loja)
         try:
-            print(f"→ {nome_loja} iniciado...")
+            print(f"-> {nome_loja} iniciado...")
             t0  = time.time()
             res = fn(produto)
             dt  = time.time() - t0
-            print(f"✓ {nome_loja} concluído em {dt:.1f}s ({len(res)} produtos)")
+            print(f"[OK] {nome_loja} concluido em {dt:.1f}s ({len(res)} produtos)")
             _marcar(job, nome_loja, 'done', len(res), total_lojas)
             return res
         except Exception as e:
-            print(f"✗ {nome_loja} falhou: {e}")
+            print(f"[ERRO] {nome_loja} falhou: {e}")
             _marcar(job, nome_loja, 'error', 0, total_lojas)
             return []
 
@@ -421,11 +425,11 @@ def comparar(produto, forcar_busca=False, job=None):
             except Exception as e:
                 print(f"[Busca] Erro em futuro: {e}")
 
-    print(f"[Busca] Todas as lojas concluídas em {time.time() - inicio:.1f}s (paralelo)")
+    print(f"[Busca] Todas as lojas concluidas em {time.time() - inicio:.1f}s (paralelo)")
 
     todos = _deduplicar(todos)
 
-    filtrados = _filtrar(produto, todos)
+    filtrados = _filtrar(produto, todos) if FILTRAR_RESULTADOS else list(todos)
     filtrados = _classificar(filtrados)
     filtrados = sorted(
         filtrados,
@@ -440,5 +444,5 @@ def comparar(produto, forcar_busca=False, job=None):
 
     dados = {'produto': produto, 'do_cache': False, 'produtos': filtrados}
     _salvar_cache(produto, dados)
-    print(f"[Busca] {len(todos)} brutos → {len(filtrados)} relevantes.")
+    print(f"[Busca] {len(todos)} brutos -> {len(filtrados)} relevantes.")
     return dados

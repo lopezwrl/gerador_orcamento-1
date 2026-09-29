@@ -157,31 +157,34 @@ def _parse(html):
     soup = BeautifulSoup(html, "html.parser")
     produtos, vistos = [], set()
 
-    for titulo in _titulos_com_link(soup):
+    # 1) Tema moderno Loja Integrada (web component <product-card>)
+    cards = soup.find_all("product-card")
+    if not cards:
+        cards = soup.find_all(lambda tag: tag.name in ("div", "article") and "gs-product-card" in tag.get("class", []))
+
+    for card in cards:
         try:
-            a = titulo.find("a", href=True)
-            nome = (a.get("title") or titulo.get_text(" ", strip=True)).strip()
-            link = _url_abs(a["href"])
-            if len(nome) < 4 or not link or link in vistos:
+            a = card.find("a", attrs={"data-id": "product-url"}) or card.find("a", href=True)
+            if not a:
+                continue
+            nome = (a.get("title") or a.get_text(" ", strip=True)).strip()
+            rel_url = card.get("data-url") or a.get("href", "")
+            link = _url_abs(rel_url)
+            if len(nome) < 3 or not link or link in vistos:
                 continue
 
-            card = _achar_card(titulo)
-            if card is None:
-                continue
-
-            texto = card.get_text(" ", strip=True).replace(nome, " ")
+            texto = card.get_text(" ", strip=True)
             preco, preco_texto = _preco_do_card(texto)
             if preco <= 0:
                 continue
 
+            img = card.find("img", attrs={"data-id": "product-image"}) or card.find("img")
             imagem = ""
-            for img in card.find_all("img"):
+            if img:
                 for attr in ("src", "data-src", "data-lazy", "data-original"):
                     imagem = _url_abs(img.get(attr, ""))
                     if imagem:
                         break
-                if imagem:
-                    break
 
             vistos.add(link)
             produtos.append({
@@ -191,6 +194,45 @@ def _parse(html):
             })
         except Exception:
             continue
+
+    # 2) Fallback para tema clássico (título h2/h3 com link)
+    if not produtos:
+        for titulo in _titulos_com_link(soup):
+            try:
+                a = titulo.find("a", href=True)
+                if not a:
+                    continue
+                nome = (a.get("title") or titulo.get_text(" ", strip=True)).strip()
+                link = _url_abs(a["href"])
+                if len(nome) < 4 or not link or link in vistos:
+                    continue
+
+                card = _achar_card(titulo)
+                if card is None:
+                    continue
+
+                texto = card.get_text(" ", strip=True).replace(nome, " ")
+                preco, preco_texto = _preco_do_card(texto)
+                if preco <= 0:
+                    continue
+
+                imagem = ""
+                for img in card.find_all("img"):
+                    for attr in ("src", "data-src", "data-lazy", "data-original"):
+                        imagem = _url_abs(img.get(attr, ""))
+                        if imagem:
+                            break
+                    if imagem:
+                        break
+
+                vistos.add(link)
+                produtos.append({
+                    "site": "Gshield", "nome": nome[:200],
+                    "preco_texto": preco_texto, "preco": preco,
+                    "imagem": imagem, "link": link, "specs": [],
+                })
+            except Exception:
+                continue
 
     print(f"[Gshield] {len(produtos)} produtos no HTML")
     return produtos[:15]

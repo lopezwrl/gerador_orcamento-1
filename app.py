@@ -4,7 +4,7 @@ load_dotenv()  # lê o arquivo .env e injeta as variáveis (ex: CHROME_BINARY_PA
 
 from flask import (
     Flask, render_template, request, send_file, redirect,
-    url_for, jsonify, Response
+    url_for, jsonify, Response, send_from_directory
 )
 from comparador import (
     comparar,
@@ -32,6 +32,13 @@ from orcamento_routes import orcamento_bp
 app.register_blueprint(orcamento_bp)
 from fornecedores_routes import fornecedores_bp
 app.register_blueprint(fornecedores_bp)
+
+@app.route('/favicon.ico')
+def favicon():
+    """Ícone da aba do navegador (vale para todas as páginas, mesmo sem <link> no template)."""
+    return send_from_directory(os.path.join(app.root_path, 'static', 'favicon'),
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 
 HISTORICO_FILE = "historico.json"
 
