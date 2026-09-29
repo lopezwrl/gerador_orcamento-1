@@ -68,10 +68,12 @@ Cada card da tela de resultados tem o botão **Adicionar ao orçamento**. O flux
 
 1. **Adicionar**: o item vira uma cotação no banco e entra no orçamento `rascunho` do usuário autenticado. Uma faixa de confirmação aparece com o link "Ver carrinho".
 2. **Carrinho** (`/orcamento/carrinho`): edita a quantidade, remove itens e vê o total. O botão "Carrinho" (com contador) aparece nas telas principais.
-3. **Finalizar**: informa solicitante, condições comerciais e observações. O orçamento passa para o status `aguardando_aprovacao` e o PDF fica disponível para o dono e administradores. A fila e a decisão de aprovação ainda serão implementadas.
-4. **Reabrir o PDF** a qualquer momento por `/orcamento/pdf/<id>`.
+3. **Enviar para aprovação**: informa solicitante, condições comerciais e observações. O sistema registra as transições `rascunho → em_cotacao → aguardando_aprovacao`, congela os dados comerciais dos itens, define a validade e registra cada transição no histórico.
+4. **Decidir**: usuários com papel `aprovador` e administradores acessam `/aprovacoes`. A pessoa solicitante não pode aprovar o próprio orçamento; a exceção administrativa depende da configuração `ADMIN_PODE_AUTOAPROVAR`. A reprovação exige comentário.
+5. **Consultar**: o detalhe em `/orcamento/<id>` exibe totais com frete, condições, validade, histórico e decisões. Itens ficam bloqueados após envio; um orçamento reprovado pode ser reaberto pelo dono ou administrador.
+6. **PDF**: use o botão no detalhe ou `/orcamento/pdf/<id>`. Inclui status, validade, snapshot de preços e informações de aprovação; documentos reprovados ou expirados recebem marca d'água.
 
-Status previstos para um orçamento: `rascunho → em_cotacao → aguardando_aprovacao → aprovado / reprovado → compra_realizada`. Atualmente o sistema grava `rascunho` e `aguardando_aprovacao`; os demais dependem da implementação do fluxo de aprovação.
+Status válidos: `rascunho → em_cotacao → aguardando_aprovacao → aprovado | reprovado`; aprovado pode avançar para `compra_realizada` e reprovado pode voltar para `rascunho`. Aprovações de orçamentos expirados são bloqueadas até que o dono ou administrador renove a validade.
 
 ---
 
@@ -397,6 +399,8 @@ Lidas de um arquivo `.env` na raiz (via `python-dotenv`), carregado antes dos m�
 | `FLASK_DEBUG`        | Não         | Desligado por padrão; use `1` somente em desenvolvimento local. Nunca habilite em produção.                                              |
 | `RATELIMIT_STORAGE_URI` | Não      | Backend do limite de tentativas de login. Padrão local `memory://`; em produção com múltiplos workers configure um Redis compartilhado. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_FROM` | Não | Configurações SMTP reservadas para o envio de e-mail futuro. Não coloque segredos no código. |
+| `ORCAMENTO_VALIDADE_DIAS` | Não | Validade inicial e período usado ao renovar um orçamento, em dias inteiros; padrão `15`. |
+| `ADMIN_PODE_AUTOAPROVAR` | Não | Permite que um administrador aprove o próprio orçamento; padrão `false`. Aceita `true`/`1` para ativar. |
 
 ---
 
@@ -426,7 +430,7 @@ Lidas de um arquivo `.env` na raiz (via `python-dotenv`), carregado antes dos m�
 | ---------- | ------ | ---------------------------------------------------------------- |
 | `/login`   | GET/POST | Autentica usuários ativos; redireciona apenas para destinos internos. |
 | `/logout`  | POST   | Encerra a sessão (protegido por CSRF).                           |
-| `/usuarios` | GET/POST | Admin lista e cria usuários com papéis `admin` ou `usuario`.   |
+| `/usuarios` | GET/POST | Admin lista e cria usuários com papéis `admin`, `aprovador` ou `usuario`. |
 | `/usuarios/<id>/ativo` | POST | Admin ativa/desativa usuários sem poder desativar a própria conta ou o último admin ativo. |
 
 ### Carrinho e orçamento (`/orcamento`)
@@ -437,8 +441,21 @@ Lidas de um arquivo `.env` na raiz (via `python-dotenv`), carregado antes dos m�
 | `/orcamento/carrinho`             | GET    | Tela do carrinho.                                          |
 | `/orcamento/item/<id>/quantidade` | POST   | Atualiza a quantidade (0 remove o item).                   |
 | `/orcamento/item/<id>/remover`    | POST   | Remove o item.                                             |
-| `/orcamento/finalizar`            | POST   | Finaliza o orçamento e gera o PDF.                         |
+| `/orcamento/finalizar`            | POST   | Envia orçamento para aprovação e abre seus detalhes.       |
 | `/orcamento/pdf/<id>`             | GET    | Baixa o PDF de um orçamento finalizado.                    |
+| `/orcamento/<id>`                 | GET    | Exibe itens, totais, condições comerciais e trilha de auditoria. |
+| `/orcamento/<id>/decisao`         | POST   | Registra aprovação ou reprovação (somente aprovador/admin; CSRF). |
+| `/orcamento/<id>/reabrir`         | POST   | Reabre um orçamento reprovado (dono/admin; CSRF).           |
+| `/orcamento/<id>/renovar-validade` | POST   | Renova orçamento expirado aguardando aprovação (dono/admin; CSRF). |
+| `/orcamento/<id>/compra-realizada` | POST  | Registra compra realizada após aprovação (dono/admin; CSRF). |
+| `/aprovacoes`                     | GET    | Fila paginada por data, número ou solicitante (aprovador/admin). |
+
+Ao atualizar uma instalação existente, aplique a nova migration antes de
+iniciar o servidor:
+
+```powershell
+.\.venv\Scripts\python.exe -m flask --app orcatech.app:app db upgrade
+```
 
 ### Fornecedores (`/fornecedores`)
 
@@ -494,7 +511,7 @@ Para executar somente as regressões do filtro sem acessar lojas:
 - **Americanas**: às vezes devolve cards duplicados sem foto; o código tenta recuperar as imagens via `__NEXT_DATA__`.
 - Lojas via Selenium exigem o **Chrome instalado** e são mais lentas. O semáforo (limite 2) pode alongar a busca em máquinas com pouca memória.
 - O histórico de buscas em arquivo ainda é compartilhado entre contas. Os rascunhos, jobs de busca, itens e PDFs de orçamento são vinculados ao usuário.
-- **Aprovação ainda não implementada:** não há fila, transições de decisão, trilha de auditoria ou congelamento de preços. O status `aguardando_aprovacao` apenas registra o envio.
+- Os papéis `aprovador` e `admin` acessam a fila; administradores não podem autoaprovar por padrão. Configure explicitamente `ADMIN_PODE_AUTOAPROVAR=true` se a política local permitir.
 - Em produção, configure `APP_ENV=production`, HTTPS, uma chave secreta própria e um backend Redis para limite de tentativas compartilhado entre workers.
 
 ---
@@ -504,7 +521,7 @@ Para executar somente as regressões do filtro sem acessar lojas:
 - [x] **Fase 00 — Relevância:** núcleo/categoria de busca, filtro contra acessórios sem relação, portão da Gshield, diagnósticos, limpeza de caches e recálculo seguro do histórico.
 - [x] **Fase 1 — Login e papéis:** Flask-Login, papéis `admin`/`usuario`, isolamento de rascunhos e jobs, proteção de ownership, gestão de contas e limite de tentativas.
 - [x] **Base da Fase 2 — Segurança:** SECRET_KEY obrigatória fora dos testes, CSRF em POST, cookies e cabeçalhos seguros, debug desligado por padrão, dependências e migrations.
-- [ ] **Fase 3 — Workflow de aprovação:** máquina de estados, fila de aprovação, segregação de aprovadores, auditoria, congelamento de preços e PDF completo.
+- [x] **Fase 3 — Workflow de aprovação:** máquina de estados, fila, segregação, auditoria, snapshots, validade e PDF com dados de aprovação.
 - [ ] **Fase 4 — Compartilhamento:** link público limitado, WhatsApp e envio de PDF por e-mail.
 - [ ] **Fase 5 — Alerta de queda de preço:** histórico de preços, monitoramento e alertas sem exceder limites das lojas.
 - [ ] **Fase 6 — Recursos empresariais:** departamentos, centros de custo, alçadas e pedidos de compra.

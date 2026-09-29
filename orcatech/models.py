@@ -15,7 +15,8 @@ Como usar (em app.py):
 Adicionar ao requirements.txt: flask-sqlalchemy
 """
 
-from datetime import datetime
+from datetime import date, datetime
+from decimal import Decimal, ROUND_HALF_UP
 import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
@@ -126,6 +127,12 @@ class Orcamento(db.Model):
     usuario = db.relationship("Usuario", back_populates="orcamentos", foreign_keys=[usuario_id])
     itens = db.relationship("OrcamentoItem", back_populates="orcamento", cascade="all, delete-orphan")
     aprovacoes = db.relationship("Aprovacao", back_populates="orcamento", cascade="all, delete-orphan")
+    historico = db.relationship(
+        "OrcamentoHistorico",
+        back_populates="orcamento",
+        cascade="all, delete-orphan",
+        order_by="OrcamentoHistorico.criado_em",
+    )
 
     @staticmethod
     def gerar_numero():
@@ -133,11 +140,20 @@ class Orcamento(db.Model):
 
     @property
     def total(self):
-        total = 0.0
-        for item in self.itens:
-            if item.cotacao_escolhida:
-                total += item.cotacao_escolhida.preco * item.quantidade
-        return round(total, 2)
+        return sum((item.subtotal + item.frete for item in self.itens), Decimal("0.00"))
+
+    @property
+    def expirado(self):
+        return self.validade is not None and self.validade < date.today()
+
+    @property
+    def aguardando_desde(self):
+        eventos = [
+            evento.criado_em
+            for evento in self.historico
+            if evento.status_para == "aguardando_aprovacao"
+        ]
+        return max(eventos, default=self.criado_em)
 
     def __repr__(self):
         return f"<Orcamento {self.numero} ({self.status})>"
@@ -152,17 +168,56 @@ class OrcamentoItem(db.Model):
     produto_busca_id = db.Column(db.Integer, db.ForeignKey("produtos_busca.id"), nullable=False)
     quantidade = db.Column(db.Integer, nullable=False, default=1)
     cotacao_escolhida_id = db.Column(db.Integer, db.ForeignKey("cotacoes.id"))
+    snapshot_nome_produto = db.Column(db.String(255))
+    snapshot_fornecedor_nome = db.Column(db.String(120))
+    snapshot_preco_unit = db.Column(db.Numeric(12, 2))
+    snapshot_frete = db.Column(db.Numeric(12, 2))
+    snapshot_link = db.Column(db.String(500))
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
 
     orcamento = db.relationship("Orcamento", back_populates="itens")
     produto_busca = db.relationship("ProdutoBusca")
     cotacao_escolhida = db.relationship("Cotacao")
 
+    @staticmethod
+    def _dinheiro(valor):
+        return Decimal(str(valor or 0)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    @property
+    def nome_produto(self):
+        if self.snapshot_nome_produto is not None:
+            return self.snapshot_nome_produto
+        return self.cotacao_escolhida.nome_produto if self.cotacao_escolhida else self.produto_busca.nome_pesquisado
+
+    @property
+    def fornecedor_nome(self):
+        if self.snapshot_fornecedor_nome is not None:
+            return self.snapshot_fornecedor_nome
+        return self.cotacao_escolhida.fornecedor.nome if self.cotacao_escolhida else "—"
+
+    @property
+    def preco_unitario(self):
+        if self.snapshot_preco_unit is not None:
+            return self._dinheiro(self.snapshot_preco_unit)
+        return self._dinheiro(self.cotacao_escolhida.preco if self.cotacao_escolhida else 0)
+
+    @property
+    def frete(self):
+        if self.snapshot_frete is not None:
+            return self._dinheiro(self.snapshot_frete)
+        return self._dinheiro(self.cotacao_escolhida.frete if self.cotacao_escolhida else 0)
+
+    @property
+    def link(self):
+        if self.snapshot_link is not None:
+            return self.snapshot_link
+        return self.cotacao_escolhida.link if self.cotacao_escolhida else None
+
     @property
     def subtotal(self):
-        if self.cotacao_escolhida:
-            return round(self.cotacao_escolhida.preco * self.quantidade, 2)
-        return 0.0
+        return (self.preco_unitario * self.quantidade).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
 
     def __repr__(self):
         return f"<OrcamentoItem orc={self.orcamento_id} produto={self.produto_busca_id} qtd={self.quantidade}>"
@@ -183,3 +238,18 @@ class Aprovacao(db.Model):
 
     def __repr__(self):
         return f"<Aprovacao orc={self.orcamento_id} {self.decisao}>"
+
+
+class OrcamentoHistorico(db.Model):
+    __tablename__ = "orcamento_historico"
+
+    id = db.Column(db.Integer, primary_key=True)
+    orcamento_id = db.Column(db.Integer, db.ForeignKey("orcamentos.id"), nullable=False, index=True)
+    status_de = db.Column(db.String(30), nullable=False)
+    status_para = db.Column(db.String(30), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False)
+    comentario = db.Column(db.Text)
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    orcamento = db.relationship("Orcamento", back_populates="historico")
+    usuario = db.relationship("Usuario")

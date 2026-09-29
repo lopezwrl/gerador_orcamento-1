@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Aprovações – OrçaTech</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f6fb;color:#1a2040;font:15px Arial,sans-serif}
+    main{width:min(1100px,calc(100% - 32px));margin:36px auto}h1{color:#1e2a6e;margin:0}
+    .topo,.acoes{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+    .acoes{justify-content:flex-start;margin:18px 0}.card{margin:18px 0;padding:20px;background:#fff;border:1px solid #d4d9ef;border-radius:14px}
+    form.filtro{display:flex;gap:10px;align-items:end;flex-wrap:wrap}input,button,.link{padding:10px 13px;border:1px solid #b8c0e0;border-radius:7px;font:inherit}
+    input{flex:1;min-width:150px}button,.link{background:#2d3a8c;color:#fff;text-decoration:none;cursor:pointer;border:0}
+    table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:12px;border-bottom:1px solid #e2e7f5}th{color:#59658e}
+    .paginacao{display:flex;gap:12px;justify-content:center;margin:22px}.paginacao a{color:#2d3a8c}
+    .vazio{padding:28px;text-align:center;color:#59658e}.flash{padding:12px;margin:12px 0;background:#fee2e2;border-radius:8px}
+    @media(max-width:700px){.tabela{overflow:auto}table{min-width:720px}}
+  </style>
+</head>
+<body><main>
+  <div class="topo"><div><h1>Fila de aprovações</h1><p>Orçamentos aguardando uma decisão.</p></div>
+    <a class="link" href="{{ url_for('home') }}">Voltar ao sistema</a></div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for categoria, mensagem in messages %}<p class="flash">{{ mensagem }}</p>{% endfor %}
+  {% endwith %}
+  <section class="card">
+    <form class="filtro" method="get">
+      <input type="search" name="q" value="{{ busca }}" placeholder="Buscar por número ou solicitante">
+      <label>Criado de <input type="date" name="desde" value="{{ desde }}"></label>
+      <label>Criado até <input type="date" name="ate" value="{{ ate }}"></label>
+      <button type="submit">Filtrar</button>
+    </form>
+  </section>
+  <section class="card tabela">
+    {% if pagina.items %}
+    <table><thead><tr><th>Número</th><th>Solicitante</th><th>Total</th><th>Enviado em</th><th>Dias parado</th><th></th></tr></thead>
+      <tbody>{% for orcamento in pagina.items %}
+        <tr>
+          <td>{{ orcamento.numero }}</td><td>{{ orcamento.solicitante or 'Não informado' }}</td>
+          <td>R$ {{ "{:,.2f}".format(orcamento.total).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+          <td>{{ orcamento.aguardando_desde.strftime('%d/%m/%Y') }}</td>
+          <td>{{ (agora - orcamento.aguardando_desde).days }}</td>
+          <td><a href="{{ url_for('orcamento.detalhe', orcamento_id=orcamento.id) }}">Analisar</a></td>
+        </tr>
+      {% endfor %}</tbody>
+    </table>
+    {% else %}<div class="vazio">Não há orçamentos aguardando aprovação.</div>{% endif %}
+  </section>
+  {% if pagina.pages > 1 %}
+  <nav class="paginacao" aria-label="Paginação">
+    {% if pagina.has_prev %}<a href="{{ url_for('aprovacoes.fila', q=busca, desde=desde, ate=ate, page=pagina.prev_num) }}">Anterior</a>{% endif %}
+    <span>Página {{ pagina.page }} de {{ pagina.pages }}</span>
+    {% if pagina.has_next %}<a href="{{ url_for('aprovacoes.fila', q=busca, desde=desde, ate=ate, page=pagina.next_num) }}">Próxima</a>{% endif %}
+  </nav>
+  {% endif %}
+</main></body></html>

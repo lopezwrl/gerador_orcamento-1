@@ -47,6 +47,17 @@ app.config["SESSION_COOKIE_SECURE"] = os.environ.get("APP_ENV", "").lower() in {
 app.config["RATELIMIT_STORAGE_URI"] = os.environ.get(
     "RATELIMIT_STORAGE_URI", "memory://"
 )
+try:
+    app.config["ORCAMENTO_VALIDADE_DIAS"] = int(
+        os.environ.get("ORCAMENTO_VALIDADE_DIAS", "15")
+    )
+except ValueError as exc:
+    raise RuntimeError("ORCAMENTO_VALIDADE_DIAS deve ser um número inteiro.") from exc
+if app.config["ORCAMENTO_VALIDADE_DIAS"] < 1:
+    raise RuntimeError("ORCAMENTO_VALIDADE_DIAS deve ser maior que zero.")
+app.config["ADMIN_PODE_AUTOAPROVAR"] = os.environ.get(
+    "ADMIN_PODE_AUTOAPROVAR", "false"
+).strip().lower() in {"1", "true", "yes", "sim"}
 
 secret_key = os.environ.get("SECRET_KEY")
 if not secret_key:
@@ -97,8 +108,9 @@ def adicionar_cabecalhos_seguranca(response):
 
 
 app.register_blueprint(auth_bp)
-from .orcamento_routes import orcamento_bp
+from .orcamento_routes import aprovacoes_bp, orcamento_bp
 app.register_blueprint(orcamento_bp)
+app.register_blueprint(aprovacoes_bp)
 from .fornecedores_routes import fornecedores_bp
 app.register_blueprint(fornecedores_bp)
 

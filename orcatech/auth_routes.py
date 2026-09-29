@@ -63,7 +63,7 @@ def usuarios():
             erro = "Informe nome e um e-mail válido."
         elif len(senha) < 12:
             erro = "A senha deve ter pelo menos 12 caracteres."
-        elif papel not in {"admin", "usuario"}:
+        elif papel not in {"admin", "usuario", "aprovador"}:
             erro = "O papel selecionado é inválido."
         elif Usuario.query.filter(func.lower(Usuario.email) == email).first():
             erro = "Não foi possível criar o usuário com os dados informados."

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ orcamento.numero }} – OrçaTech</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f6fb;color:#1a2040;font:15px/1.5 Arial,sans-serif}
+    main{width:min(1100px,calc(100% - 32px));margin:36px auto}h1,h2{color:#1e2a6e}
+    .topo,.acoes{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+    .acoes{justify-content:flex-start;margin:18px 0}.card{margin:18px 0;padding:22px;background:#fff;border:1px solid #d4d9ef;border-radius:14px}
+    .grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+    .dado small{display:block;color:#68749a;font-weight:700;text-transform:uppercase;font-size:11px}.dado strong{display:block;margin-top:4px}
+    .badge{display:inline-block;padding:4px 9px;border-radius:99px;background:#e0e7ff;color:#263879;font-weight:700}
+    table{width:100%;border-collapse:collapse;margin-top:14px}th,td{text-align:left;padding:11px;border-bottom:1px solid #e2e7f5;vertical-align:top}
+    .direita{text-align:right}.total{text-align:right;font-size:20px;font-weight:800;color:#1e2a6e;margin-top:18px}
+    .link,button{display:inline-block;padding:10px 14px;border:0;border-radius:7px;background:#2d3a8c;color:#fff;text-decoration:none;cursor:pointer;font:inherit}
+    button.reprovar{background:#a83232}button.neutro,.link.neutro{background:#58627e}
+    textarea{display:block;width:100%;min-height:84px;margin:8px 0 12px;padding:10px;border:1px solid #b8c0e0;border-radius:7px;font:inherit}
+    .aviso{padding:12px;background:#fff2d7;border:1px solid #f2d28a;border-radius:8px}.erro{background:#fee2e2}
+    .linha{padding:12px 0;border-bottom:1px solid #e2e7f5}.linha:last-child{border:0}.linha small{color:#68749a}
+    @media(max-width:700px){.tabela{overflow:auto}table{min-width:760px}}
+  </style>
+</head>
+<body><main>
+  <div class="topo">
+    <div><h1>{{ orcamento.numero }}</h1><span class="badge">{{ orcamento.status.replace('_', ' ')|title }}</span></div>
+    <a class="link neutro" href="{{ url_for('home') }}">Voltar ao sistema</a>
+  </div>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for categoria, mensagem in messages %}<p class="aviso {{ 'erro' if categoria == 'erro' else '' }}">{{ mensagem }}</p>{% endfor %}
+  {% endwith %}
+  {% if orcamento.expirado %}<p class="aviso erro">Orçamento expirado em {{ orcamento.validade.strftime('%d/%m/%Y') }}.</p>{% endif %}
+  <section class="card grade">
+    <div class="dado"><small>Solicitante</small><strong>{{ orcamento.solicitante or 'Não informado' }}</strong></div>
+    <div class="dado"><small>Criado em</small><strong>{{ orcamento.criado_em.strftime('%d/%m/%Y %H:%M') }}</strong></div>
+    <div class="dado"><small>Validade</small><strong>{{ orcamento.validade.strftime('%d/%m/%Y') if orcamento.validade else 'Não definida' }}</strong></div>
+    <div class="dado"><small>Total geral</small><strong>R$ {{ "{:,.2f}".format(orcamento.total).replace(',', 'X').replace('.', ',').replace('X', '.') }}</strong></div>
+  </section>
+  <section class="card">
+    <h2>Itens e condições</h2>
+    <div class="tabela"><table><thead><tr><th>Produto</th><th>Fornecedor</th><th>Qtd.</th><th>Preço unitário</th><th>Subtotal</th><th>Frete</th></tr></thead>
+      <tbody>{% for item in orcamento.itens %}
+        <tr>
+          <td>{% if item.link %}<a href="{{ item.link }}" rel="noopener noreferrer">{{ item.nome_produto }}</a>{% else %}{{ item.nome_produto }}{% endif %}</td>
+          <td>{{ item.fornecedor_nome }}</td><td>{{ item.quantidade }}</td>
+          <td>R$ {{ "{:,.2f}".format(item.preco_unitario).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+          <td>R$ {{ "{:,.2f}".format(item.subtotal).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+          <td>R$ {{ "{:,.2f}".format(item.frete).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+        </tr>
+      {% endfor %}</tbody></table></div>
+    <p class="total">Total geral: R$ {{ "{:,.2f}".format(orcamento.total).replace(',', 'X').replace('.', ',').replace('X', '.') }}</p>
+    <p><strong>Condições comerciais:</strong> {{ orcamento.condicoes_comerciais or 'Não informadas' }}</p>
+    <p><strong>Observações:</strong> {{ orcamento.observacoes or 'Nenhuma' }}</p>
+  </section>
+  {% if pode_decidir %}
+  <section class="card">
+    <h2>Decisão</h2>
+    <form method="post" action="{{ url_for('orcamento.decidir', orcamento_id=orcamento.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="comentario">Comentário (obrigatório para reprovar)</label>
+      <textarea id="comentario" name="comentario" maxlength="2000"></textarea>
+      <button type="submit" name="decisao" value="aprovado">Aprovar</button>
+      <button type="submit" class="reprovar" name="decisao" value="reprovado">Reprovar</button>
+    </form>
+  </section>
+  {% endif %}
+  <section class="card">
+    <h2>Histórico do orçamento</h2>
+    {% for evento in orcamento.historico %}
+      <div class="linha"><strong>{{ evento.status_de.replace('_', ' ')|title }} → {{ evento.status_para.replace('_', ' ')|title }}</strong>
+        <small> · {{ evento.criado_em.strftime('%d/%m/%Y %H:%M') }} · {{ evento.usuario.nome }}</small>
+        {% if evento.comentario %}<div>{{ evento.comentario }}</div>{% endif %}
+      </div>
+    {% else %}<p>Nenhuma alteração de status registrada.</p>{% endfor %}
+  </section>
+  <div class="acoes">
+    <a class="link" href="{{ url_for('orcamento.pdf', orcamento_id=orcamento.id) }}">Baixar PDF</a>
+    {% if pode_reabrir %}
+    <form method="post" action="{{ url_for('orcamento.reabrir', orcamento_id=orcamento.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="neutro" type="submit">Reabrir orçamento</button>
+    </form>
+    {% endif %}
+    {% if pode_renovar %}
+    <form method="post" action="{{ url_for('orcamento.renovar_validade', orcamento_id=orcamento.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="neutro" type="submit">Renovar validade</button>
+    </form>
+    {% endif %}
+    {% if pode_marcar_compra %}
+    <form method="post" action="{{ url_for('orcamento.marcar_compra_realizada', orcamento_id=orcamento.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Marcar compra realizada</button>
+    </form>
+    {% endif %}
+  </div>
+</main></body></html>

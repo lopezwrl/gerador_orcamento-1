@@ -109,6 +109,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
     </div>
     <div class="acoes">
       <button class="theme-btn" type="button" onclick="toggleTheme()" aria-label="Alternar tema"></button>
+      {% if current_user.papel in ['admin', 'aprovador'] %}<a class="btn" href="{{ url_for('aprovacoes.fila') }}">Aprovações</a>{% endif %}
       <a class="btn" href="{{ url_for('fornecedores.listar') }}?origem=resultados">Fornecedores</a>
       <a class="btn" href="/" onclick="if(history.length>1){history.back();return false;}">← Continuar pesquisando</a>
     </div>
