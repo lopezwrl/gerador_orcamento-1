@@ -6,15 +6,17 @@ Registrar em app.py:
     app.register_blueprint(orcamento_bp)
 """
 
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 import os
-from flask import Blueprint, abort, render_template, request, redirect, url_for, send_file, flash
+import secrets
+from flask import Blueprint, abort, current_app, render_template, request, redirect, url_for, send_file, flash
 from flask_login import current_user, login_required
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
+from urllib.parse import urlencode
 
 from .auth import approver_required, owner_or_admin
-from .models import Aprovacao, db, Orcamento, OrcamentoItem
+from .models import Aprovacao, EnvioEmail, db, Orcamento, OrcamentoItem
 from .orcamento_service import (
     get_or_create_produto_busca,
     registrar_cotacao,
@@ -28,6 +30,12 @@ from .orcamento_workflow import (
     pode_transicionar,
     transicionar,
     validade_padrao,
+)
+from .compartilhamento_routes import STATUS_COMPARTILHAVEIS
+from .email_service import (
+    enfileirar_email,
+    notificar_aprovadores,
+    notificar_solicitante,
 )
 
 orcamento_bp = Blueprint("orcamento", __name__, url_prefix="/orcamento")
@@ -151,6 +159,7 @@ def finalizar():
         flash(str(exc), "erro")
         return redirect(url_for("orcamento.carrinho"))
 
+    notificar_aprovadores(current_app._get_current_object(), orcamento.id)
     return redirect(url_for("orcamento.detalhe", orcamento_id=orcamento.id))
 
 
@@ -201,6 +210,24 @@ def detalhe(orcamento_id):
         and orcamento.expirado
         and (current_user.papel == "admin" or orcamento.usuario_id == current_user.id)
     )
+    pode_gerenciar_link = (
+        current_user.papel == "admin" or orcamento.usuario_id == current_user.id
+    )
+    link_ativo = (
+        bool(orcamento.share_token)
+        and not orcamento.share_revogado
+        and orcamento.share_expira_em is not None
+        and orcamento.share_expira_em > datetime.now(timezone.utc).replace(tzinfo=None)
+    )
+    link_publico = None
+    whatsapp_url = None
+    if link_ativo and pode_gerenciar_link:
+        link_publico = (
+            current_app.config["APP_BASE_URL"]
+            + url_for("compartilhamento.publico", token=orcamento.share_token)
+        )
+        mensagem = f"Orçamento {orcamento.numero}: {link_publico}"
+        whatsapp_url = "https://wa.me/?" + urlencode({"text": mensagem})
     return render_template(
         "orcamento_detalhe.html",
         orcamento=orcamento,
@@ -208,6 +235,20 @@ def detalhe(orcamento_id):
         pode_reabrir=pode_reabrir,
         pode_marcar_compra=pode_marcar_compra,
         pode_renovar=pode_renovar,
+        pode_gerenciar_link=pode_gerenciar_link,
+        pode_compartilhar=orcamento.status in STATUS_COMPARTILHAVEIS,
+        link_ativo=link_ativo,
+        link_publico=link_publico,
+        whatsapp_url=whatsapp_url,
+        pode_enviar_email=pode_gerenciar_link,
+        envios_email=(
+            EnvioEmail.query.filter_by(orcamento_id=orcamento.id)
+            .order_by(EnvioEmail.criado_em.desc())
+            .limit(10)
+            .all()
+            if pode_gerenciar_link
+            else []
+        ),
     )
 
 
@@ -234,6 +275,9 @@ def decidir(orcamento_id):
         db.session.rollback()
         flash(str(exc), "erro")
         return redirect(url_for("orcamento.detalhe", orcamento_id=orcamento.id))
+    notificar_solicitante(
+        current_app._get_current_object(), orcamento.id, current_user.id
+    )
     flash(
         "Orçamento aprovado." if decisao == "aprovado" else "Orçamento reprovado.",
         "sucesso",
@@ -254,6 +298,7 @@ def reabrir(orcamento_id):
             request.form.get("comentario", "").strip() or "Orçamento reaberto.",
         )
         orcamento.validade = validade_padrao()
+        orcamento.share_revogado = True
         for item in orcamento.itens:
             item.snapshot_nome_produto = None
             item.snapshot_fornecedor_nome = None
@@ -299,6 +344,79 @@ def marcar_compra_realizada(orcamento_id):
     return redirect(url_for("orcamento.detalhe", orcamento_id=orcamento.id))
 
 
+def _gerar_link_compartilhamento(orcamento):
+    if orcamento.status not in STATUS_COMPARTILHAVEIS:
+        abort(403)
+    orcamento.share_token = secrets.token_urlsafe(32)
+    orcamento.share_expira_em = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(
+        days=current_app.config["LINK_COMPARTILHAMENTO_DIAS"]
+    )
+    orcamento.share_revogado = False
+
+
+@orcamento_bp.route("/<int:orcamento_id>/compartilhar", methods=["POST"])
+@login_required
+def gerar_link(orcamento_id):
+    orcamento = Orcamento.query.get_or_404(orcamento_id)
+    owner_or_admin(orcamento)
+    if orcamento.share_token and not orcamento.share_revogado and orcamento.share_expira_em:
+        if orcamento.share_expira_em > datetime.now(timezone.utc).replace(tzinfo=None):
+            flash("Já existe um link público ativo. Use regenerar para trocá-lo.", "erro")
+            return redirect(url_for("orcamento.detalhe", orcamento_id=orcamento.id))
+    _gerar_link_compartilhamento(orcamento)
+    db.session.commit()
+    flash("Link público criado.", "sucesso")
+    return redirect(url_for("orcamento.detalhe", orcamento_id=orcamento.id))
+
+
+@orcamento_bp.route("/<int:orcamento_id>/compartilhar/regenerar", methods=["POST"])
+@login_required
+def regenerar_link(orcamento_id):
+    orcamento = Orcamento.query.get_or_404(orcamento_id)
+    owner_or_admin(orcamento)
+    _gerar_link_compartilhamento(orcamento)
+    db.session.commit()
+    flash("Link público regenerado; o link anterior foi invalidado.", "sucesso")
+    return redirect(url_for("orcamento.detalhe", orcamento_id=orcamento.id))
+
+
+@orcamento_bp.route("/<int:orcamento_id>/compartilhar/revogar", methods=["POST"])
+@login_required
+def revogar_link(orcamento_id):
+    orcamento = Orcamento.query.get_or_404(orcamento_id)
+    owner_or_admin(orcamento)
+    if not orcamento.share_token:
+        abort(404)
+    orcamento.share_revogado = True
+    db.session.commit()
+    flash("Link público revogado.", "sucesso")
+    return redirect(url_for("orcamento.detalhe", orcamento_id=orcamento.id))
+
+
+@orcamento_bp.route("/<int:orcamento_id>/email", methods=["POST"])
+@login_required
+def enviar_email(orcamento_id):
+    orcamento = Orcamento.query.get_or_404(orcamento_id)
+    owner_or_admin(orcamento)
+    destinatario = request.form.get("destinatario", "").strip()
+    try:
+        enfileirar_email(
+            current_app._get_current_object(),
+            orcamento.id,
+            current_user.id,
+            destinatario,
+            anexar_pdf=True,
+        )
+    except ValueError as exc:
+        flash(str(exc), "erro")
+        return redirect(url_for("orcamento.detalhe", orcamento_id=orcamento.id))
+    except RuntimeError as exc:
+        flash(str(exc), "erro")
+        return redirect(url_for("orcamento.detalhe", orcamento_id=orcamento.id))
+    flash("E-mail enfileirado para envio em segundo plano.", "sucesso")
+    return redirect(url_for("orcamento.detalhe", orcamento_id=orcamento.id))
+
+
 @aprovacoes_bp.route("/aprovacoes")
 @approver_required
 def fila():
@@ -323,7 +441,9 @@ def fila():
     if desde:
         query = query.filter(Orcamento.criado_em >= datetime.combine(desde, time.min))
     if ate:
-        query = query.filter(Orcamento.criado_em < datetime.combine(ate, time.max))
+        query = query.filter(
+            Orcamento.criado_em < datetime.combine(ate + timedelta(days=1), time.min)
+        )
     pagina_numero = request.args.get("page", 1, type=int)
     pagina = query.order_by(Orcamento.criado_em.asc()).paginate(
         page=max(1, pagina_numero), per_page=15, error_out=False

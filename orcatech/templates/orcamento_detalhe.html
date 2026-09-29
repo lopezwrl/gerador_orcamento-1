@@ -53,6 +53,55 @@
     <p><strong>Condições comerciais:</strong> {{ orcamento.condicoes_comerciais or 'Não informadas' }}</p>
     <p><strong>Observações:</strong> {{ orcamento.observacoes or 'Nenhuma' }}</p>
   </section>
+  {% if pode_gerenciar_link and pode_compartilhar %}
+  <section class="card">
+    <h2>Compartilhar orçamento</h2>
+    {% if link_ativo %}
+      <p><a href="{{ link_publico }}" rel="noopener noreferrer">{{ link_publico }}</a></p>
+      <p>Válido até {{ orcamento.share_expira_em.strftime('%d/%m/%Y %H:%M') }}.</p>
+      <div class="acoes">
+        <a class="link" href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer">Compartilhar no WhatsApp</a>
+        <form method="post" action="{{ url_for('orcamento.regenerar_link', orcamento_id=orcamento.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="neutro" type="submit">Regenerar link</button>
+        </form>
+        <form method="post" action="{{ url_for('orcamento.revogar_link', orcamento_id=orcamento.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="reprovar" type="submit">Revogar link</button>
+        </form>
+      </div>
+    {% else %}
+      <p>Gere um link somente leitura, válido por {{ config.LINK_COMPARTILHAMENTO_DIAS }} dias.</p>
+      <form method="post" action="{{ url_for('orcamento.gerar_link', orcamento_id=orcamento.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Gerar link público</button>
+      </form>
+    {% endif %}
+  </section>
+  {% endif %}
+  {% if pode_enviar_email %}
+  <section class="card">
+    <h2>Enviar PDF por e-mail</h2>
+    <p>Até {{ config.ORCAMENTO_MAX_EMAILS_HORA }} envios por orçamento a cada hora. O envio ocorre em segundo plano.</p>
+    <form method="post" action="{{ url_for('orcamento.enviar_email', orcamento_id=orcamento.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label for="destinatario">E-mail do destinatário</label>
+      <input id="destinatario" type="email" name="destinatario" maxlength="254" required>
+      <button type="submit">Enviar orçamento em PDF</button>
+    </form>
+    {% if envios_email %}
+      <h3>Envios recentes</h3>
+      {% for envio in envios_email %}
+        <div class="linha">
+          <strong>{{ envio.destinatario }}</strong>
+          <small> · {{ envio.criado_em.strftime('%d/%m/%Y %H:%M') }} ·
+            {% if envio.sucesso is none %}Em andamento
+            {% elif envio.sucesso %}Enviado
+            {% else %}Falhou{% endif %}
+          </small>
+          {% if envio.erro and envio.sucesso is sameas false %}<div>{{ envio.erro }}</div>{% endif %}
+        </div>
+      {% endfor %}
+    {% endif %}
+  </section>
+  {% endif %}
   {% if pode_decidir %}
   <section class="card">
     <h2>Decisão</h2>

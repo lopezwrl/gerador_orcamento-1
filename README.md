@@ -72,6 +72,8 @@ Cada card da tela de resultados tem o botão **Adicionar ao orçamento**. O flux
 4. **Decidir**: usuários com papel `aprovador` e administradores acessam `/aprovacoes`. A pessoa solicitante não pode aprovar o próprio orçamento; a exceção administrativa depende da configuração `ADMIN_PODE_AUTOAPROVAR`. A reprovação exige comentário.
 5. **Consultar**: o detalhe em `/orcamento/<id>` exibe totais com frete, condições, validade, histórico e decisões. Itens ficam bloqueados após envio; um orçamento reprovado pode ser reaberto pelo dono ou administrador.
 6. **PDF**: use o botão no detalhe ou `/orcamento/pdf/<id>`. Inclui status, validade, snapshot de preços e informações de aprovação; documentos reprovados ou expirados recebem marca d'água.
+7. **Compartilhar**: no detalhe, dono/admin pode gerar, revogar ou regenerar link público, válido por padrão por 7 dias. A página pública é somente leitura, sem nome do solicitante, observações internas ou histórico. O link também pode ser aberto no WhatsApp.
+8. **E-mail**: o dono/admin pode enviar o PDF para um destinatário validado; o envio é processado em segundo plano e registrado no detalhe. O limite padrão é de 5 envios por orçamento por hora. Configure SMTP no `.env`; falhas aparecem no histórico e a senha nunca é registrada.
 
 Status válidos: `rascunho → em_cotacao → aguardando_aprovacao → aprovado | reprovado`; aprovado pode avançar para `compra_realizada` e reprovado pode voltar para `rascunho`. Aprovações de orçamentos expirados são bloqueadas até que o dono ou administrador renove a validade.
 
@@ -398,9 +400,11 @@ Lidas de um arquivo `.env` na raiz (via `python-dotenv`), carregado antes dos m�
 | `APP_BASE_URL`       | Não         | URL pública/base da aplicação; reservada para integrações futuras.                                                                     |
 | `FLASK_DEBUG`        | Não         | Desligado por padrão; use `1` somente em desenvolvimento local. Nunca habilite em produção.                                              |
 | `RATELIMIT_STORAGE_URI` | Não      | Backend do limite de tentativas de login. Padrão local `memory://`; em produção com múltiplos workers configure um Redis compartilhado. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_FROM` | Não | Configurações SMTP reservadas para o envio de e-mail futuro. Não coloque segredos no código. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_FROM` | Para e-mail | Configuração SMTP usada para envio assíncrono de PDFs e notificações. `SMTP_PASSWORD` deve ficar apenas no `.env`; nunca é registrada em logs. |
 | `ORCAMENTO_VALIDADE_DIAS` | Não | Validade inicial e período usado ao renovar um orçamento, em dias inteiros; padrão `15`. |
 | `ADMIN_PODE_AUTOAPROVAR` | Não | Permite que um administrador aprove o próprio orçamento; padrão `false`. Aceita `true`/`1` para ativar. |
+| `LINK_COMPARTILHAMENTO_DIAS` | Não | Tempo de expiração de novos links públicos, em dias; padrão `7`. |
+| `ORCAMENTO_MAX_EMAILS_HORA` | Não | Máximo de envios por orçamento em uma janela de uma hora; padrão `5`. |
 
 ---
 
@@ -449,6 +453,11 @@ Lidas de um arquivo `.env` na raiz (via `python-dotenv`), carregado antes dos m�
 | `/orcamento/<id>/renovar-validade` | POST   | Renova orçamento expirado aguardando aprovação (dono/admin; CSRF). |
 | `/orcamento/<id>/compra-realizada` | POST  | Registra compra realizada após aprovação (dono/admin; CSRF). |
 | `/aprovacoes`                     | GET    | Fila paginada por data, número ou solicitante (aprovador/admin). |
+| `/orcamento/<id>/compartilhar` | POST | Gera link público para orçamento finalizado (dono/admin; CSRF). |
+| `/orcamento/<id>/compartilhar/regenerar` | POST | Troca o token e invalida o link anterior. |
+| `/orcamento/<id>/compartilhar/revogar` | POST | Revoga o link público atual. |
+| `/p/<token>` | GET | Página pública somente leitura, com token, expiração e limite por IP. |
+| `/orcamento/<id>/email` | POST | Enfileira e registra envio de PDF por SMTP (dono/admin; CSRF). |
 
 Ao atualizar uma instalação existente, aplique a nova migration antes de
 iniciar o servidor:
@@ -522,6 +531,6 @@ Para executar somente as regressões do filtro sem acessar lojas:
 - [x] **Fase 1 — Login e papéis:** Flask-Login, papéis `admin`/`usuario`, isolamento de rascunhos e jobs, proteção de ownership, gestão de contas e limite de tentativas.
 - [x] **Base da Fase 2 — Segurança:** SECRET_KEY obrigatória fora dos testes, CSRF em POST, cookies e cabeçalhos seguros, debug desligado por padrão, dependências e migrations.
 - [x] **Fase 3 — Workflow de aprovação:** máquina de estados, fila, segregação, auditoria, snapshots, validade e PDF com dados de aprovação.
-- [ ] **Fase 4 — Compartilhamento:** link público limitado, WhatsApp e envio de PDF por e-mail.
+- [x] **Fase 4 — Compartilhamento:** link público revogável com expiração, WhatsApp, envio assíncrono de PDF e notificações SMTP.
 - [ ] **Fase 5 — Alerta de queda de preço:** histórico de preços, monitoramento e alertas sem exceder limites das lojas.
 - [ ] **Fase 6 — Recursos empresariais:** departamentos, centros de custo, alçadas e pedidos de compra.

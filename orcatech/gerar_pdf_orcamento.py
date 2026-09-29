@@ -178,9 +178,11 @@ def _resumo(st, orcamento):
     return elementos
 
 
-def gerar_pdf_orcamento(orcamento):
-    os.makedirs(PASTA_PDF, exist_ok=True)
-    caminho = os.path.join(PASTA_PDF, f"orcamento_{orcamento.numero}.pdf")
+def gerar_pdf_orcamento(orcamento, caminho_saida=None):
+    caminho = caminho_saida or os.path.join(
+        PASTA_PDF, f"orcamento_{orcamento.numero}.pdf"
+    )
+    os.makedirs(os.path.dirname(caminho) or ".", exist_ok=True)
     doc = SimpleDocTemplate(
         caminho,
         pagesize=A4,

@@ -55,9 +55,33 @@ except ValueError as exc:
     raise RuntimeError("ORCAMENTO_VALIDADE_DIAS deve ser um número inteiro.") from exc
 if app.config["ORCAMENTO_VALIDADE_DIAS"] < 1:
     raise RuntimeError("ORCAMENTO_VALIDADE_DIAS deve ser maior que zero.")
+try:
+    app.config["LINK_COMPARTILHAMENTO_DIAS"] = int(
+        os.environ.get("LINK_COMPARTILHAMENTO_DIAS", "7")
+    )
+    app.config["ORCAMENTO_MAX_EMAILS_HORA"] = int(
+        os.environ.get("ORCAMENTO_MAX_EMAILS_HORA", "5")
+    )
+except ValueError as exc:
+    raise RuntimeError(
+        "LINK_COMPARTILHAMENTO_DIAS e ORCAMENTO_MAX_EMAILS_HORA devem ser inteiros."
+    ) from exc
+if app.config["LINK_COMPARTILHAMENTO_DIAS"] < 1:
+    raise RuntimeError("LINK_COMPARTILHAMENTO_DIAS deve ser maior que zero.")
+if app.config["ORCAMENTO_MAX_EMAILS_HORA"] < 1:
+    raise RuntimeError("ORCAMENTO_MAX_EMAILS_HORA deve ser maior que zero.")
 app.config["ADMIN_PODE_AUTOAPROVAR"] = os.environ.get(
     "ADMIN_PODE_AUTOAPROVAR", "false"
 ).strip().lower() in {"1", "true", "yes", "sim"}
+app.config["APP_BASE_URL"] = os.environ.get("APP_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
+app.config["SMTP_HOST"] = os.environ.get("SMTP_HOST", "").strip()
+app.config["SMTP_PORT"] = os.environ.get("SMTP_PORT", "587").strip()
+app.config["SMTP_USERNAME"] = os.environ.get("SMTP_USERNAME", "").strip()
+app.config["SMTP_PASSWORD"] = os.environ.get("SMTP_PASSWORD", "")
+app.config["SMTP_USE_TLS"] = os.environ.get("SMTP_USE_TLS", "true").strip().lower() in {
+    "1", "true", "yes", "sim"
+}
+app.config["SMTP_FROM"] = os.environ.get("SMTP_FROM", "").strip()
 
 secret_key = os.environ.get("SECRET_KEY")
 if not secret_key:
@@ -82,7 +106,13 @@ def carregar_usuario(usuario_id):
 
 @app.before_request
 def exigir_login():
-    if request.endpoint in {"static", "favicon", "auth.login", "auth.logout"}:
+    if request.endpoint in {
+        "static",
+        "favicon",
+        "auth.login",
+        "auth.logout",
+        "compartilhamento.publico",
+    }:
         return None
     if not current_user.is_authenticated:
         return redirect(url_for("auth.login", next=request.full_path.rstrip("?")))
@@ -111,6 +141,8 @@ app.register_blueprint(auth_bp)
 from .orcamento_routes import aprovacoes_bp, orcamento_bp
 app.register_blueprint(orcamento_bp)
 app.register_blueprint(aprovacoes_bp)
+from .compartilhamento_routes import compartilhamento_bp
+app.register_blueprint(compartilhamento_bp)
 from .fornecedores_routes import fornecedores_bp
 app.register_blueprint(fornecedores_bp)
 

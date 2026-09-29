@@ -17,6 +17,7 @@ Adicionar ao requirements.txt: flask-sqlalchemy
 
 from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
+from sqlalchemy import false
 import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
@@ -121,6 +122,11 @@ class Orcamento(db.Model):
     observacoes = db.Column(db.Text)
     condicoes_comerciais = db.Column(db.Text)
     validade = db.Column(db.Date)
+    share_token = db.Column(db.String(128), unique=True, index=True)
+    share_expira_em = db.Column(db.DateTime)
+    share_revogado = db.Column(
+        db.Boolean, nullable=False, default=False, server_default=false()
+    )
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
     atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -132,6 +138,9 @@ class Orcamento(db.Model):
         back_populates="orcamento",
         cascade="all, delete-orphan",
         order_by="OrcamentoHistorico.criado_em",
+    )
+    envios_email = db.relationship(
+        "EnvioEmail", back_populates="orcamento", cascade="all, delete-orphan"
     )
 
     @staticmethod
@@ -252,4 +261,19 @@ class OrcamentoHistorico(db.Model):
     criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     orcamento = db.relationship("Orcamento", back_populates="historico")
+    usuario = db.relationship("Usuario")
+
+
+class EnvioEmail(db.Model):
+    __tablename__ = "envios_email"
+
+    id = db.Column(db.Integer, primary_key=True)
+    orcamento_id = db.Column(db.Integer, db.ForeignKey("orcamentos.id"), nullable=False, index=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False)
+    destinatario = db.Column(db.String(254), nullable=False)
+    sucesso = db.Column(db.Boolean)
+    erro = db.Column(db.Text)
+    criado_em = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
+
+    orcamento = db.relationship("Orcamento", back_populates="envios_email")
     usuario = db.relationship("Usuario")

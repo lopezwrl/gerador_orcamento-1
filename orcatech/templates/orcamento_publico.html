@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Orçamento {{ orcamento.numero }} – OrçaTech</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f6fb;color:#1a2040;font:15px/1.5 Arial,sans-serif}
+    main{width:min(960px,calc(100% - 32px));margin:38px auto}h1,h2{color:#1e2a6e}
+    .card{margin:18px 0;padding:22px;background:#fff;border:1px solid #d4d9ef;border-radius:14px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+    small{display:block;color:#68749a;font-size:11px;font-weight:700;text-transform:uppercase}
+    strong{display:block;margin-top:4px}.badge{display:inline-block;padding:4px 9px;border-radius:99px;background:#e0e7ff;color:#263879}
+    .scroll{overflow:auto}table{width:100%;min-width:680px;border-collapse:collapse;margin-top:12px}
+    th,td{text-align:left;padding:11px;border-bottom:1px solid #e2e7f5}
+    .total{text-align:right;font-size:21px;font-weight:800;color:#1e2a6e;margin-top:18px}
+  </style>
+</head>
+<body><main>
+  <h1>OrçaTech · Orçamento</h1>
+  <section class="card grid">
+    <div><small>Número</small><strong>{{ orcamento.numero }}</strong></div>
+    <div><small>Status</small><strong class="badge">{{ orcamento.status.replace('_', ' ')|title }}</strong></div>
+    <div><small>Validade</small><strong>{{ orcamento.validade.strftime('%d/%m/%Y') if orcamento.validade else 'Não definida' }}</strong></div>
+  </section>
+  <section class="card">
+    <h2>Itens</h2>
+    <div class="scroll"><table><thead><tr><th>Produto</th><th>Fornecedor</th><th>Quantidade</th><th>Unitário</th><th>Subtotal</th><th>Frete</th></tr></thead>
+      <tbody>{% for item in orcamento.itens %}
+        <tr>
+          <td>{{ item.nome_produto }}</td><td>{{ item.fornecedor_nome }}</td><td>{{ item.quantidade }}</td>
+          <td>R$ {{ "{:,.2f}".format(item.preco_unitario).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+          <td>R$ {{ "{:,.2f}".format(item.subtotal).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+          <td>R$ {{ "{:,.2f}".format(item.frete).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+        </tr>
+      {% endfor %}</tbody></table></div>
+    <p class="total">Total geral: R$ {{ "{:,.2f}".format(orcamento.total).replace(',', 'X').replace('.', ',').replace('X', '.') }}</p>
+    {% if orcamento.condicoes_comerciais %}<p><strong>Condições comerciais:</strong> {{ orcamento.condicoes_comerciais }}</p>{% endif %}
+  </section>
+</main></body></html>
