@@ -16,13 +16,15 @@ Adicionar ao requirements.txt: flask-sqlalchemy
 """
 
 from datetime import datetime
+import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
 
 db = SQLAlchemy()
 
 
-class Usuario(db.Model):
+class Usuario(UserMixin, db.Model):
     __tablename__ = "usuarios"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -34,6 +36,10 @@ class Usuario(db.Model):
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
 
     orcamentos = db.relationship("Orcamento", back_populates="usuario", foreign_keys="Orcamento.usuario_id")
+
+    @property
+    def is_active(self):
+        return self.ativo
 
     def set_senha(self, senha_plana):
         self.senha_hash = generate_password_hash(senha_plana)
@@ -123,7 +129,7 @@ class Orcamento(db.Model):
 
     @staticmethod
     def gerar_numero():
-        return "ORC-" + datetime.now().strftime("%Y%m%d%H%M")
+        return "ORC-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + secrets.token_hex(3).upper()
 
     @property
     def total(self):

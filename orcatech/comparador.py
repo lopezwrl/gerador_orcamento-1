@@ -1,11 +1,12 @@
 import json
+import logging
 import os
 import time
 import re
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait, FIRST_COMPLETED
 
-from .paths import CACHE_DIR
+from .paths import CACHE_DIR, DEBUG_DIR
 from .scrapers.kabum import buscar_kabum
 from .scrapers.mercadolivre import buscar_mercadolivre
 from .scrapers.amazon import buscar_amazon
@@ -19,14 +20,11 @@ from .scrapers.aliexpress import buscar_aliexpress
 CACHE_HORAS = 6
 TOTAL_LOJAS = 8  # lojas nativas fixas (apenas lojas reais, sem comparadores)
 
-# True  = descarta itens que o filtro considera irrelevantes/acessórios.
-# False = TUDO que as lojas encontraram vai para os resultados (só remove duplicados).
-FILTRAR_RESULTADOS = False
+# Descarta itens irrelevantes e protege o comparador contra acessórios incompatíveis.
+FILTRAR_RESULTADOS = True
 
-# Lojas que misturam produtos de todo tipo na busca (acessórios, PCs completos etc.)
-# passam SEMPRE por um filtro estrito, mesmo com FILTRAR_RESULTADOS = False.
-# As demais lojas continuam exatamente como antes.
-LOJAS_FILTRO_ESTRITO = {'Gshield', 'AliExpress'}
+# Fontes conhecidas por misturar acessórios, PCs completos e outras categorias.
+LOJAS_FILTRO_ESTRITO = {'Gshield', 'AliExpress', 'Americanas', 'Mercado Livre'}
 
 # Quantos termos da busca (tipo, processador, GB, modelo) o produto pode deixar
 # de citar no título. 0 = severo (todos precisam aparecer). 1 = mais tolerante.
@@ -132,6 +130,8 @@ _LINKS_GENERICOS = {
     "https://www.americanas.com.br",
     "https://www.terabyteshop.com.br",
     "https://www.gshield.com.br",
+    "https://gorilashield.com.br",
+    "https://www.gorilashield.com.br",
     "https://www.ibyte.com.br",
     "https://www.kabum.com.br",
     "https://www.amazon.com.br",
@@ -266,16 +266,31 @@ def _filtrar(produto, produtos):
             if n_tok & _ACESSORIOS:
                 if not all(c in n_tok for c in chaves):
                     c_acess += 1
+                    _registrar_rejeicao(
+                        produto, p, 'acessorio',
+                        _primeira_categoria(re.findall(r'\w+', _norm(nome)))[0],
+                        n_tok & _ACESSORIOS,
+                    )
                     continue
 
         if incompat and (n_tok & incompat):
             c_incompat += 1
+            _registrar_rejeicao(
+                produto, p, 'tipo',
+                _primeira_categoria(re.findall(r'\w+', _norm(nome)))[0],
+                n_tok & incompat,
+            )
             continue
 
         if nums_modelo_busca:
             algum_bate = any(_modelo_bate(nb, nome) for nb in nums_modelo_busca)
             if not algum_bate:
                 c_modelo += 1
+                _registrar_rejeicao(
+                    produto, p, 'termos',
+                    _primeira_categoria(re.findall(r'\w+', _norm(nome)))[0],
+                    nums_modelo_busca,
+                )
                 continue
 
         if not chaves:
@@ -288,6 +303,11 @@ def _filtrar(produto, produtos):
             resultado.append(p)
         else:
             c_relev += 1
+            _registrar_rejeicao(
+                produto, p, 'termos',
+                _primeira_categoria(re.findall(r'\w+', _norm(nome)))[0],
+                set(chaves) - n_tok,
+            )
 
     print(
         f"[Filtro] '{produto}': {len(produtos)} -> {len(resultado)} "
@@ -296,7 +316,7 @@ def _filtrar(produto, produtos):
     return resultado
 
 # ═══════════════════════════════════════════════════════════════════
-# FILTRO ESTRITO (só para as lojas em LOJAS_FILTRO_ESTRITO)
+# CATEGORIA E RELEVÂNCIA
 # ═══════════════════════════════════════════════════════════════════
 #
 # Regras, na ordem:
@@ -308,10 +328,10 @@ def _filtrar(produto, produtos):
 #   3. Termos da busca: processador (i7), GB/TB/Hz etc. e número de modelo
 #      precisam aparecer no título (aceita "16GB", "16 GB" e "16G").
 
-_NOTEBOOKS   = {'notebook', 'laptop', 'ultrabook', 'chromebook', 'netbook'}
+_NOTEBOOKS   = {'notebook', 'laptop', 'ultrabook', 'chromebook', 'netbook', 'macbook'}
 _COMPUTADORES = {'computador', 'pc', 'desktop', 'cpu', 'minipc'}
-_CELULARES   = {'celular', 'smartphone', 'telefone', 'iphone', 'galaxy',
-                'redmi', 'poco', 'xiaomi', 'motorola', 'realme', 'samsung'}
+_CELULARES   = {'celular', 'smartphone', 'telefone', 'iphone'}
+_MARCAS_CELULAR = {'galaxy', 'redmi', 'poco', 'xiaomi', 'motorola', 'realme', 'samsung'}
 
 # palavra digitada na busca -> palavras aceitas no título
 _SINONIMOS = {
@@ -323,21 +343,65 @@ _SINONIMOS = {
     'fone': {'fone', 'headset', 'headphone', 'earbuds', 'earphone', 'auricular'},
 }
 
-# tipos "principais": nesses, acessório/peça no lugar do produto é reprovado
-_DISPOSITIVOS = {'notebook', 'laptop', 'ultrabook', 'computador', 'pc',
-                 'desktop', 'celular', 'smartphone', 'telefone', 'tablet', 'monitor'}
+_CATEGORIAS_PRINCIPAIS = {
+    'notebook': _NOTEBOOKS,
+    'computador': _COMPUTADORES,
+    'pc': _COMPUTADORES,
+    'desktop': _COMPUTADORES,
+    'celular': _CELULARES,
+    'smartphone': _CELULARES,
+    'telefone': _CELULARES,
+    'tablet': {'tablet', 'ipad'},
+    'monitor': {'monitor'},
+    'mouse': {'mouse'},
+    'teclado': {'teclado', 'keyboard'},
+    'cadeira': {'cadeira'},
+    'ssd': {'ssd'},
+    'hd': {'hd', 'hdd'},
+    'memoria': {'memoria'},
+    'processador': {'processador', 'cpu'},
+    'placa': {'placa'},
+    'fonte': {'fonte'},
+    'cabo': {'cabo'},
+    'suporte': {'suporte'},
+    'capa': {'capa', 'capinha', 'case'},
+    'pelicula': {'pelicula', 'protetor'},
+    'filtro': {'filtro'},
+    'mochila': {'mochila'},
+    'almofada': {'almofada'},
+    'organizador': {'organizador'},
+    'mousepad': {'mousepad', 'pad'},
+    'webcam': {'webcam'},
+    'headset': {'headset', 'fone', 'headphone', 'earbuds', 'earphone', 'auricular'},
+    'carregador': {'carregador'},
+    'adaptador': {'adaptador'},
+    'hub': {'hub'},
+    'dock': {'dock'},
+}
 
 _ACESS_ESTRITO = {
-    'capa', 'capinha', 'case', 'cases', 'mochila', 'sleeve', 'bolsa', 'maleta',
-    'pasta', 'bag', 'luva', 'pelicula', 'protetor', 'skin', 'adesivo', 'suporte',
-    'base', 'cooler', 'carregador', 'fonte', 'cabo', 'adaptador', 'hub', 'dock',
-    'mouse', 'mousepad', 'teclado', 'webcam', 'cadeado', 'limpeza', 'organizador',
-    'estojo', 'alca',
+    'capa', 'capinha', 'case', 'cases', 'mousepad', 'pad', 'almofada',
+    'mochila', 'sleeve', 'bolsa', 'maleta', 'pasta', 'bag', 'luva',
+    'pelicula', 'protetor', 'skin', 'adesivo', 'suporte', 'base', 'cooler',
+    'carregador', 'fonte', 'cabo', 'adaptador', 'hub', 'dock', 'webcam',
+    'cadeado', 'limpeza', 'organizador', 'estojo', 'alca', 'filtro',
+    'privacidade', 'teclado', 'headset', 'fone', 'headphone', 'earbuds',
+    'earphone', 'auricular', 'kit', 'apoio', 'descanso',
 }
 _PECAS_ESTRITO = {
-    'bateria', 'memoria', 'hd', 'ssd', 'placa', 'tela', 'display', 'dobradica',
+    'bateria', 'memoria', 'ram', 'hd', 'hdd', 'ssd', 'nvme', 'placa',
+    'tela', 'display', 'dobradica', 'processador', 'cpu',
 }
+_CATEGORIAS_ACESSORIO = _ACESS_ESTRITO
+_CATEGORIAS_NAO_PRINCIPAIS = _ACESS_ESTRITO | _PECAS_ESTRITO
+_TERMOS_CATEGORIA = set().union(*_CATEGORIAS_PRINCIPAIS.values())
+_ARQUIVO_DIAGNOSTICO_FILTRO = DEBUG_DIR / "filtro_relevancia.jsonl"
+_diagnostico_lock = threading.Lock()
 _MARCADORES_PARA = {'para', 'pra', 'p', 'for', 'compativel', 'compat', 'pro'}
+_GSHIELD_CATEGORIAS_ATENDIDAS = {
+    'capa', 'pelicula', 'filtro', 'mochila', 'mousepad', 'mouse', 'teclado',
+    'headset', 'carregador', 'cabo', 'suporte', 'organizador',
+}
 
 # PCs de mesa que não podem aparecer numa busca de notebook
 _NAO_NOTEBOOK = {'desktop', 'gabinete', 'torre', 'minipc', 'aio'}
@@ -346,75 +410,149 @@ _RE_TOKEN_SPEC = re.compile(r'\d+(?:gb|tb|mb|mhz|ghz|hz|mah|mp|pol|w)')
 _RE_SPEC_BUSCA = re.compile(r'(\d+)\s*(gb|tb|hz|mah|mp|w)\b')
 
 
-def _filtrar_estrito(produto, produtos):
+def _primeira_categoria(tokens):
+    if 'galaxy' in tokens:
+        galaxy_index = tokens.index('galaxy')
+        for indice, token in enumerate(tokens):
+            if indice >= galaxy_index and re.fullmatch(r'book\d*', token):
+                return 'notebook', indice
+            if indice >= galaxy_index and re.fullmatch(r'tab\d*', token):
+                return 'tablet', indice
+    for indice, token in enumerate(tokens):
+        if token == 'mouse' and indice + 1 < len(tokens) and tokens[indice + 1] == 'pad':
+            return 'mousepad', indice
+        for categoria, sinonimos in _CATEGORIAS_PRINCIPAIS.items():
+            if token in sinonimos:
+                return categoria, indice
+    for indice, token in enumerate(tokens):
+        if token in _MARCAS_CELULAR:
+            return 'celular', indice
+    return None, None
+
+
+def _categoria_busca(tokens):
+    categoria, _ = _primeira_categoria(tokens)
+    return categoria
+
+
+def _busca_gshield_aplicavel(produto):
+    tokens = re.findall(r'\w+', _norm(produto))
+    categoria = _categoria_busca(tokens)
+    return categoria in _GSHIELD_CATEGORIAS_ATENDIDAS
+
+
+def _registrar_rejeicao(produto, item, motivo, categoria, termos):
+    registro = {
+        'produto': produto,
+        'item': item.get('nome', ''),
+        'loja': item.get('site', ''),
+        'motivo': motivo,
+        'categoria': categoria,
+        'termos': sorted(termos),
+        'timestamp': time.strftime('%Y-%m-%dT%H:%M:%S%z'),
+    }
+    try:
+        with _diagnostico_lock:
+            with open(_ARQUIVO_DIAGNOSTICO_FILTRO, 'a', encoding='utf-8') as arquivo:
+                arquivo.write(json.dumps(registro, ensure_ascii=False) + '\n')
+    except OSError:
+        logging.getLogger(__name__).exception(
+            'Não foi possível gravar o diagnóstico do filtro de relevância.'
+        )
+
+
+def _filtrar_estrito(produto, produtos, validar_termos=True):
     b_norm = _norm(produto)
-    b_tok  = _tokens(produto)
+    b_tok = _tokens(produto)
+    tokens_busca = re.findall(r'\w+', b_norm)
+    categoria_busca = _categoria_busca(tokens_busca)
+    busca_acessorio = categoria_busca in _CATEGORIAS_ACESSORIO
+    termos_acessorio_esperados = set()
+    if busca_acessorio:
+        termos_acessorio_esperados |= _CATEGORIAS_PRINCIPAIS.get(categoria_busca, set())
+        if categoria_busca == 'capa':
+            termos_acessorio_esperados |= {'protetor'}
+        elif categoria_busca == 'pelicula':
+            termos_acessorio_esperados |= {'protetor', 'filtro'}
 
-    dispositivos = [w for w in b_tok if w in _DISPOSITIVOS]
-    palavras_tipo = set()
-    for w in dispositivos:
-        palavras_tipo |= _SINONIMOS[w]
-    if not palavras_tipo:
-        # busca por marca/linha de celular ("iphone 13", "galaxy s23"):
-        # a própria marca faz o papel de tipo, para reprovar "Capa iPhone 13"
-        palavras_tipo = set(b_tok & _CELULARES)
-    eh_busca_notebook = bool(palavras_tipo) and palavras_tipo <= _NOTEBOOKS
-
-    # se a própria busca é por acessório/peça, não aplicamos a regra de acessório
-    busca_acessorio = bool(b_tok & (_ACESS_ESTRITO | _PECAS_ESTRITO))
-    acess_ativos = (_ACESS_ESTRITO | _PECAS_ESTRITO) - b_tok
-
+    eh_busca_notebook = categoria_busca == 'notebook'
     chaves = [
         t for t in b_tok
         if t not in _STOP and not t.isdigit() and len(t) > 1
-        and t not in _PALAVRAS_SPEC and not _RE_TOKEN_SPEC.fullmatch(t)
+        and t not in _PALAVRAS_SPEC and t not in _CATEGORIAS_ACESSORIO
+        and t not in _TERMOS_CATEGORIA
+        and not _RE_TOKEN_SPEC.fullmatch(t)
     ]
     specs = _RE_SPEC_BUSCA.findall(b_norm)
     nums_modelo = _extrair_num_modelo(produto)
 
     aprovados = []
-    motivos = {'tipo': 0, 'acessorio': 0, 'termos': 0}
+    motivos = {'tipo': 0, 'categoria': 0, 'acessorio': 0, 'termos': 0}
 
     for p in produtos:
         nome = p.get('nome', '')
         nome_norm = _norm(nome)
         n_lista = re.findall(r'\w+', nome_norm)
         n_tok = set(n_lista)
+        categoria_item, indice_item = _primeira_categoria(n_lista)
+        motivo_rejeicao = None
 
-        # 1) tipo do produto + 2) acessório
-        if palavras_tipo:
-            idx = next((i for i, t in enumerate(n_lista) if t in palavras_tipo), None)
-            if idx is None:
-                motivos['tipo'] += 1
-                continue
-            antes = n_lista[:idx]
-            if set(antes) & acess_ativos:
-                motivos['acessorio'] += 1
-                continue
-            if not busca_acessorio and (set(antes[-4:]) & _MARCADORES_PARA):
-                motivos['acessorio'] += 1
-                continue
-            if eh_busca_notebook and (
+        if categoria_busca and categoria_item != categoria_busca:
+            if categoria_item in _CATEGORIAS_NAO_PRINCIPAIS:
+                motivo_rejeicao = 'acessorio'
+            else:
+                motivo_rejeicao = 'tipo' if categoria_item else 'categoria'
+        elif categoria_busca and indice_item is not None:
+            antes = n_lista[:indice_item]
+            if set(antes) & (_ACESS_ESTRITO | _PECAS_ESTRITO):
+                motivo_rejeicao = 'acessorio'
+            elif not busca_acessorio and set(antes[-4:]) & _MARCADORES_PARA:
+                motivo_rejeicao = 'acessorio'
+            elif eh_busca_notebook and (
                 (n_tok & _NAO_NOTEBOOK) or re.search(r'\bmini\s*pc\b', nome_norm)
             ):
-                motivos['tipo'] += 1
-                continue
+                motivo_rejeicao = 'categoria'
 
-        # 3) termos da busca
+        acessorios_no_item = n_tok & _CATEGORIAS_ACESSORIO
+        if not motivo_rejeicao and busca_acessorio:
+            if acessorios_no_item - termos_acessorio_esperados:
+                motivo_rejeicao = 'acessorio'
+        elif not motivo_rejeicao and acessorios_no_item:
+            motivo_rejeicao = 'acessorio'
+
+        if motivo_rejeicao:
+            motivos[motivo_rejeicao] += 1
+            _registrar_rejeicao(
+                produto, p, motivo_rejeicao, categoria_item,
+                n_tok & _CATEGORIAS_ACESSORIO,
+            )
+            continue
+
+        if not validar_termos:
+            aprovados.append(p)
+            continue
+
         faltando = 0
-        for c in chaves:
-            ok = (n_tok & _SINONIMOS[c]) if c in _SINONIMOS else (c in n_tok)
-            if not ok:
+        termos_faltantes = []
+        for termo in chaves:
+            sinonimos = _SINONIMOS.get(
+                termo, _CATEGORIAS_PRINCIPAIS.get(termo, {termo})
+            )
+            if not n_tok & sinonimos:
                 faltando += 1
-        for num, un in specs:
-            sufixo = {'gb': r'g(?:b)?', 'tb': r't(?:b)?'}.get(un, un)
+                termos_faltantes.append(termo)
+        for num, unidade in specs:
+            sufixo = {'gb': r'g(?:b)?', 'tb': r't(?:b)?'}.get(unidade, unidade)
             if not re.search(rf'(?<![\d.]){num}\s*{sufixo}\b', nome_norm):
                 faltando += 1
-        for nb in nums_modelo:
-            if not _modelo_bate(nb, nome):
+                termos_faltantes.append(f'{num}{unidade}')
+        for numero_modelo in nums_modelo:
+            if not _modelo_bate(numero_modelo, nome):
                 faltando += 1
+                termos_faltantes.append(numero_modelo)
         if faltando > FILTRO_ESTRITO_TOLERANCIA:
             motivos['termos'] += 1
+            _registrar_rejeicao(produto, p, 'termos', categoria_item, termos_faltantes)
             continue
 
         aprovados.append(p)
@@ -428,13 +566,17 @@ def _filtrar_estrito(produto, produtos):
 
 
 def _aplicar_filtro_estrito(produto, produtos):
-    """Filtra só as lojas de LOJAS_FILTRO_ESTRITO; as outras passam direto."""
-    outros = [p for p in produtos if p.get('site') not in LOJAS_FILTRO_ESTRITO]
-    resultado = list(outros)
-    for loja in LOJAS_FILTRO_ESTRITO:
+    """Aplica proteção de categoria em todas as lojas e termos estritos nas mistas."""
+    resultado = []
+    lojas = {p.get('site', '?') for p in produtos}
+    for loja in lojas:
         da_loja = [p for p in produtos if p.get('site') == loja]
         if da_loja:
-            resultado += _filtrar_estrito(produto, da_loja)
+            resultado += _filtrar_estrito(
+                produto,
+                da_loja,
+                validar_termos=loja in LOJAS_FILTRO_ESTRITO,
+            )
     return resultado
 
 # ═══════════════════════════════════════════════════════════════════
@@ -480,7 +622,8 @@ def _marcar(job, loja, status, n, total_lojas):
             job['lojas'][loja] = {'status': status, 'count': n}
             concluidas = sum(
                 1 for v in job['lojas'].values()
-                if isinstance(v, dict) and v.get('status') in ('done', 'error')
+                if isinstance(v, dict)
+                and v.get('status') in ('done', 'error', 'not_applicable', 'no_relevant')
             )
             job['progresso']  = int((concluidas / total_lojas) * 100)
             job['concluidas'] = concluidas
@@ -511,11 +654,7 @@ def _ler_cache(produto):
 # ═══════════════════════════════════════════════════════════════════
 
 def comparar(produto, forcar_busca=False, job=None):
-    """
-    FLUXO:
-      As 10 lojas fixas rodam em paralelo (ThreadPoolExecutor) e o
-      resultado é mesclado, filtrado e classificado ao final.
-    """
+    """Busca em paralelo, valida categorias, filtra relevância e classifica."""
     total_lojas = TOTAL_LOJAS
 
     if not forcar_busca and _cache_valido(produto):
@@ -524,18 +663,37 @@ def comparar(produto, forcar_busca=False, job=None):
         dados['do_cache'] = True
         # Cache antigo pode ter sido salvo antes do filtro estrito: reaplica.
         prods = _aplicar_filtro_estrito(produto, dados.get('produtos', []))
+        if FILTRAR_RESULTADOS:
+            prods = _filtrar(produto, prods)
         dados['produtos'] = sorted(
             _classificar(prods),
             key=lambda p: (p.get('preco', 0) == 0, p.get('preco', 0))
         )
         if job:
             nomes_lojas = ['mercadolivre','kabum','amazon','terabyte','americanas','ibyte','gshield','aliexpress']
-            total = len(nomes_lojas)
             with _job_lock:
                 for nome in nomes_lojas:
-                    job['lojas'][nome] = {'status': 'done', 'count': 0}
-                job['progresso']  = 100
-                job['concluidas'] = total
+                    if nome == 'gshield' and not _busca_gshield_aplicavel(produto):
+                        estado = 'not_applicable'
+                    elif nome == 'gshield' and not any(
+                        p.get('site') == 'Gshield' for p in dados['produtos']
+                    ):
+                        estado = 'no_relevant'
+                    else:
+                        estado = 'done'
+                    quantidade = sum(1 for p in dados['produtos'] if p.get('site') == {
+                        'mercadolivre': 'Mercado Livre',
+                        'kabum': 'KaBuM',
+                        'amazon': 'Amazon',
+                        'terabyte': 'Terabyte',
+                        'americanas': 'Americanas',
+                        'ibyte': 'iBytes',
+                        'gshield': 'Gshield',
+                        'aliexpress': 'AliExpress',
+                    }[nome])
+                    job['lojas'][nome] = {'status': estado, 'count': quantidade}
+                job['progresso'] = 100
+                job['concluidas'] = len(nomes_lojas)
         return dados
 
     print(f"[Busca] Pesquisando '{produto}'...")
@@ -553,6 +711,17 @@ def comparar(produto, forcar_busca=False, job=None):
         ('gshield',      buscar_gshield),
         ('aliexpress',   buscar_aliexpress),
     ]
+    if not _busca_gshield_aplicavel(produto):
+        if job:
+            _marcar(job, 'gshield', 'not_applicable', 0, total_lojas)
+        lojas_fixas = [(nome, fn) for nome, fn in lojas_fixas if nome != 'gshield']
+
+    fontes_estritas = {
+        'mercadolivre': 'Mercado Livre',
+        'americanas': 'Americanas',
+        'gshield': 'Gshield',
+        'aliexpress': 'AliExpress',
+    }
 
     def _rodar(nome_loja, fn):
         _iniciar(job, nome_loja)
@@ -560,9 +729,15 @@ def comparar(produto, forcar_busca=False, job=None):
             print(f"-> {nome_loja} iniciado...")
             t0  = time.time()
             res = fn(produto)
+            site = fontes_estritas.get(nome_loja)
+            if site:
+                res = _filtrar_estrito(produto, res, validar_termos=True)
+            else:
+                res = _filtrar_estrito(produto, res, validar_termos=False)
             dt  = time.time() - t0
             print(f"[OK] {nome_loja} concluido em {dt:.1f}s ({len(res)} produtos)")
-            _marcar(job, nome_loja, 'done', len(res), total_lojas)
+            status = 'no_relevant' if nome_loja == 'gshield' and not res else 'done'
+            _marcar(job, nome_loja, status, len(res), total_lojas)
             return res
         except Exception as e:
             print(f"[ERRO] {nome_loja} falhou: {e}")
@@ -585,8 +760,6 @@ def comparar(produto, forcar_busca=False, job=None):
     print(f"[Busca] Todas as lojas concluidas em {time.time() - inicio:.1f}s (paralelo)")
 
     todos = _deduplicar(todos)
-    todos = _aplicar_filtro_estrito(produto, todos)
-
     filtrados = _filtrar(produto, todos) if FILTRAR_RESULTADOS else list(todos)
     filtrados = _classificar(filtrados)
     filtrados = sorted(

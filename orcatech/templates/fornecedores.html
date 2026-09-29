@@ -196,7 +196,7 @@ dialog h2{font-size:18px;font-weight:800;margin-bottom:16px}.dlg-acoes{display:f
           {% if f.ativo %}
           <button class="btn btn-primary btn-sm" type="button" data-open="dlgEditar" data-nome="{{ f.nome }}" data-tipo="{{ f.tipo }}" data-site="{{ f.site or '' }}" data-contato="{{ f.contato or '' }}" data-status="ativo" data-edit="{{ url_for('fornecedores.editar', fornecedor_id=f.id) }}" data-toggle="{{ url_for('fornecedores.alternar_ativo', fornecedor_id=f.id) }}">Abrir <svg class="i" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button>
           {% else %}
-          <form action="{{ url_for('fornecedores.alternar_ativo', fornecedor_id=f.id) }}" method="POST"><input type="hidden" name="origem" value="{{ origem }}"><button class="btn btn-sm" type="submit"><svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.4 6.4L3 16"/><path d="M3 12a9 9 0 0 1 15.4-6.4L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg> Reativar</button></form>
+          <form action="{{ url_for('fornecedores.alternar_ativo', fornecedor_id=f.id) }}" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="origem" value="{{ origem }}"><button class="btn btn-sm" type="submit"><svg class="i" viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 1-15.4 6.4L3 16"/><path d="M3 12a9 9 0 0 1 15.4-6.4L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg> Reativar</button></form>
           {% endif %}
         </div>
       </article>
@@ -208,7 +208,7 @@ dialog h2{font-size:18px;font-weight:800;margin-bottom:16px}.dlg-acoes{display:f
 </div>
 
 <dialog id="dlgNovo"><h2>Novo fornecedor</h2>
-  <form action="{{ url_for('fornecedores.novo') }}" method="POST"><input type="hidden" name="origem" value="{{ origem }}">
+  <form action="{{ url_for('fornecedores.novo') }}" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="origem" value="{{ origem }}">
     <div class="form-grid">
       <div><label>Nome *</label><input name="nome" required></div>
       <div><label>Tipo</label><select name="tipo"><option value="manual">Manual (telefone, loja física)</option><option value="online">Online</option></select></div>
@@ -219,7 +219,7 @@ dialog h2{font-size:18px;font-weight:800;margin-bottom:16px}.dlg-acoes{display:f
   </form>
 </dialog>
 <dialog id="dlgEditar"><h2>Fornecedor</h2>
-  <form class="edit" method="POST"><input type="hidden" name="origem" value="{{ origem }}">
+  <form class="edit" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="origem" value="{{ origem }}">
     <div class="form-grid">
       <div><label>Nome</label><input name="nome" required></div>
       <div><label>Tipo</label><select name="tipo"><option value="manual">Manual</option><option value="online">Online</option></select></div>
@@ -228,11 +228,11 @@ dialog h2{font-size:18px;font-weight:800;margin-bottom:16px}.dlg-acoes{display:f
     </div>
     <div class="dlg-acoes"><button class="btn" type="button" data-close>Fechar</button><button class="btn btn-primary" type="submit">Salvar</button></div>
   </form>
-  <form class="tog" method="POST" style="margin-top:10px;text-align:right"><input type="hidden" name="origem" value="{{ origem }}"><button class="btn btn-danger btn-sm" type="submit">Desativar</button></form>
+  <form class="tog" method="POST" style="margin-top:10px;text-align:right"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="origem" value="{{ origem }}"><button class="btn btn-danger btn-sm" type="submit">Desativar</button></form>
 </dialog>
 <dialog id="dlgCotacao"><h2>Lançar cotação manual</h2>
   {% if ativos %}
-  <form action="{{ url_for('fornecedores.cotacao_manual') }}" method="POST"><input type="hidden" name="origem" value="{{ origem }}">
+  <form action="{{ url_for('fornecedores.cotacao_manual') }}" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="origem" value="{{ origem }}">
     <div class="form-grid">
       <div><label>Fornecedor *</label><select name="fornecedor_id" required>{% for f in ativos %}<option value="{{ f.id }}">{{ f.nome }}</option>{% endfor %}</select></div>
       <div><label>Produto (termo do orçamento) *</label><input name="produto_busca" required placeholder="ex: memória ram ddr4 8gb"></div>

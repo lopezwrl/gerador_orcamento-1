@@ -207,6 +207,8 @@
         <a href="/relatorios"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div> Relatórios</a>
         <a href="/fornecedores"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div> Fornecedores</a>
         <a href="/orcamento/carrinho"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg></div> Carrinho{% if carrinho_count %}<span style="background:#2563EB;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;">{{ carrinho_count }}</span>{% endif %}</a>
+        {% if current_user.papel == 'admin' %}<a href="{{ url_for('auth.usuarios') }}">Gerenciar usuários</a>{% endif %}
+        <form action="{{ url_for('auth.logout') }}" method="POST" style="padding:8px 12px"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" style="background:none;border:0;color:inherit;cursor:pointer">Sair ({{ current_user.nome }})</button></form>
     </div>
     <div class="sidebar-footer">OrçaTech v2.0 · <span>ORÇATECH</span></div>
 </nav>
@@ -227,6 +229,7 @@
 
     <div class="search-card">
         <form action="/buscar" method="POST" class="form-grid">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="form-group">
                 <label for="produto">Nome do Produto ou Item</label>
                 <input type="text" id="produto" name="produto" class="form-input" placeholder="Ex: Notebook Gamer, SSD 1TB, Teclado Mecânico…" required>

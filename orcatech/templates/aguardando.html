@@ -165,6 +165,7 @@
         .loja-item.done::before { background:var(--teal); }
         .loja-item.erro { border-color:rgba(239,68,68,.25); background:#FEF2F2; }
         .loja-item.erro::before { background:#EF4444; }
+        .loja-item.nao-aplica, .loja-item.sem-relevancia { opacity:.72; }
 
         .loja-dot { width:8px; height:8px; border-radius:50%; background:var(--border2); flex-shrink:0; transition:all .3s; }
         .loja-item.buscando .loja-dot { background:var(--royal); box-shadow:0 0 10px var(--blue); animation:pulse 1.2s ease-in-out infinite; }
@@ -447,7 +448,7 @@ function marcarLoja(loja, estado, count, jobFinalizado) {
     const status  = document.getElementById(loja.statusId);
     const countEl = document.getElementById(loja.countId);
 
-    item.classList.remove('buscando', 'done', 'erro');
+    item.classList.remove('buscando', 'done', 'erro', 'nao-aplica', 'sem-relevancia');
 
     if (estado === 'running') {
         item.classList.add('buscando');
@@ -465,6 +466,14 @@ function marcarLoja(loja, estado, count, jobFinalizado) {
     } else if (estado === 'erro') {
         item.classList.add('erro');
         status.innerHTML = 'Erro <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="m14.5 9.5-5 5M9.5 9.5l5 5"/></svg>';
+        countEl.textContent = '';
+    } else if (estado === 'not_applicable') {
+        item.classList.add('nao-aplica');
+        status.textContent = 'Não se aplica';
+        countEl.textContent = '';
+    } else if (estado === 'no_relevant') {
+        item.classList.add('sem-relevancia');
+        status.textContent = 'Sem itens relevantes para esta busca';
         countEl.textContent = '';
     } else {
         status.textContent = 'Aguardando…';
@@ -494,7 +503,7 @@ function processarEstado(data) {
             const estado = info.status || 'pending';
             const count  = info.count;
             marcarLoja(loja, estado, count, jobDone);
-            if (estado === 'done' || estado === 'error') concluidas++;
+            if (['done', 'error', 'not_applicable', 'no_relevant'].includes(estado)) concluidas++;
         });
         setProgresso((concluidas / LOJAS.length) * 100);
         lojasFeitas.textContent = concluidas;

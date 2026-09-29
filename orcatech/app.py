@@ -4,7 +4,7 @@ from .paths import INSTANCE_DIR, PROJECT_ROOT
 load_dotenv(PROJECT_ROOT / ".env")
 
 from flask import (
-    Flask, render_template, request, send_file, redirect,
+    Flask, abort, render_template, request, send_file, redirect,
     url_for, jsonify, Response, send_from_directory
 )
 from .comparador import (
@@ -17,19 +17,86 @@ from .models import db
 import os
 import json
 import re
+import secrets
 import time
 import threading
+import unicodedata
 from datetime import datetime
+from statistics import median
+
+from flask_login import LoginManager, current_user
+from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
+from .auth_routes import auth_bp, limiter
+from .models import Usuario
 
 INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
 app = Flask(__name__, instance_path=str(INSTANCE_DIR), instance_relative_config=True)
 
-
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///orcatech.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL", "sqlite:///orcatech.db"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db.init_app(app)
+app.config["TESTING"] = os.environ.get("TESTING") == "1"
+app.config["DEBUG"] = os.environ.get("FLASK_DEBUG", "").lower() in {"1", "true", "yes"}
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("APP_ENV", "").lower() in {
+    "production", "prod"
+}
+app.config["RATELIMIT_STORAGE_URI"] = os.environ.get(
+    "RATELIMIT_STORAGE_URI", "memory://"
+)
 
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "troque-esta-chave-depois")
+secret_key = os.environ.get("SECRET_KEY")
+if not secret_key:
+    if not app.config["TESTING"]:
+        raise RuntimeError("A variável SECRET_KEY deve estar definida no arquivo .env.")
+    secret_key = "testing-only-secret-key"
+app.config["SECRET_KEY"] = secret_key
+
+db.init_app(app)
+csrf = CSRFProtect(app)
+migrate = Migrate(app, db)
+login_manager = LoginManager(app)
+login_manager.login_view = "auth.login"
+limiter.init_app(app)
+
+
+@login_manager.user_loader
+def carregar_usuario(usuario_id):
+    usuario = db.session.get(Usuario, int(usuario_id))
+    return usuario if usuario and usuario.ativo else None
+
+
+@app.before_request
+def exigir_login():
+    if request.endpoint in {"static", "favicon", "auth.login", "auth.logout"}:
+        return None
+    if not current_user.is_authenticated:
+        return redirect(url_for("auth.login", next=request.full_path.rstrip("?")))
+    return None
+
+
+@app.after_request
+def adicionar_cabecalhos_seguranca(response):
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' data: https://fonts.gstatic.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self'; "
+        "object-src 'none'; base-uri 'self'; frame-ancestors 'none'",
+    )
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    return response
+
+
+app.register_blueprint(auth_bp)
 from .orcamento_routes import orcamento_bp
 app.register_blueprint(orcamento_bp)
 from .fornecedores_routes import fornecedores_bp
@@ -62,7 +129,7 @@ def salvar_historico(produto, produtos):
         return
     mais_barato = min(validos, key=lambda x: x["preco"])
     premium     = max(validos, key=lambda x: x["preco"])
-    economia    = premium["preco"] - mais_barato["preco"]
+    economia    = economia_mesmo_modelo(validos)
     historico.append({
         "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
         "produto": produto,
@@ -77,6 +144,31 @@ def salvar_historico(produto, produtos):
     })
     with open(HISTORICO_FILE, "w", encoding="utf-8") as f:
         json.dump(historico, f, ensure_ascii=False, indent=2)
+
+
+def economia_mesmo_modelo(produtos):
+    grupos = {}
+    cores = {
+        'preto', 'preta', 'branco', 'branca', 'azul', 'verde', 'cinza',
+        'dourado', 'dourada', 'prata', 'roxo', 'rosa',
+    }
+    for produto in produtos:
+        nome = unicodedata.normalize('NFD', produto.get('nome', '').lower())
+        nome = ''.join(c for c in nome if unicodedata.category(c) != 'Mn')
+        chave = tuple(
+            token for token in re.findall(r'\w+', nome)
+            if token not in cores
+        )
+        preco = produto.get('preco', 0)
+        if chave and preco > 0:
+            grupos.setdefault(chave, []).append(preco)
+
+    economias = [
+        median(precos) - min(precos)
+        for precos in grupos.values()
+        if len(precos) > 1
+    ]
+    return round(max(economias, default=0), 2)
 
 
 def ultima_pesquisa():
@@ -132,10 +224,10 @@ def home():
 @app.route('/buscar', methods=['POST'])
 def buscar():
     produto     = request.form.get('produto', '').strip() or 'tecnologia'
-    solicitante = request.form.get('solicitante', '').strip()
+    solicitante = current_user.nome
     forcar      = request.form.get('forcar_busca') == '1'
 
-    job_id = f"{produto.lower().replace(' ','_')}_{datetime.now().strftime('%H%M%S')}"
+    job_id = secrets.token_urlsafe(12)
 
     lojas_base = {
         "mercadolivre": {"status": "pending", "count": 0},
@@ -150,6 +242,7 @@ def buscar():
 
     _jobs[job_id] = {
         "status": "pending",
+        "usuario_id": current_user.id,
         "produto": produto,
         "solicitante": solicitante,
         "resultado": None,
@@ -170,15 +263,14 @@ def buscar():
 
 @app.route('/aguardando/<job_id>')
 def aguardando(job_id):
-    solicitante = request.args.get('solicitante', '')
     with _jobs_lock:
         job = _jobs.get(job_id)
-    if not job:
-        return redirect(url_for('home'))
+    if not job or job["usuario_id"] != current_user.id:
+        abort(404)
     return render_template('aguardando.html',
                            job_id=job_id,
                            produto=job['produto'],
-                           solicitante=solicitante)
+                           solicitante=current_user.nome)
 
 
 @app.route('/status/<job_id>')
@@ -191,8 +283,8 @@ def status(job_id):
     """
     with _jobs_lock:
         job = _jobs.get(job_id)
-    if not job:
-        return jsonify({"status": "not_found"})
+    if not job or job["usuario_id"] != current_user.id:
+        abort(404)
 
     return jsonify({
         "status": job["status"],
@@ -215,6 +307,11 @@ def stream(job_id):
     ele muda, em vez do front ficar perguntando (polling) a cada X segundos.
     O cliente consome com `new EventSource('/stream/<job_id>')`.
     """
+    with _jobs_lock:
+        job = _jobs.get(job_id)
+    if not job or job["usuario_id"] != current_user.id:
+        abort(404)
+
     def gerar():
         ultimo_estado = None
         tentativas_sem_job = 0
@@ -259,15 +356,16 @@ def stream(job_id):
 
 @app.route('/resultado/<job_id>')
 def resultado(job_id):
-    solicitante = request.args.get('solicitante', '')
     with _jobs_lock:
         job = _jobs.get(job_id)
-    if not job or job["status"] != "done":
-        return redirect(url_for('aguardando', job_id=job_id, solicitante=solicitante))
+    if not job or job["usuario_id"] != current_user.id:
+        abort(404)
+    if job["status"] != "done":
+        return redirect(url_for('aguardando', job_id=job_id))
     res = job["resultado"]
     return render_template('resultados.html',
                            produto=res['produto'],
-                           solicitante=solicitante,
+                           solicitante=current_user.nome,
                            produtos=res['produtos'],
                            do_cache=res['do_cache'])
 
@@ -282,8 +380,11 @@ def orcamentos():
         orcamentos_view.append(item_com_id)
     orcamentos_view.reverse()  # mais recentes primeiro
     with _jobs_lock:
-        jobs_ativos = {jid: j for jid, j in _jobs.items()
-                       if j["status"] in ("pending", "running")}
+        jobs_ativos = {
+            jid: j for jid, j in _jobs.items()
+            if j["usuario_id"] == current_user.id
+            and j["status"] in ("pending", "running")
+        }
     return render_template('orcamentos.html', orcamentos=orcamentos_view, jobs_ativos=jobs_ativos)
 
 
@@ -388,4 +489,4 @@ if __name__ == '__main__':
     # NÃO chame pre_aquecer() aqui — abre uma janela Chrome visível à toa.
     # O ChromeDriver é baixado automaticamente na primeira busca real.
 
-    app.run(debug=True, use_reloader=False, threaded=True)
+    app.run(debug=app.config["DEBUG"], use_reloader=False, threaded=True)

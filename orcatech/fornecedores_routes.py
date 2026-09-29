@@ -7,6 +7,7 @@ Registrar em app.py:
 """
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash
+from .auth import admin_required
 
 from .models import db, Fornecedor, Cotacao
 from .orcamento_service import (
@@ -37,6 +38,7 @@ def listar():
 
 
 @fornecedores_bp.route("/novo", methods=["POST"])
+@admin_required
 def novo():
     nome = request.form.get("nome", "").strip()
     if not nome:
@@ -59,6 +61,7 @@ def novo():
 
 
 @fornecedores_bp.route("/<int:fornecedor_id>/editar", methods=["POST"])
+@admin_required
 def editar(fornecedor_id):
     f = Fornecedor.query.get_or_404(fornecedor_id)
     nome = request.form.get("nome", "").strip()
@@ -84,6 +87,7 @@ def editar(fornecedor_id):
 
 
 @fornecedores_bp.route("/<int:fornecedor_id>/ativo", methods=["POST"])
+@admin_required
 def alternar_ativo(fornecedor_id):
     f = Fornecedor.query.get_or_404(fornecedor_id)
     f.ativo = not f.ativo

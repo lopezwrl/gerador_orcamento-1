@@ -5,7 +5,7 @@ orçamento rascunho ativo na sessão do usuário.
 """
 
 from .models import db, Fornecedor, ProdutoBusca, Cotacao, Orcamento, OrcamentoItem
-from flask import session
+from flask_login import current_user
 
 
 def get_or_create_fornecedor(nome, tipo="online"):
@@ -56,27 +56,28 @@ def registrar_cotacao(produto_busca, nome_produto, preco, site, link=None, image
 
 
 def get_orcamento_ativo(criar_se_nao_existir=True, usuario_id=None):
-    """
-    Orçamento em 'rascunho' vinculado à sessão do navegador (sem exigir login).
-    Se já existir um rascunho válido guardado na sessão, reaproveita.
-    """
-    orcamento_id = session.get("orcamento_ativo_id")
-    if orcamento_id:
-        orcamento = Orcamento.query.get(orcamento_id)
-        if orcamento and orcamento.status == "rascunho":
-            return orcamento
+    if usuario_id is None:
+        if not current_user.is_authenticated:
+            return None
+        usuario_id = current_user.id
 
+    orcamento = Orcamento.query.filter_by(
+        usuario_id=usuario_id,
+        status="rascunho",
+    ).order_by(Orcamento.criado_em.desc()).first()
+    if orcamento:
+        return orcamento
     if not criar_se_nao_existir:
         return None
 
     orcamento = Orcamento(
         numero=Orcamento.gerar_numero(),
         usuario_id=usuario_id,
+        solicitante=current_user.nome if current_user.is_authenticated else None,
         status="rascunho",
     )
     db.session.add(orcamento)
     db.session.commit()
-    session["orcamento_ativo_id"] = orcamento.id
     return orcamento
 
 
@@ -102,7 +103,3 @@ def adicionar_item_ao_orcamento(produto_busca, cotacao, quantidade=1, usuario_id
 
     db.session.commit()
     return orcamento, item_existente
-
-
-def limpar_orcamento_ativo():
-    session.pop("orcamento_ativo_id", None)

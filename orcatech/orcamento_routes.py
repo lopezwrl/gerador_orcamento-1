@@ -6,16 +6,18 @@ Registrar em app.py:
     app.register_blueprint(orcamento_bp)
 """
 
-from flask import Blueprint, render_template, request, redirect, url_for, send_file, flash
+from flask import Blueprint, abort, render_template, request, redirect, url_for, send_file, flash
 import os
+from flask_login import current_user
+from sqlalchemy.orm import joinedload
 
+from .auth import owner_or_admin
 from .models import db, Orcamento, OrcamentoItem
 from .orcamento_service import (
     get_or_create_produto_busca,
     registrar_cotacao,
     get_orcamento_ativo,
     adicionar_item_ao_orcamento,
-    limpar_orcamento_ativo,
 )
 from .gerar_pdf_orcamento import gerar_pdf_orcamento
 
@@ -25,11 +27,18 @@ orcamento_bp = Blueprint("orcamento", __name__, url_prefix="/orcamento")
 @orcamento_bp.app_context_processor
 def injetar_carrinho_count():
     """Disponibiliza `carrinho_count` (nº de itens do rascunho) em todos os templates."""
-    try:
-        orc = get_orcamento_ativo(criar_se_nao_existir=False)
-        return {"carrinho_count": len(orc.itens) if orc else 0}
-    except Exception:
-        return {"carrinho_count": 0}
+    orc = get_orcamento_ativo(criar_se_nao_existir=False)
+    return {"carrinho_count": len(orc.itens) if orc else 0}
+
+
+def _item_do_usuario(item_id):
+    item = (
+        OrcamentoItem.query.options(joinedload(OrcamentoItem.orcamento))
+        .filter_by(id=item_id)
+        .first_or_404()
+    )
+    owner_or_admin(item.orcamento)
+    return item
 
 
 @orcamento_bp.route("/adicionar", methods=["POST"])
@@ -76,7 +85,9 @@ def carrinho():
 
 @orcamento_bp.route("/item/<int:item_id>/quantidade", methods=["POST"])
 def atualizar_quantidade(item_id):
-    item = OrcamentoItem.query.get_or_404(item_id)
+    item = _item_do_usuario(item_id)
+    if item.orcamento.status != "rascunho":
+        abort(403)
     try:
         nova_qtd = int(request.form.get("quantidade", item.quantidade))
     except ValueError:
@@ -92,7 +103,9 @@ def atualizar_quantidade(item_id):
 
 @orcamento_bp.route("/item/<int:item_id>/remover", methods=["POST"])
 def remover_item(item_id):
-    item = OrcamentoItem.query.get_or_404(item_id)
+    item = _item_do_usuario(item_id)
+    if item.orcamento.status != "rascunho":
+        abort(403)
     db.session.delete(item)
     db.session.commit()
     return redirect(url_for("orcamento.carrinho"))
@@ -105,19 +118,19 @@ def finalizar():
         flash("Adicione pelo menos um item antes de finalizar.", "erro")
         return redirect(url_for("orcamento.carrinho"))
 
-    orcamento.solicitante = request.form.get("solicitante", "").strip()
+    orcamento.solicitante = request.form.get("solicitante", "").strip() or current_user.nome
     orcamento.observacoes = request.form.get("observacoes", "").strip()
     orcamento.condicoes_comerciais = request.form.get("condicoes_comerciais", "").strip()
     orcamento.status = "aguardando_aprovacao"
     db.session.commit()
 
-    limpar_orcamento_ativo()
     return redirect(url_for("orcamento.pdf", orcamento_id=orcamento.id))
 
 
 @orcamento_bp.route("/pdf/<int:orcamento_id>")
 def pdf(orcamento_id):
     orcamento = Orcamento.query.get_or_404(orcamento_id)
+    owner_or_admin(orcamento)
     caminho_pdf = gerar_pdf_orcamento(orcamento)
     return send_file(
         caminho_pdf, as_attachment=True,

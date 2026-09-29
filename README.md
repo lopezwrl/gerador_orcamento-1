@@ -2,7 +2,7 @@
 
 Aplicação web em **Flask** que pesquisa um produto simultaneamente em **8 lojas** (Mercado Livre, KaBuM, Amazon, Terabyte, Americanas, iBytes, Gshield e AliExpress), filtra e classifica os resultados, permite montar um **orçamento com vários produtos e fornecedores** (carrinho) e gera o **PDF** pronto para aprovação. Os dados ficam em um banco **SQLite**, com histórico de buscas, cotações manuais e relatórios de economia.
 
-> **Status:** em evolução de um comparador de preços simples para um sistema de compras (múltiplos produtos, fornecedores e aprovação). Login e fluxo de aprovação ainda estão no [roadmap](#roadmap).
+> **Status:** comparador de preços e orçamento multi-produto com login, papéis de usuário, isolamento dos rascunhos e proteção CSRF. O fluxo de decisão de aprovações ainda está no [roadmap](#roadmap).
 
 ---
 
@@ -25,6 +25,7 @@ Aplicação web em **Flask** que pesquisa um produto simultaneamente em **8 loja
 - [Variáveis de ambiente](#variáveis-de-ambiente)
 - [Rotas da aplicação](#rotas-da-aplicação)
 - [Persistência de dados](#persistência-de-dados)
+- [Executar os testes](#executar-os-testes)
 - [Limitações conhecidas](#limitações-conhecidas)
 - [Roadmap](#roadmap)
 
@@ -65,12 +66,12 @@ Fluxo geral, disparado pelo formulário da tela inicial (`produto` + `solicitant
 
 Cada card da tela de resultados tem o botão **Adicionar ao orçamento**. O fluxo:
 
-1. **Adicionar**: o item vira uma cotação no banco e entra no orçamento em `rascunho` do navegador atual (guardado na sessão, sem exigir login). Uma faixa de confirmação aparece com o link "Ver carrinho".
+1. **Adicionar**: o item vira uma cotação no banco e entra no orçamento `rascunho` do usuário autenticado. Uma faixa de confirmação aparece com o link "Ver carrinho".
 2. **Carrinho** (`/orcamento/carrinho`): edita a quantidade, remove itens e vê o total. O botão "Carrinho" (com contador) aparece nas telas principais.
-3. **Finalizar**: informa solicitante, condições comerciais e observações. O orçamento passa para o status `aguardando_aprovacao`, o rascunho da sessão é limpo e o PDF é baixado.
+3. **Finalizar**: informa solicitante, condições comerciais e observações. O orçamento passa para o status `aguardando_aprovacao` e o PDF fica disponível para o dono e administradores. A fila e a decisão de aprovação ainda serão implementadas.
 4. **Reabrir o PDF** a qualquer momento por `/orcamento/pdf/<id>`.
 
-Status previstos para um orçamento: `rascunho → em_cotacao → aguardando_aprovacao → aprovado / reprovado → compra_realizada`. Hoje o sistema grava `rascunho` e `aguardando_aprovacao`; os demais entram com o fluxo de aprovação.
+Status previstos para um orçamento: `rascunho → em_cotacao → aguardando_aprovacao → aprovado / reprovado → compra_realizada`. Atualmente o sistema grava `rascunho` e `aguardando_aprovacao`; os demais dependem da implementação do fluxo de aprovação.
 
 ---
 
@@ -97,7 +98,7 @@ Cada loja tem seu módulo em `orcatech/scrapers/`, com a técnica mais estável 
 | **Terabyte**      | Selenium headless, protegido por semáforo global                                            | Ver seção de concorrência abaixo.                                                                                                       |
 | **Americanas**    | Selenium com scroll lento (lazy-load) + fallback via `__NEXT_DATA__`/JSON embutido          | Estratégia dupla para garantir link e imagem do produto.                                                                                |
 | **iBytes**        | API pública VTEX (`catalog_system`) via `requests`, com fallback em `BeautifulSoup`         | Resposta rápida, sem navegador.                                                                                                         |
-| **Gshield**       | `requests` + `BeautifulSoup` (loja VTEX)                                                    | Pode retornar 403 (proteção anti-bot). Ver [limitações](#limitações-conhecidas).                                                        |
+| **Gshield**       | `curl_cffi` + BeautifulSoup; fallback via Chrome quando não há produtos no HTML             | Busca em `https://www.gorilashield.com.br/buscar?q=<termo>`; só é consultada para acessórios e periféricos compatíveis com o catálogo. |
 | **AliExpress**    | Módulo próprio de coleta                                                                    | Ver o arquivo correspondente em `orcatech/scrapers/`.                                                                                  |
 
 ### Controle de concorrência do Selenium (`scrapers/driver_manager.py`)
@@ -179,13 +180,13 @@ SQLite via **Flask-SQLAlchemy** (`sqlite:///orcatech.db`, criado em `instance/`)
 
 | Modelo          | Função                                                                                   |
 | --------------- | ---------------------------------------------------------------------------------------- |
-| `Usuario`       | Nome, e-mail, senha (hash) e papel (`admin` / `usuario`). Preparado para o login.        |
+| `Usuario`       | Nome, e-mail, senha (hash), papel (`admin` / `usuario`) e estado ativo. Login implementado. |
 | `Fornecedor`    | Nome único, tipo (`online`/`manual`), site, contato e flag `ativo`.                      |
 | `ProdutoBusca`  | Termo pesquisado e especificações extraídas.                                             |
 | `Cotacao`       | Preço encontrado (scraping ou manual): produto, fornecedor, link, imagem, frete, prazo, forma de pagamento e origem. |
-| `Orcamento`     | Número (`ORC-AAAAMMDDHHmm`), solicitante, status, observações, condições e validade.     |
+| `Orcamento`     | Número (`ORC-AAAAMMDDHHmmss-<sufixo>`), dono, solicitante, status, observações, condições e validade. |
 | `OrcamentoItem` | Item do carrinho: produto, quantidade e cotação escolhida.                               |
-| `Aprovacao`     | Decisão (aprovado/reprovado) e comentário por orçamento. Tabela pronta; a tela ainda não. |
+| `Aprovacao`     | Decisão (aprovado/reprovado) e comentário por orçamento. A tela e as regras de transição ainda serão implementadas. |
 
 ---
 
@@ -263,21 +264,35 @@ Execute este passo na primeira instalação ou depois de uma alteração em `req
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-#### 5. Preparar o banco de dados na primeira execução
+#### 5. Configurar a chave secreta
 
-O projeto guarda o banco em `instance/orcatech.db`. Se esse arquivo já existir, o banco local já está criado e **não é necessário repetir esta etapa**.
-
-Somente em uma instalação nova, crie as tabelas e o usuário administrador:
+Crie o arquivo `.env` a partir do modelo e gere uma chave aleatória exclusiva para esta instalação:
 
 ```powershell
+Copy-Item .env.example .env
+.\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Abra `.env`, substitua o valor de `SECRET_KEY` pela chave gerada e salve. Não compartilhe nem versione esse arquivo. O aplicativo se recusa a iniciar sem uma `SECRET_KEY`.
+
+#### 6. Preparar o banco de dados
+
+O projeto guarda o banco em `instance/orcatech.db`. Em uma instalação nova, aplique primeiro as migrations e depois crie o primeiro administrador:
+
+```powershell
+.\.venv\Scripts\python.exe -m flask --app orcatech.app:app db upgrade
 .\.venv\Scripts\python.exe -m scripts.init_db
 ```
 
-O comando pode solicitar nome, e-mail e senha do administrador. Se já existir um administrador, o script informa que não há nada a fazer. Não apague `instance/orcatech.db`: esse arquivo contém os fornecedores, cotações, orçamentos e usuários salvos.
+O script solicita nome, e-mail e senha do administrador. A senha precisa ter pelo menos 12 caracteres. Para um banco legado com dados, faça uma cópia de segurança antes de qualquer migração. Use `flask db stamp head` **somente** se confirmou que o schema existente corresponde integralmente à migration inicial; o comando apenas registra a versão, não cria nem altera tabelas.
+
+Se já existir um administrador, o script informa que não há nada a fazer. Não apague `instance/orcatech.db`: esse arquivo contém os fornecedores, cotações, orçamentos e usuários salvos.
+
+Depois que o servidor iniciar, entre em `/login` com o e-mail e a senha do administrador. Use **Gerenciar usuários** para criar as outras contas; não compartilhe a conta administrativa.
 
 `scripts.migrar_dados` é um comando opcional para importar cache e histórico de uma instalação antiga. Não o execute no uso normal; os dados atuais já ficam em `instance/`.
 
-#### 6. Iniciar o servidor local
+#### 7. Iniciar o servidor local
 
 Na mesma janela do PowerShell, execute:
 
@@ -300,7 +315,7 @@ Remove-Item Env:PORT -ErrorAction SilentlyContinue
 
 Deixe a janela do servidor aberta enquanto estiver usando o sistema. As mensagens de inicialização e de busca aparecem nela.
 
-#### 7. Abrir o sistema no navegador
+#### 8. Abrir o sistema no navegador
 
 Abra o endereço correspondente à porta escolhida:
 
@@ -309,7 +324,7 @@ Abra o endereço correspondente à porta escolhida:
 
 Na tela inicial, digite o nome do produto, informe o solicitante se desejar e clique em **Buscar Preços**. A busca consulta as lojas em paralelo e pode levar alguns minutos, dependendo do Chrome, da internet e das respostas dos sites.
 
-#### 8. Encerrar o servidor
+#### 9. Encerrar o servidor
 
 Volte para a janela do PowerShell em que o servidor está rodando e pressione **Ctrl+C**. Os dados salvos em `instance/` permanecem no computador.
 
@@ -321,7 +336,8 @@ Instale Python 3.10 ou superior e Google Chrome. A partir da pasta raiz do proje
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python -m scripts.init_db  # somente na primeira instalação
+flask --app orcatech.app:app db upgrade
+python -m scripts.init_db  # somente na primeira instalação, para criar o admin
 python run.py
 ```
 
@@ -356,10 +372,14 @@ O `Dockerfile` instala o Google Chrome e o display virtual (Xvfb) necessários p
 
 ```bash
 docker build -t orcatech .
-docker run -p 5000:5000 orcatech
+docker run --rm --env-file .env -v orcatech-data:/app/instance \
+  --entrypoint flask orcatech --app orcatech.app:app db upgrade
+docker run --rm -it --env-file .env -v orcatech-data:/app/instance \
+  --entrypoint python orcatech -m scripts.init_db
+docker run -p 5000:5000 --env-file .env -v orcatech-data:/app/instance orcatech
 ```
 
-O container usa `xvfb-run` para criar um display virtual (`:99`, 1920x1080) antes de iniciar `python run.py`. Como os dados ficam em `instance/`, monte essa pasta como volume se quiser que eles sobrevivam ao container. Para criar as tabelas e o usuário admin, execute `python -m scripts.init_db`.
+Crie e preencha o `.env` conforme a seção [Variáveis de ambiente](#variáveis-de-ambiente) antes de iniciar. O container usa `xvfb-run` para criar um display virtual (`:99`, 1920x1080) antes de iniciar `python run.py`. O volume mantém banco, histórico e PDFs entre execuções.
 
 ---
 
@@ -369,9 +389,14 @@ Lidas de um arquivo `.env` na raiz (via `python-dotenv`), carregado antes dos m�
 
 | Variável             | Obrigatória | Descrição                                                                                                                             |
 | -------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `SECRET_KEY`         | Recomendada | Chave usada para assinar a sessão (o carrinho depende dela). Sem ela, o app usa um valor padrão inseguro. Defina uma chave longa e aleatória. |
+| `SECRET_KEY`         | Sim          | Chave aleatória usada para assinar as sessões. O app falha ao iniciar se estiver ausente. Gere uma com `python -c "import secrets; print(secrets.token_urlsafe(48))"`. |
 | `CHROME_BINARY_PATH` | Não         | Caminho completo do `chrome.exe`, quando o Chrome não está em um local padrão (comum em instalação só para o usuário, no Windows).   |
 | `PORT`               | Não         | Porta local do servidor (padrão `5000`); também define a porta do container Docker.                                                   |
+| `APP_ENV`            | Não         | Use `production` para ativar o atributo `Secure` do cookie de sessão (requer HTTPS).                                                   |
+| `APP_BASE_URL`       | Não         | URL pública/base da aplicação; reservada para integrações futuras.                                                                     |
+| `FLASK_DEBUG`        | Não         | Desligado por padrão; use `1` somente em desenvolvimento local. Nunca habilite em produção.                                              |
+| `RATELIMIT_STORAGE_URI` | Não      | Backend do limite de tentativas de login. Padrão local `memory://`; em produção com múltiplos workers configure um Redis compartilhado. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_USE_TLS`, `SMTP_FROM` | Não | Configurações SMTP reservadas para o envio de e-mail futuro. Não coloque segredos no código. |
 
 ---
 
@@ -394,6 +419,15 @@ Lidas de um arquivo `.env` na raiz (via `python-dotenv`), carregado antes dos m�
 | `/rever/<indice>`               | GET      | Reabre os resultados de um item do histórico (usa cache).                    |
 | `/gerar_pdf`                    | POST     | PDF da busca atual.                                                          |
 | `/gerar_pdf_historico/<indice>` | GET/POST | PDF de um item do histórico.                                                 |
+
+### Autenticação e administração
+
+| Rota       | Método | Descrição                                                        |
+| ---------- | ------ | ---------------------------------------------------------------- |
+| `/login`   | GET/POST | Autentica usuários ativos; redireciona apenas para destinos internos. |
+| `/logout`  | POST   | Encerra a sessão (protegido por CSRF).                           |
+| `/usuarios` | GET/POST | Admin lista e cria usuários com papéis `admin` ou `usuario`.   |
+| `/usuarios/<id>/ativo` | POST | Admin ativa/desativa usuários sem poder desativar a própria conta ou o último admin ativo. |
 
 ### Carrinho e orçamento (`/orcamento`)
 
@@ -430,22 +464,47 @@ Nenhum desses arquivos deve ser versionado (veja o `.gitignore`).
 
 ---
 
+## Executar os testes
+
+Na raiz do projeto, instale as dependências de desenvolvimento uma vez:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+No macOS ou Linux, ative `.venv` e execute `python -m pip install -r requirements-dev.txt` e `python -m pytest -q`. Os testes usam um banco SQLite temporário e não dependem de credenciais reais.
+
+Para executar somente as regressões do filtro sem acessar lojas:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q tests/test_relevance_filter.py
+```
+
+---
+
 ## Limitações conhecidas
 
 - Depende da **estrutura de HTML/JSON de terceiros**: mudanças nos sites podem quebrar um scraper específico. Cada loja falha de forma isolada, sem derrubar as demais.
 - **Amazon**: pode devolver a página "Algo deu errado" (bloqueio leve de automação), principalmente após muitas buscas seguidas. Nesse caso, aguardar algumas horas costuma resolver. Em falha, o scraper salva o HTML em `instance/debug/`.
-- **Gshield**: retorna 403 (anti-bot) no `requests`, resultando em 0 produtos. Ainda não investigado.
+- **Gshield**: usa o domínio `gorilashield.com.br` e o endpoint `/buscar?q=`. Buscas por notebooks, celulares, monitores, computadores e componentes como SSD pulam a loja; resultados de categorias mistas passam pelo filtro estrito de relevância. Diagnósticos dos itens rejeitados ficam em `instance/debug/filtro_relevancia.jsonl`.
+- O filtro de relevância é ativado por padrão em todas as lojas; Americanas, Mercado Livre, AliExpress e Gshield também exigem correspondência estrita de categoria e termos.
+- A economia dos relatórios é calculada somente quando há anúncios aprovados do mesmo modelo: mediana dos preços do modelo menos o menor preço. Buscas sem anúncios repetidos do mesmo modelo não inventam uma economia.
+- Ao atualizar para esta fase, o cache antigo é apagado para forçar novas coletas. O histórico legado é recalculado com o cache disponível; a cópia anterior fica em `instance/debug/`.
 - **Americanas**: às vezes devolve cards duplicados sem foto; o código tenta recuperar as imagens via `__NEXT_DATA__`.
 - Lojas via Selenium exigem o **Chrome instalado** e são mais lentas. O semáforo (limite 2) pode alongar a busca em máquinas com pouca memória.
-- **Sem autenticação**: qualquer pessoa com acesso à aplicação vê o histórico e pode mexer nos fornecedores. O carrinho é por navegador (sessão), não por usuário.
+- O histórico de buscas em arquivo ainda é compartilhado entre contas. Os rascunhos, jobs de busca, itens e PDFs de orçamento são vinculados ao usuário.
+- **Aprovação ainda não implementada:** não há fila, transições de decisão, trilha de auditoria ou congelamento de preços. O status `aguardando_aprovacao` apenas registra o envio.
+- Em produção, configure `APP_ENV=production`, HTTPS, uma chave secreta própria e um backend Redis para limite de tentativas compartilhado entre workers.
 
 ---
 
 ## Roadmap
 
-- [ ] **Login** (Flask-Login) com papéis admin/usuário, proteção de rotas sensíveis (fornecedores, finalizar orçamento) e vínculo do orçamento ao usuário logado.
-- [ ] **Compartilhamento**: link público somente leitura, botão de WhatsApp e envio do PDF por e-mail.
-- [ ] **Workflow de aprovação**: tela para aprovar/reprovar com comentário e status completo do orçamento.
-- [ ] **Alerta de queda de preço**: comparar cotações novas com as já salvas e agendar verificações (APScheduler ou tarefa agendada do Windows).
-- [ ] Recursos empresariais (departamentos, centro de custo, pedido de compra), se virar sistema oficial de uma empresa.
-- [ ] Segurança geral: `SECRET_KEY` definida no `.env` sem fallback no código e dependências (`flask-sqlalchemy`, `werkzeug`, `flask-login`) no `requirements.txt`.
+- [x] **Fase 00 — Relevância:** núcleo/categoria de busca, filtro contra acessórios sem relação, portão da Gshield, diagnósticos, limpeza de caches e recálculo seguro do histórico.
+- [x] **Fase 1 — Login e papéis:** Flask-Login, papéis `admin`/`usuario`, isolamento de rascunhos e jobs, proteção de ownership, gestão de contas e limite de tentativas.
+- [x] **Base da Fase 2 — Segurança:** SECRET_KEY obrigatória fora dos testes, CSRF em POST, cookies e cabeçalhos seguros, debug desligado por padrão, dependências e migrations.
+- [ ] **Fase 3 — Workflow de aprovação:** máquina de estados, fila de aprovação, segregação de aprovadores, auditoria, congelamento de preços e PDF completo.
+- [ ] **Fase 4 — Compartilhamento:** link público limitado, WhatsApp e envio de PDF por e-mail.
+- [ ] **Fase 5 — Alerta de queda de preço:** histórico de preços, monitoramento e alertas sem exceder limites das lojas.
+- [ ] **Fase 6 — Recursos empresariais:** departamentos, centros de custo, alçadas e pedidos de compra.

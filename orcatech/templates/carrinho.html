@@ -131,11 +131,12 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
       </div>
       <div class="item-val"><div class="sub">{{ brl(item.subtotal) }}</div><div class="un">{{ brl(c.preco if c else 0) }} / un.</div></div>
       <form class="qty" action="{{ url_for('orcamento.atualizar_quantidade', item_id=item.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="button" data-step="-1" aria-label="Diminuir">−</button>
         <input type="number" name="quantidade" value="{{ item.quantidade }}" min="1">
         <button type="button" data-step="1" aria-label="Aumentar">+</button>
       </form>
-      <form action="{{ url_for('orcamento.remover_item', item_id=item.id) }}" method="POST"><button type="submit" class="btn btn-danger btn-sm">Remover</button></form>
+      <form action="{{ url_for('orcamento.remover_item', item_id=item.id) }}" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="btn btn-danger btn-sm">Remover</button></form>
     </article>
     {% endfor %}
   </section>
@@ -146,6 +147,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
     <div class="card">
       <h2>Finalizar Orçamento</h2><p class="sub2">Preencha seus dados para gerar o orçamento.</p>
       <form class="fin-form" action="{{ url_for('orcamento.finalizar') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="form-grid">
           <div><label>Nome</label><input type="text" name="solicitante" placeholder="Seu nome completo"></div>
           <div><label>Condições comerciais</label><input type="text" name="condicoes_comerciais" placeholder="Ex: pagamento em 28 dias, frete incluso"></div>
