@@ -26,11 +26,11 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;bac
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
 svg.i{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .shell{display:flex;min-height:100vh}
-.main{flex:1;min-width:0;padding:32px 40px 64px}
-.conteudo{max-width:1180px;margin:0 auto}
+.main{flex:1;min-width:0;padding:40px 44px 60px}
+.conteudo{max-width:none;margin:0}
 /* sidebar */
 /* sidebar (padrão das demais páginas: azul-marinho) */
-.side{width:250px;flex-shrink:0;background:var(--navy);box-shadow:4px 0 24px rgba(30,42,110,.18);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:100;animation:fadeDown .45s cubic-bezier(.16,1,.3,1) both}
+.side{width:250px;flex-shrink:0;background:var(--navy);box-shadow:4px 0 24px rgba(30,42,110,.18);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:100}
 [data-theme='dark'] .side,[data-theme='dark'] .topbar-mobile{background:#0a1322}
 .side-header{padding:28px 24px 22px;border-bottom:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.15)}
 .side-header h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;letter-spacing:2px;margin:0}
@@ -87,12 +87,7 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:22px;box-shadow:var(--shadow-sm);animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both;transition:background .25s,border-color .25s}
 .vazio{background:var(--surface);border:1px dashed var(--border2);border-radius:var(--radius-xl);padding:44px 24px;text-align:center;color:var(--muted2);animation:fadeUp .5s .05s cubic-bezier(.16,1,.3,1) both}
 @view-transition{navigation:auto}
-.main{view-transition-name:app-content}
-::view-transition-old(app-content){animation:vt-out .22s cubic-bezier(.4,0,.6,1) both}
-::view-transition-new(app-content){animation:vt-in .32s cubic-bezier(.16,1,.3,1) both}
-@keyframes vt-out{to{opacity:0;transform:translateY(-6px) scale(.992)}}
-@keyframes vt-in{from{opacity:0;transform:translateY(10px) scale(.992)}}
-@media(prefers-reduced-motion:reduce){*,::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important;transition:none!important}}
+.main{view-transition-name:app-content}.side{view-transition-name:app-sidebar}.topbar-mobile{view-transition-name:app-topbar}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px}
 .stat{display:flex;align-items:center;gap:14px;padding:18px 20px}
 .stat:nth-child(2){animation-delay:.05s}.stat:nth-child(3){animation-delay:.1s}.stat:nth-child(4){animation-delay:.15s}

@@ -345,6 +345,7 @@ Abra `http://127.0.0.1:5000`. Para usar outra porta, defina `PORT` antes de inic
 
 ### Solução de problemas ao iniciar localmente
 
+- **O VS Code/Pylance não encontra imports como `flask` ou `sqlalchemy`:** selecione o interpretador `.\.venv\Scripts\python.exe` em **Python: Select Interpreter**. O workspace já aponta para esse caminho por padrão; se o VS Code já tinha outro interpretador selecionado, escolha o ambiente manualmente e recarregue a janela.
 - **“Address already in use” ou erro de porta ocupada:** feche o outro servidor ou escolha uma porta livre com `$env:PORT = '5001'` no PowerShell antes de iniciar.
 - **O navegador mostra erro 500:** confira as mensagens na janela do servidor. Confirme que está iniciando `run.py` a partir da raiz correta do projeto.
 - **O comando Python ou dependências falham:** confira se está na pasta certa e execute novamente `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`.

@@ -6,7 +6,7 @@ Registrar em app.py:
     app.register_blueprint(orcamento_bp)
 """
 
-from flask import Blueprint, abort, render_template, request, redirect, url_for, send_file, flash
+from flask import Blueprint, abort, jsonify, render_template, request, redirect, url_for, send_file, flash
 import os
 from flask_login import current_user
 from sqlalchemy.orm import joinedload
@@ -41,6 +41,12 @@ def _item_do_usuario(item_id):
     return item
 
 
+def _quer_json():
+    """True quando a requisição é AJAX/fetch, independentemente do header exato enviado."""
+    x_requested_with = (request.headers.get("X-Requested-With") or "").strip().lower()
+    return x_requested_with in {"fetch", "xmlhttprequest"} or request.is_json
+
+
 @orcamento_bp.route("/adicionar", methods=["POST"])
 def adicionar():
     """
@@ -63,6 +69,8 @@ def adicionar():
         quantidade = 1
 
     if not produto_pesquisado or not nome or preco <= 0:
+        if _quer_json():
+            return jsonify(ok=False, msg="Não foi possível adicionar esse item ao orçamento."), 400
         flash("Não foi possível adicionar esse item ao orçamento.", "erro")
         return redirect(request.referrer or url_for("home"))
 
@@ -71,7 +79,10 @@ def adicionar():
         produto_busca, nome_produto=nome, preco=preco, site=site,
         link=link, imagem=imagem, origem="scraping",
     )
-    adicionar_item_ao_orcamento(produto_busca, cotacao, quantidade=quantidade)
+    orcamento, item = adicionar_item_ao_orcamento(produto_busca, cotacao, quantidade=quantidade)
+
+    if _quer_json():
+        return jsonify(ok=True, quantidade=item.quantidade, count=len(orcamento.itens))
 
     flash(f'"{nome[:40]}" adicionado ao orçamento.', "sucesso")
     return redirect(request.referrer or url_for("orcamento.carrinho"))
