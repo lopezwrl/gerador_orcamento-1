@@ -1,0 +1,55 @@
+/* ==========================================================================
+   OrçaTech · animacoes.css
+   Camada única de animações interativas. Cada bloco é independente.
+   Índice: 1 Spotlight · 2 Linhas de tabela · 3 Ripple · 4 Revelar ao rolar
+           5 Barra de navegação · 6 Sidebar · 7 Tema · 8 Números · 9 Extras
+   ========================================================================== */
+:root{--ease-out:cubic-bezier(.16,1,.3,1)}
+
+/* 1. SPOTLIGHT — brilho que segue o mouse dentro dos cards */
+.card,.stat-card{--mx:50%;--my:50%}
+.card::after,.stat-card::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s ease;
+  background:radial-gradient(420px circle at var(--mx) var(--my),rgba(91,120,224,.14),transparent 60%)}
+@media (hover:hover){.card:hover::after,.stat-card:hover::after{opacity:1}}
+
+/* 2. LINHAS DE TABELA — entram em cascata */
+tbody tr.anim-row{animation:rowIn .45s var(--ease-out) both;animation-delay:calc(var(--i,0)*40ms + .2s)}
+@keyframes rowIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* 3. RIPPLE — onda no clique dos botões */
+.btn,.btn-submit,.btn-sair{position:relative;overflow:hidden}
+.ripple{position:absolute;border-radius:50%;background:currentColor;pointer-events:none;transform:scale(0);opacity:.28;animation:ripple .6s ease-out forwards}
+@keyframes ripple{to{transform:scale(1);opacity:0}}
+
+/* 4. REVELAR AO ROLAR — cards abaixo da dobra sobem quando aparecem */
+.rv{opacity:0;transform:translateY(26px);animation:none!important}
+.rv.rv-in{opacity:1;transform:none;transition:opacity .6s var(--ease-out),transform .6s var(--ease-out)}
+
+/* 5. BARRA DE PROGRESSO ao navegar entre páginas */
+#nav-progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:9999;pointer-events:none;opacity:0;
+  background:linear-gradient(90deg,var(--gold,#e69500),var(--gold-lt,#f5b800),var(--teal,#0a8a79));box-shadow:0 0 10px rgba(245,184,0,.6)}
+#nav-progress.run{opacity:1;width:85%;transition:width 6s cubic-bezier(.1,.6,.2,1)}
+#nav-progress.done{opacity:0;width:100%;transition:width .2s,opacity .4s .2s}
+
+/* 6. SIDEBAR — ícone "pula" no hover; barra do item ativo cresce */
+.sidebar a:hover .icon{transform:scale(1.12) rotate(-6deg)}
+.sidebar a.ativo::before{animation:barGrow .5s .15s var(--ease-out) both}
+@keyframes barGrow{from{height:0}to{height:60%}}
+
+/* 7. TEMA — botão gira ao alternar */
+.theme-btn.spin svg{animation:themeSpin .55s var(--ease-out)}
+@keyframes themeSpin{from{transform:rotate(-180deg) scale(.4);opacity:0}to{transform:none;opacity:1}}
+
+/* 8. NÚMEROS — evita tremida durante a contagem */
+.total,.dado strong,td.dir,.stat-val{font-variant-numeric:tabular-nums}
+
+/* 9. EXTRAS — itens de grade sobem no hover; linhas de histórico deslizam */
+.grade .dado{transition:transform .25s var(--ease-out)}
+.grade .dado:hover{transform:translateY(-3px)}
+.linha{animation:rowIn .45s var(--ease-out) both}
+
+/* Acessibilidade: respeita "reduzir movimento" do sistema */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .rv{opacity:1;transform:none}
+}
