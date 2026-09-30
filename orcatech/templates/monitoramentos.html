@@ -91,6 +91,8 @@ textarea{min-height:84px;margin-bottom:12px;resize:vertical}
 .main{view-transition-name:app-content}.side{view-transition-name:app-sidebar}
 @media(max-width:900px){.side{position:fixed;top:0;left:0;bottom:0;height:auto;transform:translateX(-100%);transition:transform .3s}.side.open{transform:none}.topbar-mobile{display:flex}.main{padding:76px 16px 48px}.me div{display:none}}
 </style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/animacoes.css') }}">
+<script src="{{ url_for('static', filename='js/animacoes.js') }}" defer></script>
 </head>
 <body>
 {% set URL_ESTRUTURA = '/empresarial/estrutura' %}

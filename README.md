@@ -4,9 +4,25 @@ Aplicação web em **Flask** que pesquisa um produto simultaneamente em **8 loja
 
 > **Status:** comparador de preços com login, workflow de aprovação, compartilhamento, monitoramento de preços e recursos empresariais opcionais. A feature empresarial permanece desligada por padrão.
 
+## Resumo da entrega atual
+
+Esta versão do OrçaTech consolida o fluxo completo de comparação, aprovação e acompanhamento comercial:
+
+- **Busca inteligente e paralela**: consulta simultânea em várias lojas, deduplicação de resultados, filtro de relevância e classificação por melhor custo-benefício.
+- **Carrinho e orçamento multi-produto**: o usuário monta o pedido com itens de diferentes fornecedores, ajusta quantidades e acompanha totais em tempo real.
+- **Workflow de aprovação e histórico**: orçamentos passam por estados de rascunho, cotação, aprovação, compra e reabertura, com transições registradas e validade configurável.
+- **Compartilhamento e envio**: links públicos somente leitura, WhatsApp, e-mails automáticos com PDF e limites de envio por hora para evitar abuso.
+- **Monitoramento de preços**: é possível acompanhar quedas de preço por produto/loja, receber alertas e consultar histórico dos últimos 90 dias.
+- **Recursos empresariais opcionais**: departamentos, centros de custo, limite de gasto, pedidos por fornecedor, relatórios e controle de alçada de aprovação.
+- **Operação robusta**: jobs em background, SSE para progresso em tempo real, cache de pesquisas, PDF personalizado e integração com diferentes estratégias de coleta por loja.
+
+Esse conjunto transforma a aplicação em um sistema de compras e gestão de orçamento, com foco em acompanhamento, eficiência operacional e controle de aprovação.
+
 ---
 
 ## Índice
+
+- [Resumo da entrega atual](#resumo-da-entrega-atual)
 
 - [Principais funcionalidades](#principais-funcionalidades)
 - [Como funciona a busca](#como-funciona-a-busca)
@@ -24,6 +40,7 @@ Aplicação web em **Flask** que pesquisa um produto simultaneamente em **8 loja
 - [Executar no Windows passo a passo](#executar-no-windows-passo-a-passo)
 - [Rodando com Docker](#rodando-com-docker)
 - [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Validação local realizada](#validação-local-realizada)
 - [Rotas da aplicação](#rotas-da-aplicação)
 - [Persistência de dados](#persistência-de-dados)
 - [Executar os testes](#executar-os-testes)
@@ -456,6 +473,83 @@ Abra `http://127.0.0.1:5000`. Para usar outra porta, defina `PORT` antes de inic
 - **Uma loja retorna poucos ou nenhum produto:** os sites podem bloquear temporariamente consultas automatizadas ou alterar suas páginas. Confira os logs do servidor e tente novamente mais tarde. As outras lojas podem continuar funcionando.
 - **Chrome/ChromeDriver falha:** confirme que o Google Chrome está instalado e atualizado. O Chrome é necessário para os scrapers que usam Selenium.
 - **Não encontra histórico, cache ou banco:** não mova nem apague `instance/`; o banco, o histórico, o cache e os PDFs do orçamento ficam nessa pasta.
+
+### Validação local realizada
+
+Em 30/09/2026, a execução foi conferida a partir da raiz do projeto no Windows,
+usando o Python de `.venv`:
+
+```powershell
+.\.venv\Scripts\python.exe -c "import sys; print(sys.version)"
+.\.venv\Scripts\python.exe -m flask --app orcatech.app:app db check
+.\.venv\Scripts\python.exe -m pytest -q
+$env:PORT = '5001'
+.\.venv\Scripts\python.exe run.py
+```
+
+Com o servidor ativo, foram verificadas estas URLs:
+
+| URL | Resultado |
+| --- | --- |
+| `http://127.0.0.1:5001/login` | HTTP 200; tela de login disponível |
+| `http://127.0.0.1:5001/` | HTTP 302 para `/login?next=/`; redirecionamento esperado sem autenticação |
+| `http://127.0.0.1:5001/favicon.ico` | HTTP 200; ícone servido corretamente |
+
+#### Correção do erro `ERR_CONNECTION_REFUSED`
+
+Depois da primeira validação, o processo do servidor foi encerrado. Ao tentar
+abrir `http://127.0.0.1:5001/` novamente, o navegador exibiu
+`ERR_CONNECTION_REFUSED` porque não havia nenhum processo escutando na porta
+5001. Esse erro não indicava um problema na URL ou no navegador: era
+necessário iniciar o Flask novamente.
+
+O servidor foi reiniciado na raiz do projeto com:
+
+```powershell
+$env:PORT = '5001'
+.\.venv\Scripts\python.exe run.py
+```
+
+O terminal confirmou:
+
+```text
+* Running on http://127.0.0.1:5001
+```
+
+Em seguida, a rota de login foi testada novamente e respondeu com **HTTP 200**:
+
+```powershell
+Invoke-WebRequest -Uri 'http://127.0.0.1:5001/login' -UseBasicParsing
+```
+
+Portanto, mantenha a janela do PowerShell aberta enquanto usar a aplicação.
+Para iniciar novamente depois de reiniciar o computador, execute os mesmos
+comandos a partir de
+`C:\Users\Suporte\Desktop\gerador_orcamento-1-main`. Para encerrar o servidor,
+use `Ctrl+C`; nesse caso, será necessário executar os comandos de inicialização
+novamente antes de acessar o endereço no navegador.
+
+A busca de preços não foi disparada nessa validação porque ela consulta sites
+externos e pode iniciar processos do Chrome; para validá-la, faça login e
+execute uma busca com acesso à internet.
+
+#### Resultado e bloqueios encontrados no estado atual
+
+- `db check` terminou com erro porque o autogenerate detectou operações de
+  schema ainda não refletidas nas migrations, incluindo a tabela
+  `controle_verificacao_lojas`, índices e estruturas de monitoramento. Não use
+  `flask db stamp head` para contornar isso; crie ou aplique a migration
+  correspondente depois de confirmar o schema e fazer backup de
+  `instance/orcatech.db`.
+- A suíte terminou com **111 testes aprovados e 12 falhos**. As falhas
+  ocorreram nos testes de recursos empresariais, workflow de aprovação e
+  compartilhamento porque os templates importam `_macros.html`, mas esse
+  arquivo não está presente em `orcatech/templates/`. Enquanto ele não for
+  restaurado ou os imports forem ajustados, as páginas autenticadas que usam o
+  macro `brl` podem responder com erro 500.
+- O servidor em si iniciou e as rotas públicas acima responderam
+  corretamente. Esses resultados não substituem a correção dos bloqueios de
+  migration e template antes de considerar a aplicação pronta para uso.
 
 ### Atalhos para iniciar depois da configuração inicial
 
