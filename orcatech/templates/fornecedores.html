@@ -1,3 +1,4 @@
+
 {% macro logo(nome, tam='md') %}{% set slug = (nome or '')|lower|replace(' ','')|replace('!','')|replace('.','') %}<span class="logo-box {{ tam }}"><img src="{{ url_for('static', filename='logos/' ~ slug ~ '.png') }}" alt="{{ nome }}" loading="lazy" onerror="imgFb(this)"><span class="fb"><svg class="i" viewBox="0 0 24 24"><path d="M3 9l1.5-5h15L21 9"/><path d="M4 9v11h16V9"/><path d="M9 20v-6h6v6"/></svg></span></span>{% endmacro %}
 {% set com_side = request.args.get('origem') != 'resultados' %}
 {% set origem = request.args.get('origem', '') %}
@@ -45,8 +46,6 @@ svg.i{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-
 .nav.on::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--gold-lt);border-radius:0 3px 3px 0}
 .badge-n{margin-left:auto;background:#2563EB;color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 7px}
 .side-footer{padding:12px 16px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.4);display:flex;align-items:center;justify-content:space-between;gap:8px}
-.btn-sair{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border:0;border-radius:6px;cursor:pointer;font:600 11px 'Plus Jakarta Sans',sans-serif;color:#fff;background:linear-gradient(135deg,#ef4444,#dc2626);transition:transform .2s,filter .2s}
-.btn-sair:hover{transform:translateY(-1px);filter:brightness(1.1)}.btn-sair svg.i{width:13px;height:13px}
 
 .topbar-mobile{display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--navy);padding:12px 20px;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(30,42,110,.2)}
 .topbar-mobile strong{color:#fff;letter-spacing:2px;font-family:'Playfair Display',serif}
@@ -87,8 +86,6 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .fb{display:none;place-items:center;color:var(--muted);font-size:26px;width:100%;height:100%;background:var(--surface2)}.logo-box.sm .fb{font-size:12px}.fb.show{display:grid}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:22px;box-shadow:var(--shadow-sm);animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both;transition:background .25s,border-color .25s,transform .25s,box-shadow .25s}
 .vazio{background:var(--surface);border:1px dashed var(--border2);border-radius:var(--radius-xl);padding:44px 24px;text-align:center;color:var(--muted2);animation:fadeUp .5s .05s cubic-bezier(.16,1,.3,1) both}
-@view-transition{navigation:auto}
-.main{view-transition-name:app-content}.side{view-transition-name:app-sidebar}.topbar-mobile{view-transition-name:app-topbar}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:18px}
 .stat{display:flex;align-items:center;gap:14px;padding:18px 20px}
 .stat:nth-child(2){animation-delay:.05s}.stat:nth-child(3){animation-delay:.1s}.stat:nth-child(4){animation-delay:.15s}
@@ -116,7 +113,34 @@ dialog h2{font-size:18px;font-weight:800;margin-bottom:16px}.dlg-acoes{display:f
 .busca{position:relative}.busca svg.i{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted);pointer-events:none}.busca input{padding-left:40px}
 .meta-i{display:flex;align-items:center;gap:8px}.meta-i svg.i{width:14px;height:14px;color:var(--muted2)}
 .btn svg.i{width:15px;height:15px}
-</style>
+
+        /* ═══ PADRÃO COMPARTILHADO: sidebar, botão Sair e transição de página (igual em todas as telas) ═══ */
+        .sidebar-nav,.side-nav{overflow-y:auto}
+        .nav-section-label{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:2px;text-transform:uppercase;font-weight:700;padding:0 10px;margin:12px 0 6px}
+        .side .nav{padding:10px 12px}
+        .side .nav .icon{width:32px;height:32px}
+        .sidebar-footer,.side-footer{padding:14px 18px;border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:rgba(255,255,255,.35)}
+        .sidebar-footer .versao,.side-footer .versao{white-space:nowrap}
+        .sidebar-footer .versao b,.side-footer .versao b{color:rgba(255,255,255,.6);font-weight:600}
+        .sair-form{margin:0}
+        .btn-sair{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;padding:6px 12px;border:0;border-radius:8px;cursor:pointer;font:600 12px 'Plus Jakarta Sans',sans-serif;line-height:1.2;color:#fff;background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 3px 10px rgba(220,38,38,.3);transition:transform .2s,filter .2s,box-shadow .2s}
+        .btn-sair svg{width:14px;height:14px;flex-shrink:0}
+        .btn-sair:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 6px 16px rgba(220,38,38,.45)}
+        .btn-sair:active{transform:none}
+        .btn-sair:focus-visible{outline:2px solid var(--gold-lt);outline-offset:2px}
+        @view-transition{navigation:auto}
+        .sidebar,.side{view-transition-name:app-sidebar}
+        .topbar-mobile{view-transition-name:app-topbar}
+        .main{view-transition-name:app-content}
+        ::view-transition-old(app-sidebar),::view-transition-old(app-topbar){display:none}
+        ::view-transition-new(app-sidebar),::view-transition-new(app-topbar){animation:none}
+        ::view-transition-group(app-sidebar),::view-transition-group(app-topbar){animation:none}
+        ::view-transition-old(app-content){animation:vt-out .2s cubic-bezier(.4,0,.6,1) both}
+        ::view-transition-new(app-content){animation:vt-in .32s cubic-bezier(.16,1,.3,1) both}
+        @keyframes vt-out{to{opacity:0;transform:translateY(-6px) scale(.992)}}
+        @keyframes vt-in{from{opacity:0;transform:translateY(10px) scale(.992)}}
+        @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+    </style>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/animacoes.css') }}">
 <script src="{{ url_for('static', filename='js/animacoes.js') }}" defer></script>
 </head>
@@ -129,17 +153,32 @@ dialog h2{font-size:18px;font-weight:800;margin-bottom:16px}.dlg-acoes{display:f
     <div class="side-header"><h2>ORÇATECH</h2><div>Comparador Inteligente</div></div>
     <div class="side-nav">
       <div class="nav-section-label">Menu Principal</div>
-      <a class="nav" href="/"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M3 9.5 12 2l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></div> Dashboard</a>
-      <a class="nav" href="/orcamentos"><div class="icon"><svg class="i" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6M9 8h1"/></svg></div> Orçamentos</a>
-      <a class="nav" href="/relatorios"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div> Relatórios</a>
-      <a class="nav on" href="{{ url_for('fornecedores.listar') }}"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div> Fornecedores</a>
-      <a class="nav" href="{{ url_for('orcamento.carrinho') }}"><div class="icon"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg></div> Carrinho{% if carrinho_count %}<span class="badge-n">{{ carrinho_count }}</span>{% endif %}</a>
+      <a class="nav" href="/"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M3 9.5 12 2l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></div> Dashboard</a>
+      <a class="nav" href="/orcamentos"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6M9 8h1"/></svg></div> Orçamentos</a>
+      <a class="nav" href="/relatorios"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div> Relatórios</a>
+      <a class="nav on" href="/fornecedores"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div> Fornecedores</a>
+      <a class="nav" href="/orcamento/carrinho"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg></div> Carrinho{% if carrinho_count %}<span style="background:#2563EB;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;">{{ carrinho_count }}</span>{% endif %}</a>
+      <div class="nav-section-label">Gestão</div>
+      {% if current_user.papel in ['admin', 'aprovador'] %}
+      <a class="nav" href="{{ url_for('aprovacoes.fila') }}"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg></div> Aprovações</a>
+      {% endif %}
+      <a class="nav" href="{{ url_for('monitoramento.listar') }}"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div> Alertas de preço{% if alertas_nao_lidos %}<span style="background:#dc2626;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;">{{ alertas_nao_lidos }}</span>{% endif %}</a>
+      {% if current_user.papel == 'admin' %}
+      <a class="nav" href="{{ url_for('auth.usuarios') }}"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><circle cx="12" cy="10" r="2.5"/><path d="M7.8 17c.8-2 2.4-3 4.2-3s3.4 1 4.2 3"/></svg></div> Gerenciar usuários</a>
+      {% endif %}
+      {% if config.FEATURE_EMPRESARIAL_ENABLED and current_user.papel == 'admin' %}
+      <a class="nav" href="{{ url_for('empresarial.estrutura') }}"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01</svg></div> Departamentos e centros de custo</a>
+      {% endif %}
+      {% if config.FEATURE_EMPRESARIAL_ENABLED and current_user.papel in ['admin', 'comprador'] %}
+      <a class="nav" href="{{ url_for('empresarial.relatorios') }}"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></div> Relatórios empresariais</a>
+      {% endif %}
     </div>
     <div class="side-footer">
-      <span>v2.0 · OrçaTech</span>
+      <span class="versao">v2.0 · <b>OrçaTech</b></span>
       {% if current_user is defined and current_user.is_authenticated %}
-      <form action="{{ url_for('auth.logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn-sair" title="Encerrar a sessão"><svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sair</button>
+      <form action="{{ url_for('auth.logout') }}" method="post" class="sair-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-sair" title="Encerrar a sessão ({{ current_user.nome }})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>Sair</button>
       </form>
       {% endif %}
     </div>

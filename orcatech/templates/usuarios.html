@@ -42,9 +42,6 @@ svg.i{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-
 .badge-n{margin-left:6px;background:#2563EB;color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 7px;min-width:20px;text-align:center}
 .side-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.35)}
 .side-footer span{color:rgba(255,255,255,.6);font-weight:600}
-.btn-sair{width:100%;display:flex;align-items:center;gap:12px;padding:11px 14px;margin-bottom:14px;border:0;border-radius:10px;cursor:pointer;font-family:inherit;text-align:left;color:#fff;background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 14px rgba(220,38,38,.38);transition:transform .2s,box-shadow .2s,filter .2s}
-.btn-sair:hover{transform:translateY(-2px);filter:brightness(1.08);box-shadow:0 8px 20px rgba(220,38,38,.5)}
-.btn-sair strong{display:block;font-size:13.5px;line-height:1.25}.btn-sair small{display:block;font-size:11px;color:rgba(255,255,255,.8);line-height:1.25;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .topbar-mobile{display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--navy);padding:12px 20px;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(30,42,110,.2)}
 .topbar-mobile strong{color:#fff;letter-spacing:2px;font-family:'Playfair Display',serif}
 .hamburger{background:none;border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:8px;border-radius:8px;display:flex;flex-direction:column;gap:4px}
@@ -117,12 +114,37 @@ tbody tr.row:hover{background:var(--surface2)}
 .pg button:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}.pg button.on{background:var(--navy);border-color:var(--navy);color:#fff}.pg button:disabled{opacity:.4;cursor:default}
 .pop{display:none;position:absolute;top:calc(100% + 8px);right:0;z-index:20;width:240px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);animation:fadeUp .25s cubic-bezier(.16,1,.3,1) both}
 .pop.show{display:block}.pop label{margin-top:10px}.pop label:first-child{margin-top:0}.pop .btn{width:100%;margin-top:14px}
-@view-transition{navigation:auto}
-.main{view-transition-name:app-content}.side{view-transition-name:app-sidebar}.topbar-mobile{view-transition-name:app-topbar}
 @media(max-width:1200px){.form-grid{grid-template-columns:repeat(2,1fr)}.form-grid .btn{grid-column:1/-1}}
 @media(max-width:900px){.side{position:fixed;top:0;left:0;bottom:0;height:auto;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}.side.open{transform:translateX(0);box-shadow:12px 0 40px rgba(20,30,80,.3)}.topbar-mobile{display:flex}.main{padding:76px 16px 48px}.me div{display:none}.card-h .tools{margin-left:0;width:100%}.card-h .tools .fi{flex:1;width:auto}}
 @media(max-width:600px){.form-grid{grid-template-columns:1fr}}
-</style>
+
+        /* ═══ PADRÃO COMPARTILHADO: sidebar, botão Sair e transição de página (igual em todas as telas) ═══ */
+        .sidebar-nav,.side-nav{overflow-y:auto}
+        .nav-section-label{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:2px;text-transform:uppercase;font-weight:700;padding:0 10px;margin:12px 0 6px}
+        .side .nav{padding:10px 12px}
+        .side .nav .icon{width:32px;height:32px}
+        .sidebar-footer,.side-footer{padding:14px 18px;border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:rgba(255,255,255,.35)}
+        .sidebar-footer .versao,.side-footer .versao{white-space:nowrap}
+        .sidebar-footer .versao b,.side-footer .versao b{color:rgba(255,255,255,.6);font-weight:600}
+        .sair-form{margin:0}
+        .btn-sair{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;padding:6px 12px;border:0;border-radius:8px;cursor:pointer;font:600 12px 'Plus Jakarta Sans',sans-serif;line-height:1.2;color:#fff;background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 3px 10px rgba(220,38,38,.3);transition:transform .2s,filter .2s,box-shadow .2s}
+        .btn-sair svg{width:14px;height:14px;flex-shrink:0}
+        .btn-sair:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 6px 16px rgba(220,38,38,.45)}
+        .btn-sair:active{transform:none}
+        .btn-sair:focus-visible{outline:2px solid var(--gold-lt);outline-offset:2px}
+        @view-transition{navigation:auto}
+        .sidebar,.side{view-transition-name:app-sidebar}
+        .topbar-mobile{view-transition-name:app-topbar}
+        .main{view-transition-name:app-content}
+        ::view-transition-old(app-sidebar),::view-transition-old(app-topbar){display:none}
+        ::view-transition-new(app-sidebar),::view-transition-new(app-topbar){animation:none}
+        ::view-transition-group(app-sidebar),::view-transition-group(app-topbar){animation:none}
+        ::view-transition-old(app-content){animation:vt-out .2s cubic-bezier(.4,0,.6,1) both}
+        ::view-transition-new(app-content){animation:vt-in .32s cubic-bezier(.16,1,.3,1) both}
+        @keyframes vt-out{to{opacity:0;transform:translateY(-6px) scale(.992)}}
+        @keyframes vt-in{from{opacity:0;transform:translateY(10px) scale(.992)}}
+        @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+    </style>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/animacoes.css') }}">
 <script src="{{ url_for('static', filename='js/animacoes.js') }}" defer></script>
 </head>
@@ -134,20 +156,35 @@ tbody tr.row:hover{background:var(--surface2)}
   <aside class="side" id="sidebar">
     <div class="side-header"><h2>ORÇATECH</h2><div>Comparador Inteligente</div></div>
     <div class="side-nav">
-      <div class="nav-label">Menu Principal</div>
-      <a class="nav" href="{{ url_for('home') }}"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M3 9.5 12 2l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></div> Dashboard</a>
-      <a class="nav" href="/orcamentos"><div class="icon"><svg class="i" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6M9 8h1"/></svg></div> Orçamentos</a>
-      <a class="nav" href="/relatorios"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div> Relatórios</a>
-      <a class="nav" href="{{ url_for('fornecedores.listar') }}"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div> Fornecedores</a>
-      <a class="nav" href="{{ url_for('orcamento.carrinho') }}"><div class="icon"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg></div> Carrinho{% if carrinho_count %}<span class="badge-n">{{ carrinho_count }}</span>{% endif %}</a>
-      <div class="nav-label">Administração</div>
-      <a class="nav on" href="{{ url_for('auth.usuarios') }}"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><circle cx="12" cy="10" r="2.5"/><path d="M7.8 17c.8-2 2.4-3 4.2-3s3.400 1 4.200 3"/></svg></div> Gerenciar usuários</a>
+      <div class="nav-section-label">Menu Principal</div>
+      <a class="nav" href="/"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M3 9.5 12 2l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></div> Dashboard</a>
+      <a class="nav" href="/orcamentos"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6M9 8h1"/></svg></div> Orçamentos</a>
+      <a class="nav" href="/relatorios"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div> Relatórios</a>
+      <a class="nav" href="/fornecedores"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div> Fornecedores</a>
+      <a class="nav" href="/orcamento/carrinho"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg></div> Carrinho{% if carrinho_count %}<span style="background:#2563EB;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;">{{ carrinho_count }}</span>{% endif %}</a>
+      <div class="nav-section-label">Gestão</div>
+      {% if current_user.papel in ['admin', 'aprovador'] %}
+      <a class="nav" href="{{ url_for('aprovacoes.fila') }}"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="m9 11 3 3L22 4"/></svg></div> Aprovações</a>
+      {% endif %}
+      <a class="nav" href="{{ url_for('monitoramento.listar') }}"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div> Alertas de preço{% if alertas_nao_lidos %}<span style="background:#dc2626;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;">{{ alertas_nao_lidos }}</span>{% endif %}</a>
+      {% if current_user.papel == 'admin' %}
+      <a class="nav on" href="{{ url_for('auth.usuarios') }}"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><circle cx="12" cy="10" r="2.5"/><path d="M7.8 17c.8-2 2.4-3 4.2-3s3.4 1 4.2 3"/></svg></div> Gerenciar usuários</a>
+      {% endif %}
+      {% if config.FEATURE_EMPRESARIAL_ENABLED and current_user.papel == 'admin' %}
+      <a class="nav" href="{{ url_for('empresarial.estrutura') }}"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01</svg></div> Departamentos e centros de custo</a>
+      {% endif %}
+      {% if config.FEATURE_EMPRESARIAL_ENABLED and current_user.papel in ['admin', 'comprador'] %}
+      <a class="nav" href="{{ url_for('empresarial.relatorios') }}"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg></div> Relatórios empresariais</a>
+      {% endif %}
     </div>
     <div class="side-footer">
-      <form action="{{ url_for('auth.logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit" class="btn-sair" title="Encerrar a sessão"><svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg><span><strong>Sair</strong><small>{{ current_user.nome }}</small></span></button>
+      <span class="versao">v2.0 · <b>OrçaTech</b></span>
+      {% if current_user is defined and current_user.is_authenticated %}
+      <form action="{{ url_for('auth.logout') }}" method="post" class="sair-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-sair" title="Encerrar a sessão ({{ current_user.nome }})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>Sair</button>
       </form>
-      OrçaTech v2.0 · <span>ORÇATECH</span>
+      {% endif %}
     </div>
   </aside>
 
@@ -170,9 +207,6 @@ tbody tr.row:hover{background:var(--surface2)}
       </div>
       <div class="acoes">
         <a class="btn" href="{{ url_for('home') }}"><svg class="i" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M5 12h14"/></svg>Voltar ao sistema</a>
-        <form action="{{ url_for('auth.logout') }}" method="post" class="inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit" class="btn btn-primary"><svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>Sair</button>
-        </form>
       </div>
     </div>
 

@@ -348,7 +348,7 @@
             display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
             background:var(--surface); border:1px solid var(--border);
             border-radius:var(--radius-lg); padding:16px 20px; margin-bottom:24px;
-            box-shadow:var(--shadow-sm); animation:fadeUp .45s .08s ease both;
+            box-shadow:var(--shadow-sm); animation:fadeUp .45s .08s cubic-bezier(.16,1,.3,1) both;
             transition:background .25s, border-color .25s;
         }
         .controles > label { font-size:12.5px; color:var(--muted); font-weight:600; display:flex; align-items:center; gap:10px; }
@@ -402,7 +402,7 @@
         /* ════════ VIEW TRANSITIONS ════════ */
         @view-transition { navigation: auto; }
         .wrap { view-transition-name: app-content; }
-        ::view-transition-old(app-content){animation:vt-out .22s cubic-bezier(.4,0,.6,1) both;}
+        ::view-transition-old(app-content){animation:vt-out .2s cubic-bezier(.4,0,.6,1) both;}
         ::view-transition-new(app-content){animation:vt-in .32s cubic-bezier(.16,1,.3,1) both;}
         @keyframes vt-out{to{opacity:0;transform:translateY(-6px) scale(.992);}}
         @keyframes vt-in{from{opacity:0;transform:translateY(10px) scale(.992);}}
