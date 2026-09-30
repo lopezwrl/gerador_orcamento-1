@@ -499,6 +499,12 @@
         .flash-msg a { color:inherit; text-decoration:underline; }
         .flash-msg.sucesso { background:rgba(5,150,105,.14); color:#059669; }
         .flash-msg.erro { background:rgba(220,38,38,.14); color:#DC2626; }
+        .aviso-bloqueio-amazon {
+            display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;
+            padding:14px 18px; margin:0 0 20px; border:1px solid rgba(217,119,6,.25);
+            border-radius:12px; background:var(--amber-lt); color:var(--text2);
+        }
+        .aviso-bloqueio-amazon a { color:var(--amber); font-weight:700; }
 
         /* ════════ REFINO VISUAL ════════ */
         body { background:radial-gradient(1100px 480px at 50% -140px, rgba(37,99,235,.10), transparent 70%), var(--bg); }
@@ -728,6 +734,7 @@
         <div class="acoes">
             <button class="theme-btn" id="themeToggle" onclick="toggleTheme()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0;"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></button>
             <a href="/orcamento/carrinho" class="btn btn-voltar" style="position:relative;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg> Carrinho<span id="cartCount" class="cart-count" {% if not carrinho_count %}hidden{% endif %}>{{ carrinho_count }}</span></a>
+            <a href="{{ url_for('monitoramento.listar') }}" class="btn btn-voltar">🔔 Alertas{% if alertas_nao_lidos %} ({{ alertas_nao_lidos }}){% endif %}</a>
             <a href="/fornecedores/" class="btn btn-voltar">Fornecedores</a>
             <a href="/" class="btn btn-voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg> Voltar</a>
             <form action="/buscar" method="POST" style="display:contents">
@@ -745,6 +752,13 @@
             </form>
         </div>
     </div>
+
+    {% if lojas_status.get('amazon') == 'blocked' %}
+    <div class="aviso-bloqueio-amazon" role="status">
+        <span>A Amazon bloqueou temporariamente a coleta automatizada desta busca. As outras lojas continuam disponíveis.</span>
+        <a href="https://www.amazon.com.br/s?k={{ produto|urlencode }}" target="_blank" rel="noopener noreferrer">Abrir a busca na Amazon</a>
+    </div>
+    {% endif %}
 
     <div class="toast-stack" id="toastStack">
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -878,6 +892,22 @@
                             <input type="hidden" name="imagem" value="{{ item.imagem }}">
                             <button type="submit" class="btn-cart"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg> Carrinho</button>
                         </form>
+                        <details onclick="event.stopPropagation()" style="position:relative">
+                            <summary class="btn-go" style="cursor:pointer;list-style:none">Monitorar preço</summary>
+                            <form action="{{ url_for('monitoramento.criar') }}" method="POST" onclick="event.stopPropagation()" style="position:absolute;z-index:5;right:0;top:calc(100% + 6px);width:250px;padding:12px;background:#fff;border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow)">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="termo_busca" value="{{ produto }}">
+                                <input type="hidden" name="nome_modelo" value="{{ item.nome }}">
+                                <input type="hidden" name="fornecedor" value="{{ item.site }}">
+                                <input type="hidden" name="link" value="{{ item.link }}">
+                                <input type="hidden" name="preco_referencia" value="{{ item.preco }}">
+                                <label>Queda mínima em %</label>
+                                <input type="number" name="gatilho_percentual" min="0.01" max="100" step="0.01" value="10" oninput="this.form.elements['gatilho_valor'].value=''">
+                                <label style="margin-top:8px">ou queda mínima em R$</label>
+                                <input type="number" name="gatilho_valor" min="0.01" step="0.01" placeholder="Deixe vazio para usar %" oninput="this.form.elements['gatilho_percentual'].value=''">
+                                <button type="submit" class="btn-cart" style="margin-top:10px;width:100%">Salvar alerta</button>
+                            </form>
+                        </details>
                         {% if item.link %}<a href="{{ item.link }}" target="_blank" class="btn-go">Ver produto <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></a>{% endif %}
                     </div>
                 </div>

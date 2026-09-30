@@ -31,6 +31,8 @@ except Exception:
     def versao_principal_chrome():
         return None
 
+from .errors import BloqueioLoja
+
 
 _SELETORES_CARD = [
     "li.ui-search-layout__item",
@@ -243,7 +245,7 @@ def _buscar_mercadolivre(produto):
         if "account-verification" in driver.current_url:
             print(f"[Mercado Livre] BLOQUEADO por verificação anti-bot: {driver.current_url}")
             print("[Mercado Livre] Tente novamente mais tarde, ou rode com headless=False.")
-            return []
+            raise BloqueioLoja("Mercado Livre sinalizou verificação de conta.")
 
         # ── Checa se caiu direto numa página de produto único ──
         hostname_atual = urlparse(driver.current_url).hostname or ""
@@ -306,6 +308,8 @@ def _buscar_mercadolivre(produto):
                 print(f"[Mercado Livre][DEBUG] title='{titulo}' | url={driver.current_url}")
                 print(f"[Mercado Livre][DEBUG] início do corpo: {corpo}")
 
+    except BloqueioLoja:
+        raise
     except Exception as e:
         print(f"[Mercado Livre] Erro geral: {e}")
 

@@ -20,6 +20,7 @@ def application():
         WTF_CSRF_ENABLED=True,
         RATELIMIT_ENABLED=False,
         SESSION_COOKIE_SECURE=False,
+        FEATURE_EMPRESARIAL_ENABLED=False,
     )
     with app.app_context():
         db.drop_all()

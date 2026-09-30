@@ -8,6 +8,7 @@ from .driver_manager import (
     obter_driver_path, aplicar_binary_location, aplicar_perfil_temporario,
     aplicar_flags_economia_memoria, SELENIUM_SEMAPHORE, versao_principal_chrome
 )
+from .errors import BloqueioLoja, pagina_com_bloqueio
 import time
 import re
 
@@ -172,6 +173,11 @@ def _buscar_terabyte(produto):
             except Exception as e:
                 pass
 
+        if not produtos and pagina_com_bloqueio(driver.page_source, driver.current_url):
+            raise BloqueioLoja("Terabyte sinalizou bloqueio anti-bot.")
+
+    except BloqueioLoja:
+        raise
     except Exception as e:
         print(f"[Terabyte] Erro geral: {e}")
 

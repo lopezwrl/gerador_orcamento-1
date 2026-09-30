@@ -1,0 +1,96 @@
+{% extends 'base_app.html' %}
+{% from '_macros.html' import brl %}
+{% block titulo %}Estrutura empresarial{% endblock %}
+{% block icone %}<path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1"/>{% endblock %}
+{% block h1 %}Estrutura empresarial{% endblock %}
+{% block subtitulo %}Departamentos e centros de custo.{% endblock %}
+{% block acoes %}<a class="btn" href="{{ url_for('auth.usuarios') }}">Gerenciar usuários</a><a class="btn" href="{{ url_for('empresarial.relatorios') }}">Relatórios</a>{% endblock %}
+{% block conteudo %}
+<style>
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+  .card {
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #d4d9ef);
+    border-radius: var(--radius-lg, 18px);
+    padding: 28px;
+    box-shadow: var(--shadow, 0 4px 20px rgba(30,42,110,.08));
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 28px;
+    animation: fadeUp .5s ease both;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--navy, #1e2a6e), var(--sky, #5b78e0), var(--teal, #0a8a79));
+  }
+  .card:nth-of-type(1) { animation-delay: .1s; }
+  .card:nth-of-type(2) { animation-delay: .25s; }
+
+  .fg input, .fg select {
+    transition: all .2s ease;
+  }
+  .fg input:focus, .fg select:focus {
+    border-color: var(--blue, #3d52c4);
+    box-shadow: 0 0 0 3px rgba(61,82,196,.15);
+    outline: none;
+  }
+
+  .btn {
+    transition: all .22s cubic-bezier(.4,0,.2,1);
+  }
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(30,42,110,.18);
+  }
+  .btn:active {
+    transform: translateY(0);
+  }
+
+  .tw table tbody tr {
+    transition: background-color .2s ease;
+  }
+  .tw table tbody tr:hover {
+    background-color: var(--surface2, #f0f2fa);
+  }
+</style>
+
+<section class="card"><h2>Novo departamento</h2>
+  <form class="fg" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="acao" value="departamento">
+    <div><label for="dep-codigo">Código</label><input id="dep-codigo" name="codigo" maxlength="30" required></div>
+    <div><label for="dep-nome">Nome</label><input id="dep-nome" name="nome" maxlength="120" required></div>
+    <button class="btn btn-primary" type="submit">Criar departamento</button>
+  </form>
+  <div class="tw"><table><thead><tr><th>Código</th><th>Nome</th><th>Editar</th></tr></thead><tbody>
+    {% for d in departamentos %}<tr><td>{{ d.codigo }}</td><td>{{ d.nome }}</td><td>
+      <form class="inl" method="post" action="{{ url_for('empresarial.editar_departamento', departamento_id=d.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input name="codigo" value="{{ d.codigo }}" maxlength="30" aria-label="Código"><input name="nome" value="{{ d.nome }}" maxlength="120" aria-label="Nome">
+        <button class="btn" type="submit">Salvar</button></form></td></tr>
+    {% else %}<tr><td colspan="3" class="vazio">Nenhum departamento cadastrado.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+<section class="card"><h2>Novo centro de custo</h2>
+  <form class="fg" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="acao" value="centro_custo">
+    <div><label for="cc-departamento">Departamento</label><select id="cc-departamento" name="departamento_id" required><option value="">Selecione</option>{% for d in departamentos %}<option value="{{ d.id }}">{{ d.codigo }} — {{ d.nome }}</option>{% endfor %}</select></div>
+    <div><label for="cc-codigo">Código</label><input id="cc-codigo" name="codigo" maxlength="30" required></div>
+    <div><label for="cc-nome">Nome</label><input id="cc-nome" name="nome" maxlength="120" required></div>
+    <div><label for="cc-limite">Limite de gasto (R$)</label><input id="cc-limite" name="limite_gasto" inputmode="decimal" placeholder="10000,00" required></div>
+    <button class="btn btn-primary" type="submit">Criar centro de custo</button>
+  </form>
+  <div class="tw"><table><thead><tr><th>Departamento</th><th>Código</th><th>Nome</th><th>Limite</th><th>Editar</th></tr></thead><tbody>
+    {% for c in centros %}<tr><td>{{ c.departamento.nome }}</td><td>{{ c.codigo }}</td><td>{{ c.nome }}</td><td>{{ brl(c.limite_gasto) }}</td><td>
+      <form class="inl" method="post" action="{{ url_for('empresarial.editar_centro_custo', centro_id=c.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input name="nome" value="{{ c.nome }}" maxlength="120" aria-label="Nome"><input name="limite_gasto" value="{{ c.limite_gasto }}" inputmode="decimal" aria-label="Limite">
+        <button class="btn" type="submit">Salvar</button></form></td></tr>
+    {% else %}<tr><td colspan="5" class="vazio">Nenhum centro de custo cadastrado.</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}

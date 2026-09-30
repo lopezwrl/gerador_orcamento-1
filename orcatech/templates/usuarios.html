@@ -123,6 +123,8 @@ tbody tr.row:hover{background:var(--surface2)}
 @media(max-width:900px){.side{position:fixed;top:0;left:0;bottom:0;height:auto;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}.side.open{transform:translateX(0);box-shadow:12px 0 40px rgba(20,30,80,.3)}.topbar-mobile{display:flex}.main{padding:76px 16px 48px}.me div{display:none}.card-h .tools{margin-left:0;width:100%}.card-h .tools .fi{flex:1;width:auto}}
 @media(max-width:600px){.form-grid{grid-template-columns:1fr}}
 </style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/animacoes.css') }}">
+<script src="{{ url_for('static', filename='js/animacoes.js') }}" defer></script>
 </head>
 <body>
 <div class="glow g1"></div><div class="glow g2"></div>
@@ -187,7 +189,10 @@ tbody tr.row:hover{background:var(--surface2)}
         <div><label for="nome">Nome <i>*</i></label><div class="fi"><svg class="i" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><input id="nome" name="nome" maxlength="120" placeholder="Digite o nome completo" required></div></div>
         <div><label for="email">E-mail <i>*</i></label><div class="fi"><svg class="i" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg><input id="email" name="email" type="email" maxlength="160" placeholder="exemplo@email.com" required></div></div>
         <div><label for="senha">Senha inicial <i>*</i></label><div class="fi"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><input id="senha" name="senha" type="password" minlength="12" placeholder="Mínimo de 12 caracteres" autocomplete="new-password" required></div></div>
-        <div><label for="papel">Papel <i>*</i></label><div class="fi"><svg class="i" viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/></svg><select id="papel" name="papel"><option value="usuario">Usuário</option><option value="admin">Administrador</option></select></div></div>
+        <div><label for="papel">Papel <i>*</i></label><div class="fi"><svg class="i" viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/></svg><select id="papel" name="papel"><option value="usuario">Usuário</option><option value="aprovador">Aprovador</option>{% if empresarial_ativa %}<option value="comprador">Comprador</option>{% endif %}<option value="admin">Administrador</option></select></div></div>
+        {% if empresarial_ativa %}
+        <div><label for="departamento_id">Departamento</label><div class="fi"><select id="departamento_id" name="departamento_id"><option value="">Sem departamento</option>{% for departamento in departamentos %}<option value="{{ departamento.id }}">{{ departamento.nome }}</option>{% endfor %}</select></div></div>
+        {% endif %}
         <button type="submit" class="btn btn-primary" style="padding:12px 22px"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Criar usuário</button>
       </form>
       <div class="info"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>A senha deve ter pelo menos 12 caracteres. O sistema não envia nem registra senhas.</div>
@@ -200,22 +205,39 @@ tbody tr.row:hover{background:var(--surface2)}
           <div class="fi"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="uq" placeholder="Buscar usuário..." aria-label="Buscar usuário"></div>
           <button class="ib" type="button" id="uf" title="Filtrar" aria-label="Filtrar"><svg class="i" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"/></svg></button>
           <div class="pop" id="pop">
-            <label for="fp">Papel</label><select id="fp"><option value="">Todos</option><option value="admin">Administrador</option><option value="usuario">Usuário</option></select>
+            <label for="fp">Papel</label><select id="fp"><option value="">Todos</option><option value="admin">Administrador</option><option value="usuario">Usuário</option><option value="aprovador">Aprovador</option>{% if empresarial_ativa %}<option value="comprador">Comprador</option>{% endif %}</select>
             <label for="fs">Status</label><select id="fs"><option value="">Todos</option><option value="ativo">Ativo</option><option value="desativado">Desativado</option></select>
             <button type="button" class="btn btn-sm" id="fx">Limpar filtros</button>
           </div>
         </div>
       </div>
       <div class="tw"><table>
-        <thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Status</th><th>Ação</th></tr></thead>
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th>{% if empresarial_ativa %}<th>Departamento</th>{% endif %}<th>Status</th><th>Ação</th></tr></thead>
         <tbody id="tb">
           {% for usuario in usuarios %}
           <tr class="row" data-nome="{{ usuario.nome|lower }}" data-email="{{ usuario.email|lower }}" data-papel="{{ usuario.papel }}" data-status="{{ 'ativo' if usuario.ativo else 'desativado' }}">
             <td><div class="who"><span class="av c{{ loop.index0 % 5 }}">{{ (usuario.nome or '?')[:1]|upper }}</span>{{ usuario.nome }}</div></td>
             <td>{{ usuario.email }}</td>
-            <td><span class="bd {{ 'admin' if usuario.papel == 'admin' else '' }}">{{ 'Administrador' if usuario.papel == 'admin' else 'Usuário' }}</span></td>
+            <td><span class="bd {{ 'admin' if usuario.papel == 'admin' else '' }}">{{ {'admin': 'Administrador', 'usuario': 'Usuário', 'aprovador': 'Aprovador', 'comprador': 'Comprador'}.get(usuario.papel, usuario.papel|title) }}</span></td>
+            {% if empresarial_ativa %}<td>{{ usuario.departamento.nome if usuario.departamento else '—' }}</td>{% endif %}
             <td><span class="st {{ 'on' if usuario.ativo else 'off' }}">{{ 'Ativo' if usuario.ativo else 'Desativado' }}</span></td>
             <td>
+              {% if empresarial_ativa %}
+              <form method="post" action="{{ url_for('auth.atualizar_perfil_usuario', usuario_id=usuario.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <select name="papel" aria-label="Papel de {{ usuario.nome }}">
+                  <option value="usuario" {{ 'selected' if usuario.papel == 'usuario' }}>Usuário</option>
+                  <option value="aprovador" {{ 'selected' if usuario.papel == 'aprovador' }}>Aprovador</option>
+                  <option value="comprador" {{ 'selected' if usuario.papel == 'comprador' }}>Comprador</option>
+                  <option value="admin" {{ 'selected' if usuario.papel == 'admin' }}>Administrador</option>
+                </select>
+                <select name="departamento_id" aria-label="Departamento de {{ usuario.nome }}">
+                  <option value="">Sem departamento</option>
+                  {% for departamento in departamentos %}<option value="{{ departamento.id }}" {{ 'selected' if usuario.departamento_id == departamento.id }}>{{ departamento.nome }}</option>{% endfor %}
+                </select>
+                <button type="submit" class="tg">Salvar perfil</button>
+              </form>
+              {% endif %}
               {% if usuario.id != current_user.id %}
               <form method="post" action="{{ url_for('auth.alternar_usuario', usuario_id=usuario.id) }}" class="inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

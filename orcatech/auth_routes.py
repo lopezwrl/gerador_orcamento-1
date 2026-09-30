@@ -7,7 +7,8 @@ from flask_login import current_user, login_user, logout_user
 from sqlalchemy import func
 
 from .auth import admin_required
-from .models import Usuario, db
+from .empresarial_service import funcionalidade_empresarial_ativa
+from .models import Departamento, Usuario, db
 
 auth_bp = Blueprint("auth", __name__)
 limiter = Limiter(key_func=get_remote_address)
@@ -59,16 +60,31 @@ def usuarios():
         email = request.form.get("email", "").strip().lower()
         senha = request.form.get("senha", "")
         papel = request.form.get("papel", "usuario")
+        departamento_id = request.form.get("departamento_id", type=int)
+        papeis_validos = {"admin", "usuario", "aprovador"}
+        if funcionalidade_empresarial_ativa():
+            papeis_validos.add("comprador")
+        departamento = db.session.get(Departamento, departamento_id) if departamento_id else None
         if not nome or not email or "@" not in email:
             erro = "Informe nome e um e-mail válido."
         elif len(senha) < 12:
             erro = "A senha deve ter pelo menos 12 caracteres."
-        elif papel not in {"admin", "usuario"}:
+        elif papel not in papeis_validos:
             erro = "O papel selecionado é inválido."
+        elif departamento_id and departamento is None:
+            erro = "O departamento selecionado é inválido."
+        elif funcionalidade_empresarial_ativa() and papel == "aprovador" and not departamento:
+            erro = "Vincule o aprovador a um departamento."
         elif Usuario.query.filter(func.lower(Usuario.email) == email).first():
             erro = "Não foi possível criar o usuário com os dados informados."
         else:
-            usuario = Usuario(nome=nome, email=email, papel=papel, ativo=True)
+            usuario = Usuario(
+                nome=nome,
+                email=email,
+                papel=papel,
+                ativo=True,
+                departamento_id=departamento.id if departamento else None,
+            )
             usuario.set_senha(senha)
             db.session.add(usuario)
             db.session.commit()
@@ -76,7 +92,44 @@ def usuarios():
             return redirect(url_for("auth.usuarios"))
 
     lista = Usuario.query.order_by(Usuario.nome, Usuario.email).all()
-    return render_template("usuarios.html", usuarios=lista, erro=erro)
+    departamentos = Departamento.query.order_by(Departamento.nome).all()
+    return render_template(
+        "usuarios.html",
+        usuarios=lista,
+        departamentos=departamentos,
+        empresarial_ativa=funcionalidade_empresarial_ativa(),
+        erro=erro,
+    )
+
+
+@auth_bp.route("/usuarios/<int:usuario_id>/perfil", methods=["POST"])
+@admin_required
+def atualizar_perfil_usuario(usuario_id):
+    if not funcionalidade_empresarial_ativa():
+        abort(404)
+    usuario = db.session.get(Usuario, usuario_id)
+    if usuario is None:
+        abort(404)
+
+    papel = request.form.get("papel", "")
+    departamento_id = request.form.get("departamento_id", type=int)
+    departamento = db.session.get(Departamento, departamento_id) if departamento_id else None
+    if papel not in {"admin", "usuario", "aprovador", "comprador"}:
+        flash("O papel selecionado é inválido.", "erro")
+    elif departamento_id and departamento is None:
+        flash("O departamento selecionado é inválido.", "erro")
+    elif papel == "aprovador" and departamento is None:
+        flash("Vincule o aprovador a um departamento.", "erro")
+    elif usuario.id == current_user.id and usuario.papel == "admin" and papel != "admin" and (
+        Usuario.query.filter_by(papel="admin", ativo=True).count() <= 1
+    ):
+        flash("O sistema precisa manter pelo menos um administrador ativo.", "erro")
+    else:
+        usuario.papel = papel
+        usuario.departamento_id = departamento.id if departamento else None
+        db.session.commit()
+        flash("Perfil atualizado.", "sucesso")
+    return redirect(url_for("auth.usuarios"))
 
 
 @auth_bp.route("/usuarios/<int:usuario_id>/ativo", methods=["POST"])

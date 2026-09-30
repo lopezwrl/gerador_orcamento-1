@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Orçamento {{ orcamento.numero }} – OrçaTech</title>
+<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('tema') || 'light');</script>
+<style>
+:root{--navy:#1e2a6e;--blue:#3d52c4;--sky:#5b78e0;--ice:#dde5ff;--bg:#f4f6fb;--surface:#fff;--surface2:#f0f2fa;--border:#d4d9ef;--text:#1a2040;--muted2:#6070a8;--radius-xl:22px;--shadow:0 4px 20px rgba(30,42,110,.08);--shadow-sm:0 1px 3px rgba(30,42,110,.06)}
+[data-theme='dark']{--bg:#0b1220;--surface:#162033;--surface2:#1d2940;--border:#324764;--text:#f4f7ff;--muted2:#c5d0ea;--navy:#3d52c4;--blue:#6f8cf0;--ice:#26345c;--shadow:0 4px 20px rgba(0,0,0,.35)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font:14px/1.6 'Plus Jakarta Sans',sans-serif;min-height:100vh;transition:background .25s,color .25s}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background-image:linear-gradient(rgba(61,82,196,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(61,82,196,.025) 1px,transparent 1px);background-size:40px 40px}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+main{position:relative;width:min(960px,calc(100% - 32px));margin:38px auto}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+h1{font-family:'Playfair Display',serif;font-size:28px;color:var(--navy);letter-spacing:1px;line-height:1.2;animation:fadeDown .5s cubic-bezier(.16,1,.3,1) both}
+[data-theme='dark'] h1{color:var(--text)}
+.sub{color:var(--muted2);font-size:13px;animation:fadeDown .5s .05s cubic-bezier(.16,1,.3,1) both}
+.theme-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:grid;place-items:center;box-shadow:var(--shadow-sm);transition:.2s}
+.theme-btn:hover{transform:translateY(-2px);border-color:var(--blue);color:var(--blue)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:24px;margin-bottom:20px;box-shadow:var(--shadow);animation:fadeUp .55s cubic-bezier(.16,1,.3,1) both;transition:transform .3s,border-color .3s}
+.card:hover{transform:translateY(-3px);border-color:var(--sky)}.card:nth-of-type(2){animation-delay:.12s}
+.card h2{font-size:18px;font-weight:800;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+small{display:block;color:var(--muted2);font-size:11px;font-weight:700;text-transform:uppercase}
+.bd{display:inline-block;margin-top:4px;padding:3px 12px;border-radius:999px;font-size:12px;font-weight:700;background:var(--ice);color:var(--blue)}
+.tw{overflow-x:auto;border:1px solid var(--border);border-radius:16px}
+table{width:100%;min-width:680px;border-collapse:collapse}
+th{padding:12px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted2);background:var(--surface2)}
+td{padding:12px 16px;border-top:1px solid var(--border)}tbody tr:hover{background:var(--surface2)}
+.total{text-align:right;font-size:21px;font-weight:800;color:var(--navy);margin-top:16px}[data-theme='dark'] .total{color:var(--text)}
+svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</head>
+<body>
+<main>
+  <div class="header-top">
+    <div>
+      <h1>ORÇATECH</h1>
+      <p class="sub">Orçamento compartilhado · somente leitura</p>
+    </div>
+    <button class="theme-btn" type="button" onclick="toggleTheme()" aria-label="Alternar tema">◐</button>
+  </div>
+
+  <section class="card grid">
+    <div><small>Número</small><strong>{{ orcamento.numero }}</strong></div>
+    <div><small>Status</small><span class="bd">{{ orcamento.status.replace('_', ' ')|title }}</span></div>
+    <div><small>Validade</small><strong>{{ orcamento.validade.strftime('%d/%m/%Y') if orcamento.validade else 'Não definida' }}</strong></div>
+  </section>
+
+  <section class="card">
+    <h2>Itens</h2>
+    <div class="tw">
+      <table>
+        <thead>
+          <tr><th>Produto</th><th>Fornecedor</th><th>Quantidade</th><th>Unitário</th><th>Subtotal</th><th>Frete</th></tr>
+        </thead>
+        <tbody>
+          {% for i in orcamento.itens %}
+          <tr>
+            <td>{{ i.nome_produto }}</td><td>{{ i.fornecedor_nome }}</td><td>{{ i.quantidade }}</td>
+            <td>R$ {{ "{:,.2f}".format(i.preco_unitario).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+            <td>R$ {{ "{:,.2f}".format(i.subtotal).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+            <td>R$ {{ "{:,.2f}".format(i.frete).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="total">Total geral: R$ {{ "{:,.2f}".format(orcamento.total).replace(',', 'X').replace('.', ',').replace('X', '.') }}</p>
+    {% if orcamento.condicoes_comerciais %}<p style="margin-top:12px"><strong>Condições comerciais:</strong> {{ orcamento.condicoes_comerciais }}</p>{% endif %}
+  </section>
+</main>
+
+<script>
+function toggleTheme(){var n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';localStorage.setItem('tema',n);document.documentElement.setAttribute('data-theme',n)}
+</script>
+</body>
+</html>

@@ -176,6 +176,7 @@
         .loja-item.buscando .loja-status { color:var(--royal); }
         .loja-item.done .loja-status     { color:var(--teal); }
         .loja-item.erro .loja-status     { color:#EF4444; }
+        .loja-status a { color:inherit; text-decoration:underline; }
 
         .loja-count {
             font-size:11px; font-weight:700; padding:2px 8px;
@@ -284,6 +285,8 @@
         [data-theme='dark'] .loja-status{color:var(--muted);}
         [data-theme='dark'] .dica{background:var(--surface);border-color:var(--border);color:var(--muted);}
     </style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/animacoes.css') }}">
+<script src="{{ url_for('static', filename='js/animacoes.js') }}" defer></script>
 </head>
 <body>
 <div class="page">
@@ -316,7 +319,7 @@
 
         <div class="progress-wrap">
             <div class="progress-meta">
-                <span class="label">Lojas concluídas: <strong id="lojasFeitas" style="color:var(--text)">0</strong> / <strong id="lojaTotal" style="color:var(--text)">7</strong></span>
+                <span class="label">Lojas concluídas: <strong id="lojasFeitas" style="color:var(--text)">0</strong> / <strong id="lojaTotal" style="color:var(--text)">8</strong></span>
                 <span class="pct" id="pctLabel">0%</span>
             </div>
             <div class="progress-bar">
@@ -406,6 +409,7 @@
 <script>
 const jobId      = "{{ job_id }}";
 const solicitante= "{{ solicitante }}";
+const termoBusca = {{ produto|tojson }};
 
 const LOJAS = [
     { key:'mercadolivre', itemId:'loja-ml', statusId:'status-ml', countId:'count-ml' },
@@ -421,7 +425,7 @@ const lojasContainer = document.querySelector('.lojas');
 
 /* Botão "Mostrar todas as lojas": a lista fica colapsada (só as 6
    primeiras visíveis) até o usuário clicar, evitando que a página
-   fique gigante com as 7 lojas de uma vez. */
+   fique gigante com as 8 lojas de uma vez. */
 const lojasEl        = document.querySelector('.lojas');
 const btnVerMais     = document.getElementById('verMaisLojas');
 const verMaisTexto   = document.getElementById('verMaisTexto');
@@ -495,6 +499,20 @@ function marcarLoja(loja, estado, count, jobFinalizado) {
         item.classList.add('erro');
         status.innerHTML = 'Erro <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="m14.5 9.5-5 5M9.5 9.5l5 5"/></svg>';
         countEl.textContent = '';
+    } else if (estado === 'blocked') {
+        item.classList.add('erro');
+        status.textContent = loja.key === 'amazon' ? 'Bloqueio temporário · ' : 'Bloqueado';
+        if (loja.key === 'amazon') {
+            const link = document.createElement('a');
+            const buscaAmazon = new URL('https://www.amazon.com.br/s');
+            buscaAmazon.searchParams.set('k', termoBusca);
+            link.href = buscaAmazon.toString();
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = 'abrir busca';
+            status.appendChild(link);
+        }
+        countEl.textContent = '';
     } else {
         status.textContent = 'Aguardando…';
         countEl.textContent = '';
@@ -524,7 +542,7 @@ function processarEstado(data) {
             const estado = info.status || 'pending';
             const count  = info.count;
             marcarLoja(loja, estado, count, jobDone);
-            if (estado === 'done' || estado === 'error') concluidas++;
+            if (estado === 'done' || estado === 'error' || estado === 'blocked') concluidas++;
         });
         setProgresso((concluidas / LOJAS.length) * 100);
         lojasFeitas.textContent = concluidas;

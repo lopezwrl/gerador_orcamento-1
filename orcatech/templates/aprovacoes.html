@@ -1,0 +1,84 @@
+{% extends 'base_app.html' %}
+{% from '_macros.html' import brl %}
+{% block titulo %}Aprovações{% endblock %}
+{% block icone %}<path d="M20 6 9 17l-5-5"/>{% endblock %}
+{% block h1 %}Fila de aprovações{% endblock %}
+{% block subtitulo %}Orçamentos aguardando uma decisão.{% endblock %}
+{% block conteudo %}
+<style>
+  @keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+
+  .card {
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--border, #d4d9ef);
+    border-radius: var(--radius-lg, 18px);
+    padding: 28px;
+    box-shadow: var(--shadow, 0 4px 20px rgba(30,42,110,.08));
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 28px;
+    animation: fadeUp .5s ease both;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--navy, #1e2a6e), var(--sky, #5b78e0), var(--teal, #0a8a79));
+  }
+  .card:nth-of-type(1) { animation-delay: .1s; }
+  .card:nth-of-type(2) { animation-delay: .25s; }
+
+  .fg input, .fg select {
+    transition: all .2s ease;
+  }
+  .fg input:focus, .fg select:focus {
+    border-color: var(--blue, #3d52c4);
+    box-shadow: 0 0 0 3px rgba(61,82,196,.15);
+    outline: none;
+  }
+
+  .btn {
+    transition: all .22s cubic-bezier(.4,0,.2,1);
+  }
+  .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(30,42,110,.18);
+  }
+  .btn:active {
+    transform: translateY(0);
+  }
+
+  .tw table tbody tr {
+    transition: background-color .2s ease;
+  }
+  .tw table tbody tr:hover {
+    background-color: var(--surface2, #f0f2fa);
+  }
+</style>
+
+<section class="card">
+  <form class="fg" method="get">
+    <div><label for="q">Busca</label><input id="q" type="search" name="q" value="{{ busca }}" placeholder="Número ou solicitante"></div>
+    <div><label for="desde">Criado de</label><input id="desde" type="date" name="desde" value="{{ desde }}"></div>
+    <div><label for="ate">Criado até</label><input id="ate" type="date" name="ate" value="{{ ate }}"></div>
+    <button class="btn btn-primary" type="submit">Filtrar</button>
+  </form>
+</section>
+<section class="card">
+  {% if pagina.items %}
+  <div class="tw" style="margin-top:0"><table><thead><tr><th>Número</th><th>Solicitante</th><th>Total</th><th>Enviado em</th><th>Dias parado</th><th></th></tr></thead><tbody>
+    {% for o in pagina.items %}<tr><td><strong>{{ o.numero }}</strong></td><td>{{ o.solicitante or 'Não informado' }}</td><td>{{ brl(o.total) }}</td>
+      <td>{{ o.aguardando_desde.strftime('%d/%m/%Y') }}</td><td><span class="bd">{{ (agora - o.aguardando_desde).days }}</span></td>
+      <td><a class="btn" href="{{ url_for('orcamento.detalhe', orcamento_id=o.id) }}">Analisar</a></td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<div class="vazio">Não há orçamentos aguardando aprovação.</div>{% endif %}
+  {% if pagina.pages > 1 %}
+  <nav class="pager" aria-label="Paginação">
+    {% if pagina.has_prev %}<a href="{{ url_for('aprovacoes.fila', q=busca, desde=desde, ate=ate, page=pagina.prev_num) }}">‹ Anterior</a>{% endif %}
+    <span>Página {{ pagina.page }} de {{ pagina.pages }}</span>
+    {% if pagina.has_next %}<a href="{{ url_for('aprovacoes.fila', q=busca, desde=desde, ate=ate, page=pagina.next_num) }}">Próxima ›</a>{% endif %}
+  </nav>{% endif %}
+</section>
+{% endblock %}

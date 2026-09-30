@@ -108,6 +108,8 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 @media(max-width:800px){.fin-grid{grid-template-columns:1fr}.item-val{text-align:left}}
 
 </style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/animacoes.css') }}">
+<script src="{{ url_for('static', filename='js/animacoes.js') }}" defer></script>
 </head>
 <body>
 <div class="shell">
@@ -133,7 +135,9 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
     </div>
     <div class="acoes">
       <button class="theme-btn" type="button" onclick="toggleTheme()" aria-label="Alternar tema"></button>
-      <a class="btn" href="{{ url_for('fornecedores.listar') }}">Fornecedores</a>
+      <a class="btn" href="{{ url_for('monitoramento.listar') }}">🔔 Alertas{% if alertas_nao_lidos %} ({{ alertas_nao_lidos }}){% endif %}</a>
+      {% if current_user.papel in ['admin', 'aprovador'] %}<a class="btn" href="{{ url_for('aprovacoes.fila') }}">Aprovações</a>{% endif %}
+      <a class="btn" href="{{ url_for('fornecedores.listar') }}?origem=resultados">Fornecedores</a>
       <a class="btn" href="/" onclick="if(history.length>1){history.back();return false;}">← Continuar pesquisando</a>
     </div>
   </div>
@@ -152,6 +156,24 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
       <div class="item-info">
         <div class="item-nome">{{ c.nome_produto if c else item.produto_busca.nome_pesquisado }}</div>
         <div class="item-forn">{% if c %}{{ logo(c.fornecedor.nome, 'sm') }}<span>{{ c.fornecedor.nome }}</span>{% else %}—{% endif %}</div>
+        {% if c %}
+        <details style="margin-top:8px;position:relative">
+          <summary class="btn btn-sm" style="display:inline-flex;cursor:pointer">Monitorar preço</summary>
+          <form action="{{ url_for('monitoramento.criar') }}" method="POST" style="position:absolute;z-index:5;left:0;top:calc(100% + 6px);width:250px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow)">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="termo_busca" value="{{ item.produto_busca.nome_pesquisado }}">
+            <input type="hidden" name="nome_modelo" value="{{ item.nome_produto }}">
+            <input type="hidden" name="fornecedor" value="{{ c.fornecedor.nome }}">
+            <input type="hidden" name="link" value="{{ c.link or '' }}">
+            <input type="hidden" name="preco_referencia" value="{{ item.preco_unitario }}">
+            <label>Queda mínima em %</label>
+            <input type="number" name="gatilho_percentual" min="0.01" max="100" step="0.01" value="10" oninput="this.form.elements['gatilho_valor'].value=''">
+            <label style="margin-top:8px">ou queda mínima em R$</label>
+            <input type="number" name="gatilho_valor" min="0.01" step="0.01" placeholder="Deixe vazio para usar %" oninput="this.form.elements['gatilho_percentual'].value=''">
+            <button type="submit" class="btn btn-primary btn-sm" style="width:100%;margin-top:10px">Salvar alerta</button>
+          </form>
+        </details>
+        {% endif %}
       </div>
       <div class="item-val"><div class="sub">{{ brl(item.subtotal) }}</div><div class="un">{{ brl(c.preco if c else 0) }} / un.</div></div>
       <form class="qty" action="{{ url_for('orcamento.atualizar_quantidade', item_id=item.id) }}" method="POST">
@@ -176,6 +198,30 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
           <div><label>Nome</label><input type="text" name="solicitante" placeholder="Seu nome completo"></div>
           <div><label>Condições comerciais</label><input type="text" name="condicoes_comerciais" placeholder="Ex: pagamento em 28 dias, frete incluso"></div>
         </div>
+        {% if empresarial_ativa %}
+        <div class="form-grid">
+          <div><label for="departamento_id">Departamento</label>
+            <select id="departamento_id" name="departamento_id" required>
+              <option value="">Selecione</option>
+              {% for departamento in departamentos %}
+              {% if current_user.papel == 'admin' or current_user.departamento_id == departamento.id %}
+              <option value="{{ departamento.id }}">{{ departamento.codigo }} — {{ departamento.nome }}</option>
+              {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+          <div><label for="centro_custo_id">Centro de custo</label>
+            <select id="centro_custo_id" name="centro_custo_id" required>
+              <option value="">Selecione</option>
+              {% for centro in centros_custo %}
+              {% if current_user.papel == 'admin' or current_user.departamento_id == centro.departamento_id %}
+              <option value="{{ centro.id }}" data-departamento="{{ centro.departamento_id }}">{{ centro.departamento.codigo }} — {{ centro.codigo }} · {{ centro.nome }} (limite R$ {{ "{:,.2f}".format(centro.limite_gasto).replace(',', 'X').replace('.', ',').replace('X', '.') }})</option>
+              {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        {% endif %}
         <label>Observações (opcional)</label>
         <textarea name="observacoes" rows="3" placeholder="Alguma observação especial?"></textarea>
         <button type="submit" class="btn btn-primary">Finalizar Orçamento (gerar PDF)</button>
@@ -191,6 +237,9 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 </div></main></div>
 <script>
 (function(){
+var departamento=document.getElementById('departamento_id');
+var centroCusto=document.getElementById('centro_custo_id');
+if(departamento&&centroCusto){departamento.addEventListener('change',function(){Array.prototype.forEach.call(centroCusto.options,function(option){if(option.value)option.hidden=option.dataset.departamento!==departamento.value;});centroCusto.value='';});}
 var LUA='<svg class="i" viewBox="0 0 24 24"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
 var SOL='<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
 function tema(t){document.documentElement.setAttribute('data-theme',t);document.querySelectorAll('.theme-btn').forEach(function(b){b.innerHTML=t==='dark'?SOL:LUA});}
