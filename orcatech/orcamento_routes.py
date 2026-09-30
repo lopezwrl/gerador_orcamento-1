@@ -7,16 +7,32 @@ Registrar em app.py:
 """
 
 from datetime import date, datetime, time, timedelta, timezone
+from decimal import Decimal
 import os
 import secrets
-from flask import Blueprint, abort, current_app, render_template, request, redirect, url_for, send_file, flash
+from flask import Blueprint, abort, current_app, jsonify, render_template, request, redirect, url_for, send_file, flash
 from flask_login import current_user, login_required
-from sqlalchemy import or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm import joinedload
 from urllib.parse import urlencode
 
 from .auth import approver_required, owner_or_admin
-from .models import Aprovacao, EnvioEmail, db, Orcamento, OrcamentoItem
+from .empresarial_service import (
+    expressao_total_orcamento,
+    funcionalidade_empresarial_ativa,
+    usuario_pode_aprovar,
+    validar_unidade_orcamento,
+)
+from .models import (
+    Aprovacao,
+    CentroCusto,
+    Cotacao,
+    Departamento,
+    EnvioEmail,
+    db,
+    Orcamento,
+    OrcamentoItem,
+)
 from .orcamento_service import (
     get_or_create_produto_busca,
     registrar_cotacao,
@@ -59,6 +75,12 @@ def _item_do_usuario(item_id):
     return item
 
 
+def _quer_json():
+    """True quando a requisição é AJAX/fetch, independentemente do header exato enviado."""
+    x_requested_with = (request.headers.get("X-Requested-With") or "").strip().lower()
+    return x_requested_with in {"fetch", "xmlhttprequest"} or request.is_json
+
+
 @orcamento_bp.route("/adicionar", methods=["POST"])
 @login_required
 def adicionar():
@@ -82,6 +104,8 @@ def adicionar():
         quantidade = 1
 
     if not produto_pesquisado or not nome or preco <= 0:
+        if _quer_json():
+            return jsonify(ok=False, msg="Não foi possível adicionar esse item ao orçamento."), 400
         flash("Não foi possível adicionar esse item ao orçamento.", "erro")
         return redirect(request.referrer or url_for("home"))
 
@@ -90,7 +114,10 @@ def adicionar():
         produto_busca, nome_produto=nome, preco=preco, site=site,
         link=link, imagem=imagem, origem="scraping",
     )
-    adicionar_item_ao_orcamento(produto_busca, cotacao, quantidade=quantidade)
+    orcamento, item = adicionar_item_ao_orcamento(produto_busca, cotacao, quantidade=quantidade)
+
+    if _quer_json():
+        return jsonify(ok=True, quantidade=item.quantidade, count=len(orcamento.itens))
 
     flash(f'"{nome[:40]}" adicionado ao orçamento.', "sucesso")
     return redirect(request.referrer or url_for("orcamento.carrinho"))
@@ -100,7 +127,13 @@ def adicionar():
 @login_required
 def carrinho():
     orcamento = get_orcamento_ativo(criar_se_nao_existir=False)
-    return render_template("carrinho.html", orcamento=orcamento)
+    return render_template(
+        "carrinho.html",
+        orcamento=orcamento,
+        empresarial_ativa=funcionalidade_empresarial_ativa(),
+        departamentos=Departamento.query.order_by(Departamento.nome).all(),
+        centros_custo=CentroCusto.query.order_by(CentroCusto.nome).all(),
+    )
 
 
 @orcamento_bp.route("/item/<int:item_id>/quantidade", methods=["POST"])
@@ -144,6 +177,20 @@ def finalizar():
     if orcamento.status != "rascunho":
         abort(403)
 
+    if funcionalidade_empresarial_ativa():
+        departamento_id = request.form.get("departamento_id", type=int)
+        centro_custo_id = request.form.get("centro_custo_id", type=int)
+        orcamento.departamento_id = departamento_id
+        orcamento.centro_custo_id = centro_custo_id
+        try:
+            validar_unidade_orcamento(
+                current_user, departamento_id, centro_custo_id, orcamento
+            )
+        except ValueError as exc:
+            db.session.rollback()
+            flash(str(exc), "erro")
+            return redirect(url_for("orcamento.carrinho"))
+
     orcamento.solicitante = request.form.get("solicitante", "").strip() or current_user.nome
     orcamento.observacoes = request.form.get("observacoes", "").strip()
     orcamento.condicoes_comerciais = request.form.get("condicoes_comerciais", "").strip()
@@ -180,12 +227,23 @@ def pdf(orcamento_id):
 @login_required
 def detalhe(orcamento_id):
     orcamento = Orcamento.query.get_or_404(orcamento_id)
+    pode_aprovar_orcamento = (
+        orcamento.status == "aguardando_aprovacao"
+        and usuario_pode_aprovar(current_user, orcamento)
+    )
+    pode_emitir_pedido = (
+        funcionalidade_empresarial_ativa()
+        and orcamento.status == "aprovado"
+        and current_user.papel in {"admin", "comprador"}
+    )
     permitido = (
         current_user.papel == "admin"
         or orcamento.usuario_id == current_user.id
+        or pode_aprovar_orcamento
         or (
-            orcamento.status == "aguardando_aprovacao"
-            and current_user.papel == "aprovador"
+            funcionalidade_empresarial_ativa()
+            and current_user.papel == "comprador"
+            and orcamento.status in {"aprovado", "compra_realizada"}
         )
     )
     if not permitido:
@@ -202,7 +260,8 @@ def detalhe(orcamento_id):
         and pode_transicionar("reprovado", "rascunho", current_user, orcamento)
     )
     pode_marcar_compra = (
-        orcamento.status == "aprovado"
+        not funcionalidade_empresarial_ativa()
+        and orcamento.status == "aprovado"
         and pode_transicionar("aprovado", "compra_realizada", current_user, orcamento)
     )
     pode_renovar = (
@@ -234,6 +293,7 @@ def detalhe(orcamento_id):
         pode_decidir=pode_decidir,
         pode_reabrir=pode_reabrir,
         pode_marcar_compra=pode_marcar_compra,
+        pode_emitir_pedido=pode_emitir_pedido,
         pode_renovar=pode_renovar,
         pode_gerenciar_link=pode_gerenciar_link,
         pode_compartilhar=orcamento.status in STATUS_COMPARTILHAVEIS,
@@ -249,6 +309,7 @@ def detalhe(orcamento_id):
             if pode_gerenciar_link
             else []
         ),
+        pedidos_compra=orcamento.pedidos_compra if funcionalidade_empresarial_ativa() else [],
     )
 
 
@@ -256,6 +317,8 @@ def detalhe(orcamento_id):
 @approver_required
 def decidir(orcamento_id):
     orcamento = Orcamento.query.get_or_404(orcamento_id)
+    if not usuario_pode_aprovar(current_user, orcamento):
+        abort(404)
     decisao = request.form.get("decisao", "")
     comentario = request.form.get("comentario", "").strip()
     if decisao not in {"aprovado", "reprovado"}:
@@ -328,6 +391,8 @@ def renovar_validade(orcamento_id):
 @orcamento_bp.route("/<int:orcamento_id>/compra-realizada", methods=["POST"])
 @login_required
 def marcar_compra_realizada(orcamento_id):
+    if funcionalidade_empresarial_ativa():
+        abort(404)
     orcamento = Orcamento.query.get_or_404(orcamento_id)
     owner_or_admin(orcamento)
     try:
@@ -422,6 +487,34 @@ def enviar_email(orcamento_id):
 def fila():
     busca = request.args.get("q", "").strip()
     query = Orcamento.query.filter_by(status="aguardando_aprovacao")
+    if funcionalidade_empresarial_ativa():
+        total = expressao_total_orcamento()
+        limite = Decimal(current_app.config["ALCADA_APROVACAO_LIMITE"])
+        query = query.outerjoin(OrcamentoItem).outerjoin(
+            Cotacao, OrcamentoItem.cotacao_escolhida_id == Cotacao.id
+        ).group_by(Orcamento.id)
+        if current_user.papel == "aprovador":
+            if current_user.departamento_id is None:
+                query = query.filter(Orcamento.id == -1)
+            else:
+                query = query.filter(
+                    Orcamento.departamento_id == current_user.departamento_id,
+                    Orcamento.usuario_id != current_user.id,
+                ).having(total <= limite)
+        elif current_app.config.get("ADMIN_PODE_AUTOAPROVAR", False):
+            query = query.having(
+                or_(
+                    total > limite,
+                    and_(
+                        Orcamento.usuario_id == current_user.id,
+                        total <= limite,
+                    ),
+                )
+            )
+        else:
+            query = query.filter(Orcamento.usuario_id != current_user.id).having(
+                total > limite
+            )
     if busca:
         query = query.filter(
             or_(

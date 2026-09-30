@@ -30,6 +30,11 @@ def _tem_permissao_aprovar(usuario, orcamento):
     admin = usuario.papel == "admin"
     if usuario.papel not in {"admin", "aprovador"}:
         return False
+    if current_app.config.get("FEATURE_EMPRESARIAL_ENABLED", False):
+        from .empresarial_service import usuario_pode_aprovar
+
+        if not usuario_pode_aprovar(usuario, orcamento):
+            return False
     if orcamento.usuario_id == usuario.id:
         return admin and _admin_pode_autoaprovar()
     return True
@@ -42,6 +47,12 @@ def pode_transicionar(de, para, usuario, orcamento=None):
         return False
     if orcamento is None:
         return True
+    if (
+        de == "aprovado"
+        and para == "compra_realizada"
+        and current_app.config.get("FEATURE_EMPRESARIAL_ENABLED", False)
+    ):
+        return usuario.papel in {"admin", "comprador"}
 
     eh_dono_ou_admin = (
         usuario.papel == "admin" or orcamento.usuario_id == usuario.id

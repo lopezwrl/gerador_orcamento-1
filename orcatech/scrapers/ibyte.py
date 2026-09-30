@@ -8,6 +8,7 @@ import requests
 import re
 import json
 from bs4 import BeautifulSoup
+from .errors import BloqueioLoja
 
 try:
     from .driver_manager import versao_principal_chrome
@@ -63,6 +64,8 @@ def _buscar_api_vtex(produto):
 
         # CORREÇÃO: Aceitar status 206 (Partial Content) além do 200
         if r.status_code not in (200, 206):
+            if r.status_code in (403, 429):
+                raise BloqueioLoja(f"iBytes respondeu HTTP {r.status_code}.")
             return []
 
         data = r.json()
@@ -115,6 +118,8 @@ def _buscar_api_vtex(produto):
                     })
             except Exception as e:
                 print(f"[iBytes API] Erro em item: {e}")
+    except BloqueioLoja:
+        raise
     except Exception as e:
         print(f"[iBytes API] Erro: {e}")
 
@@ -140,6 +145,8 @@ def _buscar_inteligentsearch(produto):
         }
         """ % produto.replace('"', '\\"')
         r = _SESSION.post(url, json={"query": query}, timeout=10)
+        if r.status_code in (403, 429):
+            raise BloqueioLoja(f"iBytes respondeu HTTP {r.status_code}.")
         if r.status_code == 200:
             data = r.json()
             items = data.get("data", {}).get("productSearch", {}).get("products", [])
@@ -161,6 +168,8 @@ def _buscar_inteligentsearch(produto):
                         "preco_texto": preco_texto, "preco": preco_float,
                         "imagem": imagem, "link": link, "specs": [],
                     })
+    except BloqueioLoja:
+        raise
     except Exception as e:
         print(f"[iBytes GraphQL] Erro: {e}")
     return produtos
@@ -173,6 +182,8 @@ def _buscar_html_requests(produto):
         r = _SESSION.get(url, timeout=12)
         print(f"[iBytes HTML] Status: {r.status_code}")
         if r.status_code != 200:
+            if r.status_code in (403, 429):
+                raise BloqueioLoja(f"iBytes respondeu HTTP {r.status_code}.")
             return []
 
         soup = BeautifulSoup(r.text, "html.parser")
@@ -273,6 +284,8 @@ def _buscar_html_requests(produto):
             except Exception:
                 pass
 
+    except BloqueioLoja:
+        raise
     except Exception:
         pass
 

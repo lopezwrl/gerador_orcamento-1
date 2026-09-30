@@ -1,144 +1,116 @@
-<!doctype html>
-<html lang="pt-br">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ orcamento.numero }} – OrçaTech</title>
-  <style>
-    *{box-sizing:border-box}body{margin:0;background:#f4f6fb;color:#1a2040;font:15px/1.5 Arial,sans-serif}
-    main{width:min(1100px,calc(100% - 32px));margin:36px auto}h1,h2{color:#1e2a6e}
-    .topo,.acoes{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
-    .acoes{justify-content:flex-start;margin:18px 0}.card{margin:18px 0;padding:22px;background:#fff;border:1px solid #d4d9ef;border-radius:14px}
-    .grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
-    .dado small{display:block;color:#68749a;font-weight:700;text-transform:uppercase;font-size:11px}.dado strong{display:block;margin-top:4px}
-    .badge{display:inline-block;padding:4px 9px;border-radius:99px;background:#e0e7ff;color:#263879;font-weight:700}
-    table{width:100%;border-collapse:collapse;margin-top:14px}th,td{text-align:left;padding:11px;border-bottom:1px solid #e2e7f5;vertical-align:top}
-    .direita{text-align:right}.total{text-align:right;font-size:20px;font-weight:800;color:#1e2a6e;margin-top:18px}
-    .link,button{display:inline-block;padding:10px 14px;border:0;border-radius:7px;background:#2d3a8c;color:#fff;text-decoration:none;cursor:pointer;font:inherit}
-    button.reprovar{background:#a83232}button.neutro,.link.neutro{background:#58627e}
-    textarea{display:block;width:100%;min-height:84px;margin:8px 0 12px;padding:10px;border:1px solid #b8c0e0;border-radius:7px;font:inherit}
-    .aviso{padding:12px;background:#fff2d7;border:1px solid #f2d28a;border-radius:8px}.erro{background:#fee2e2}
-    .linha{padding:12px 0;border-bottom:1px solid #e2e7f5}.linha:last-child{border:0}.linha small{color:#68749a}
-    @media(max-width:700px){.tabela{overflow:auto}table{min-width:760px}}
-  </style>
-</head>
-<body><main>
-  <div class="topo">
-    <div><h1>{{ orcamento.numero }}</h1><span class="badge">{{ orcamento.status.replace('_', ' ')|title }}</span></div>
-    <a class="link neutro" href="{{ url_for('home') }}">Voltar ao sistema</a>
-  </div>
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for categoria, mensagem in messages %}<p class="aviso {{ 'erro' if categoria == 'erro' else '' }}">{{ mensagem }}</p>{% endfor %}
-  {% endwith %}
-  {% if orcamento.expirado %}<p class="aviso erro">Orçamento expirado em {{ orcamento.validade.strftime('%d/%m/%Y') }}.</p>{% endif %}
-  <section class="card grade">
-    <div class="dado"><small>Solicitante</small><strong>{{ orcamento.solicitante or 'Não informado' }}</strong></div>
-    <div class="dado"><small>Criado em</small><strong>{{ orcamento.criado_em.strftime('%d/%m/%Y %H:%M') }}</strong></div>
-    <div class="dado"><small>Validade</small><strong>{{ orcamento.validade.strftime('%d/%m/%Y') if orcamento.validade else 'Não definida' }}</strong></div>
-    <div class="dado"><small>Total geral</small><strong>R$ {{ "{:,.2f}".format(orcamento.total).replace(',', 'X').replace('.', ',').replace('X', '.') }}</strong></div>
-  </section>
-  <section class="card">
-    <h2>Itens e condições</h2>
-    <div class="tabela"><table><thead><tr><th>Produto</th><th>Fornecedor</th><th>Qtd.</th><th>Preço unitário</th><th>Subtotal</th><th>Frete</th></tr></thead>
-      <tbody>{% for item in orcamento.itens %}
+{% extends 'base_app.html' %}
+{% from '_macros.html' import brl %}
+{% block titulo %}{{ orcamento.numero }}{% endblock %}
+{% block icone %}<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/>{% endblock %}
+{% block h1 %}{{ orcamento.numero }}{% endblock %}
+{% block subtitulo %}<span class="bd">{{ orcamento.status.replace('_', ' ')|title }}</span>{% endblock %}
+{% block acoes %}<a class="btn btn-primary" href="{{ url_for('orcamento.pdf', orcamento_id=orcamento.id) }}"><svg class="i" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Baixar PDF</a>{% endblock %}
+
+{% block conteudo %}
+{% if orcamento.expirado %}<div class="flash-msg erro">Orçamento expirado em {{ orcamento.validade.strftime('%d/%m/%Y') }}.</div>{% endif %}
+
+<section class="card grade">
+  <div class="dado"><small>Solicitante</small><strong>{{ orcamento.solicitante or 'Não informado' }}</strong></div>
+  <div class="dado"><small>Criado em</small><strong>{{ orcamento.criado_em.strftime('%d/%m/%Y %H:%M') }}</strong></div>
+  <div class="dado"><small>Validade</small><strong>{{ orcamento.validade.strftime('%d/%m/%Y') if orcamento.validade else 'Não definida' }}</strong></div>
+  <div class="dado"><small>Total geral</small><strong>{{ brl(orcamento.total) }}</strong></div>
+  {% if config.FEATURE_EMPRESARIAL_ENABLED %}
+  <div class="dado"><small>Departamento</small><strong>{{ orcamento.departamento.nome if orcamento.departamento else 'Não informado' }}</strong></div>
+  <div class="dado"><small>Centro de custo</small><strong>{{ orcamento.centro_custo.codigo ~ ' — ' ~ orcamento.centro_custo.nome if orcamento.centro_custo else 'Não informado' }}</strong></div>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Itens e condições</h2>
+  <div class="tw">
+    <table>
+      <thead>
+        <tr><th>Produto</th><th>Fornecedor</th><th>Qtd.</th><th>Preço unitário</th><th>Subtotal</th><th>Frete</th></tr>
+      </thead>
+      <tbody>
+        {% for i in orcamento.itens %}
         <tr>
-          <td>{% if item.link %}<a href="{{ item.link }}" rel="noopener noreferrer">{{ item.nome_produto }}</a>{% else %}{{ item.nome_produto }}{% endif %}</td>
-          <td>{{ item.fornecedor_nome }}</td><td>{{ item.quantidade }}</td>
-          <td>R$ {{ "{:,.2f}".format(item.preco_unitario).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
-          <td>R$ {{ "{:,.2f}".format(item.subtotal).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
-          <td>R$ {{ "{:,.2f}".format(item.frete).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+          <td>{% if i.link %}<a href="{{ i.link }}" target="_blank" rel="noopener noreferrer" style="color:var(--blue);font-weight:600">{{ i.nome_produto }}</a>{% else %}{{ i.nome_produto }}{% endif %}</td>
+          <td>{{ i.fornecedor_nome }}</td><td>{{ i.quantidade }}</td><td>{{ brl(i.preco_unitario) }}</td><td>{{ brl(i.subtotal) }}</td><td>{{ brl(i.frete) }}</td>
         </tr>
-      {% endfor %}</tbody></table></div>
-    <p class="total">Total geral: R$ {{ "{:,.2f}".format(orcamento.total).replace(',', 'X').replace('.', ',').replace('X', '.') }}</p>
-    <p><strong>Condições comerciais:</strong> {{ orcamento.condicoes_comerciais or 'Não informadas' }}</p>
-    <p><strong>Observações:</strong> {{ orcamento.observacoes or 'Nenhuma' }}</p>
-  </section>
-  {% if pode_gerenciar_link and pode_compartilhar %}
-  <section class="card">
-    <h2>Compartilhar orçamento</h2>
-    {% if link_ativo %}
-      <p><a href="{{ link_publico }}" rel="noopener noreferrer">{{ link_publico }}</a></p>
-      <p>Válido até {{ orcamento.share_expira_em.strftime('%d/%m/%Y %H:%M') }}.</p>
-      <div class="acoes">
-        <a class="link" href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer">Compartilhar no WhatsApp</a>
-        <form method="post" action="{{ url_for('orcamento.regenerar_link', orcamento_id=orcamento.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="neutro" type="submit">Regenerar link</button>
-        </form>
-        <form method="post" action="{{ url_for('orcamento.revogar_link', orcamento_id=orcamento.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="reprovar" type="submit">Revogar link</button>
-        </form>
-      </div>
-    {% else %}
-      <p>Gere um link somente leitura, válido por {{ config.LINK_COMPARTILHAMENTO_DIAS }} dias.</p>
-      <form method="post" action="{{ url_for('orcamento.gerar_link', orcamento_id=orcamento.id) }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Gerar link público</button>
-      </form>
-    {% endif %}
-  </section>
-  {% endif %}
-  {% if pode_enviar_email %}
-  <section class="card">
-    <h2>Enviar PDF por e-mail</h2>
-    <p>Até {{ config.ORCAMENTO_MAX_EMAILS_HORA }} envios por orçamento a cada hora. O envio ocorre em segundo plano.</p>
-    <form method="post" action="{{ url_for('orcamento.enviar_email', orcamento_id=orcamento.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label for="destinatario">E-mail do destinatário</label>
-      <input id="destinatario" type="email" name="destinatario" maxlength="254" required>
-      <button type="submit">Enviar orçamento em PDF</button>
-    </form>
-    {% if envios_email %}
-      <h3>Envios recentes</h3>
-      {% for envio in envios_email %}
-        <div class="linha">
-          <strong>{{ envio.destinatario }}</strong>
-          <small> · {{ envio.criado_em.strftime('%d/%m/%Y %H:%M') }} ·
-            {% if envio.sucesso is none %}Em andamento
-            {% elif envio.sucesso %}Enviado
-            {% else %}Falhou{% endif %}
-          </small>
-          {% if envio.erro and envio.sucesso is sameas false %}<div>{{ envio.erro }}</div>{% endif %}
-        </div>
-      {% endfor %}
-    {% endif %}
-  </section>
-  {% endif %}
-  {% if pode_decidir %}
-  <section class="card">
-    <h2>Decisão</h2>
-    <form method="post" action="{{ url_for('orcamento.decidir', orcamento_id=orcamento.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label for="comentario">Comentário (obrigatório para reprovar)</label>
-      <textarea id="comentario" name="comentario" maxlength="2000"></textarea>
-      <button type="submit" name="decisao" value="aprovado">Aprovar</button>
-      <button type="submit" class="reprovar" name="decisao" value="reprovado">Reprovar</button>
-    </form>
-  </section>
-  {% endif %}
-  <section class="card">
-    <h2>Histórico do orçamento</h2>
-    {% for evento in orcamento.historico %}
-      <div class="linha"><strong>{{ evento.status_de.replace('_', ' ')|title }} → {{ evento.status_para.replace('_', ' ')|title }}</strong>
-        <small> · {{ evento.criado_em.strftime('%d/%m/%Y %H:%M') }} · {{ evento.usuario.nome }}</small>
-        {% if evento.comentario %}<div>{{ evento.comentario }}</div>{% endif %}
-      </div>
-    {% else %}<p>Nenhuma alteração de status registrada.</p>{% endfor %}
-  </section>
-  <div class="acoes">
-    <a class="link" href="{{ url_for('orcamento.pdf', orcamento_id=orcamento.id) }}">Baixar PDF</a>
-    {% if pode_reabrir %}
-    <form method="post" action="{{ url_for('orcamento.reabrir', orcamento_id=orcamento.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="neutro" type="submit">Reabrir orçamento</button>
-    </form>
-    {% endif %}
-    {% if pode_renovar %}
-    <form method="post" action="{{ url_for('orcamento.renovar_validade', orcamento_id=orcamento.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="neutro" type="submit">Renovar validade</button>
-    </form>
-    {% endif %}
-    {% if pode_marcar_compra %}
-    <form method="post" action="{{ url_for('orcamento.marcar_compra_realizada', orcamento_id=orcamento.id) }}">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Marcar compra realizada</button>
-    </form>
-    {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-</main></body></html>
+  <p class="total">Total geral: {{ brl(orcamento.total) }}</p>
+  <p style="margin-top:12px"><strong>Condições comerciais:</strong> {{ orcamento.condicoes_comerciais or 'Não informadas' }}</p>
+  <p><strong>Observações:</strong> {{ orcamento.observacoes or 'Nenhuma' }}</p>
+</section>
+
+{% if config.FEATURE_EMPRESARIAL_ENABLED and (current_user.papel in ['admin', 'comprador'] or orcamento.usuario_id == current_user.id) %}
+<section class="card">
+  <h2>Pedidos de compra</h2>
+  {% if pedidos_compra %}
+    <p>Este orçamento gerou {{ pedidos_compra|length }} pedido(s), separado(s) por fornecedor.</p>
+    {% for p in pedidos_compra %}<div class="linha"><strong>{{ p.numero }}</strong> · {{ p.snapshot_fornecedor_nome }} · {{ p.status|title }}
+      <a class="btn btn-sm" style="margin-left:10px" href="{{ url_for('empresarial.detalhe_pedido', pedido_id=p.id) }}">Abrir pedido</a></div>{% endfor %}
+  {% else %}<p>Nenhum pedido emitido.</p>{% endif %}
+  {% if pode_emitir_pedido %}<a class="btn btn-primary" style="margin-top:10px" href="{{ url_for('empresarial.pedidos_orcamento', orcamento_id=orcamento.id) }}">Emitir pedidos por fornecedor</a>
+  {% elif current_user.papel in ['admin', 'comprador'] and orcamento.status == 'aprovado' %}<a class="btn" style="margin-top:10px" href="{{ url_for('empresarial.pedidos_orcamento', orcamento_id=orcamento.id) }}">Ver emissão de pedidos</a>{% endif %}
+</section>
+{% endif %}
+
+{% if pode_gerenciar_link and pode_compartilhar %}
+<section class="card">
+  <h2>Compartilhar orçamento</h2>
+  {% if link_ativo %}
+    <p><a href="{{ link_publico }}" target="_blank" rel="noopener noreferrer" style="color:var(--blue);font-weight:600">{{ link_publico }}</a><br>Válido até {{ orcamento.share_expira_em.strftime('%d/%m/%Y %H:%M') }}.</p>
+    <div class="acoes" style="margin-top:14px">
+      <a class="btn btn-primary" href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer">Compartilhar no WhatsApp</a>
+      <form method="post" action="{{ url_for('orcamento.regenerar_link', orcamento_id=orcamento.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn" type="submit">Regenerar link</button></form>
+      <form method="post" action="{{ url_for('orcamento.revogar_link', orcamento_id=orcamento.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-danger" type="submit">Revogar link</button></form>
+    </div>
+  {% else %}
+    <p>Gere um link somente leitura, válido por {{ config.LINK_COMPARTILHAMENTO_DIAS }} dias.</p>
+    <form method="post" action="{{ url_for('orcamento.gerar_link', orcamento_id=orcamento.id) }}" style="margin-top:14px"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary" type="submit">Gerar link público</button></form>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if pode_enviar_email %}
+<section class="card">
+  <h2>Enviar PDF por e-mail</h2>
+  <p>Até {{ config.ORCAMENTO_MAX_EMAILS_HORA }} envios por orçamento a cada hora. O envio ocorre em segundo plano.</p>
+  <form class="fg" method="post" action="{{ url_for('orcamento.enviar_email', orcamento_id=orcamento.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div><label for="destinatario">E-mail do destinatário</label><input id="destinatario" type="email" name="destinatario" maxlength="254" required placeholder="exemplo@empresa.com"></div>
+    <button class="btn btn-primary" type="submit">Enviar PDF</button>
+  </form>
+  {% if envios_email %}<h2 style="font-size:15px;margin-top:20px">Envios recentes</h2>
+    {% for e in envios_email %}<div class="linha"><strong>{{ e.destinatario }}</strong>
+      <small> · {{ e.criado_em.strftime('%d/%m/%Y %H:%M') }} · {% if e.sucesso is none %}Em andamento{% elif e.sucesso %}Enviado{% else %}Falhou{% endif %}</small>
+      {% if e.erro and e.sucesso is sameas false %}<div style="color:var(--danger)">{{ e.erro }}</div>{% endif %}</div>{% endfor %}
+  {% endif %}
+</section>
+{% endif %}
+
+{% if pode_decidir %}
+<section class="card">
+  <h2>Decisão</h2>
+  <form method="post" action="{{ url_for('orcamento.decidir', orcamento_id=orcamento.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="comentario">Comentário (obrigatório para reprovar)</label>
+    <textarea id="comentario" name="comentario" maxlength="2000" placeholder="Escreva o motivo da aprovação ou rejeição..."></textarea>
+    <div class="acoes"><button class="btn btn-primary" type="submit" name="decisao" value="aprovado">Aprovar</button><button class="btn btn-danger" type="submit" name="decisao" value="reprovado">Reprovar</button></div>
+  </form>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Histórico do orçamento</h2>
+  {% for ev in orcamento.historico %}<div class="linha"><strong>{{ ev.status_de.replace('_', ' ')|title }} &rarr; {{ ev.status_para.replace('_', ' ')|title }}</strong>
+    <small> · {{ ev.criado_em.strftime('%d/%m/%Y %H:%M') }} · {{ ev.usuario.nome }}</small>{% if ev.comentario %}<div>{{ ev.comentario }}</div>{% endif %}</div>
+  {% else %}<p>Nenhuma alteração de status registrada.</p>{% endfor %}
+</section>
+
+<div class="acoes" style="margin-top:20px">
+  {% if pode_reabrir %}<form method="post" action="{{ url_for('orcamento.reabrir', orcamento_id=orcamento.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn" type="submit">Reabrir orçamento</button></form>{% endif %}
+  {% if pode_renovar %}<form method="post" action="{{ url_for('orcamento.renovar_validade', orcamento_id=orcamento.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn" type="submit">Renovar validade</button></form>{% endif %}
+  {% if pode_marcar_compra %}<form method="post" action="{{ url_for('orcamento.marcar_compra_realizada', orcamento_id=orcamento.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary" type="submit">Marcar compra realizada</button></form>{% endif %}
+</div>
+{% endblock %}

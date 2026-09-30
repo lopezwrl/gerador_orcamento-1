@@ -21,6 +21,7 @@ from bs4 import BeautifulSoup
 
 from ..paths import DEBUG_DIR
 from .driver_manager import SELENIUM_SEMAPHORE, UC_START_LOCK, versao_principal_chrome
+from .errors import BloqueioLoja, pagina_com_bloqueio
 
 BASE = "https://www.gorilashield.com.br"
 _CABECALHOS = {
@@ -71,8 +72,12 @@ def _html_via_curl_cffi(url):
     try:
         r = cffi.get(url, impersonate="chrome", headers=_CABECALHOS, timeout=15, allow_redirects=True)
         print(f"[Gshield] curl_cffi Status: {r.status_code} | URL final: {r.url}")
+        if r.status_code in (403, 429):
+            raise BloqueioLoja(f"Gshield respondeu HTTP {r.status_code}.")
         if r.status_code == 200 and r.text:
             return r.text
+    except BloqueioLoja:
+        raise
     except Exception as e:
         print(f"[Gshield] curl_cffi erro: {e}")
     return ""
@@ -105,7 +110,12 @@ def _html_via_navegador(url):
             except Exception:
                 pass
             print(f"[Gshield] navegador URL final: {driver.current_url} | título: {driver.title!r}")
-            return driver.page_source
+            html = driver.page_source
+            if pagina_com_bloqueio(html, driver.current_url):
+                raise BloqueioLoja("Gshield sinalizou bloqueio anti-bot.")
+            return html
+    except BloqueioLoja:
+        raise
     except Exception as e:
         print(f"[Gshield] navegador erro: {e}")
         return ""
@@ -259,6 +269,8 @@ def buscar_gshield(produto):
                 produtos = _parse(html)
                 if not produtos:
                     _salvar_debug(html, "navegador")
+    except BloqueioLoja:
+        raise
     except Exception as e:
         print(f"[Gshield] Erro: {e}")
 

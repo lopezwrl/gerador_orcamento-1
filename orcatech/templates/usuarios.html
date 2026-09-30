@@ -1,58 +1,290 @@
 <!doctype html>
 <html lang="pt-br">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Usuários – OrçaTech</title>
-  <style>
-    *{box-sizing:border-box}body{margin:0;background:#f4f6fb;color:#1a2040;font:15px Arial,sans-serif}
-    main{width:min(1000px,calc(100% - 32px));margin:40px auto}h1{color:#1e2a6e}
-    section{margin:20px 0;padding:24px;background:#fff;border:1px solid #d4d9ef;border-radius:14px}
-    form.create{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end}
-    label{display:block;margin-bottom:6px;font-weight:600}input,select{width:100%;padding:10px;border:1px solid #b8c0e0;border-radius:7px}
-    button,.link{display:inline-block;padding:10px 14px;border:0;border-radius:7px;background:#2d3a8c;color:#fff;text-decoration:none;cursor:pointer}
-    table{width:100%;border-collapse:collapse}th,td{padding:12px;border-bottom:1px solid #d4d9ef;text-align:left}
-    .msg{padding:12px;border-radius:7px;background:#e0f2fe}.erro{background:#fee2e2;color:#991b1b}
-    .acoes{display:flex;gap:12px;margin:16px 0;align-items:center}.inline{display:inline}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usuários – OrçaTech</title>
+<link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}">
+<link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}">
+<link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon/favicon-16x16.png') }}">
+<link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon/favicon-180x180.png') }}">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('tema') || 'light');</script>
+<style>
+:root{--navy:#1e2a6e;--royal:#2d3a8c;--blue:#3d52c4;--sky:#5b78e0;--ice:#dde5ff;--gold:#e69500;--gold-lt:#f5b800;--teal:#0a8a79;--teal-lt:#0fb39e;--danger:#dc2626;--bg:#f4f6fb;--surface:#fff;--surface2:#f0f2fa;--surface3:#e8ecf8;--border:#d4d9ef;--border2:#b8c0e0;--text:#1a2040;--text2:#374080;--muted:#8890b8;--muted2:#6070a8;--radius:12px;--radius-lg:16px;--radius-xl:22px;--shadow-sm:0 1px 3px rgba(30,42,110,.06);--shadow:0 4px 20px rgba(30,42,110,.08);--shadow-lg:0 12px 40px rgba(30,42,110,.14)}
+[data-theme='dark']{--bg:#0b1220;--surface:#162033;--surface2:#1d2940;--surface3:#243550;--border:#324764;--border2:#46607f;--text:#f4f7ff;--text2:#dfe7ff;--muted:#aab7d3;--muted2:#c5d0ea;--navy:#3d52c4;--royal:#5b78e0;--blue:#6f8cf0;--sky:#8fa6f5;--ice:#26345c;--gold:#f5b800;--gold-lt:#ffd24d;--teal:#2dd4bf;--danger:#f87171;--shadow-sm:0 1px 3px rgba(0,0,0,.4);--shadow:0 4px 20px rgba(0,0,0,.35);--shadow-lg:0 12px 40px rgba(0,0,0,.5)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font:14px/1.6 'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;transition:background .25s,color .25s}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(61,82,196,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(61,82,196,.025) 1px,transparent 1px);background-size:40px 40px}
+.glow{position:fixed;pointer-events:none;z-index:0;border-radius:50%;filter:blur(20px)}
+.glow.g1{top:-160px;right:-120px;width:560px;height:560px;background:radial-gradient(circle,rgba(61,82,196,.16),transparent 65%)}
+.glow.g2{bottom:-200px;left:30%;width:640px;height:640px;background:radial-gradient(circle,rgba(91,120,224,.10),transparent 65%)}
+@keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+svg.i{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.shell{display:flex;min-height:100vh;position:relative;z-index:1}
+.main{flex:1;min-width:0;padding:40px 44px 60px}
+/* sidebar */
+.side{width:250px;flex-shrink:0;background:var(--navy);box-shadow:4px 0 24px rgba(30,42,110,.18);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:100}
+[data-theme='dark'] .side,[data-theme='dark'] .topbar-mobile{background:#0a1322}
+.side-header{padding:28px 24px 22px;border-bottom:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.15)}
+.side-header h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#fff;letter-spacing:2px}
+.side-header div{margin-top:6px;color:rgba(255,255,255,.75);font-size:12px}
+.side-nav{padding:20px 14px;flex:1;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+.nav-label{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:2px;text-transform:uppercase;font-weight:700;padding:0 10px;margin:12px 0 6px}
+.nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:rgba(255,255,255,.6);text-decoration:none;font-size:13.5px;font-weight:500;position:relative;transition:color .22s,background .22s,transform .22s cubic-bezier(.4,0,.2,1)}
+.nav .icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);transition:all .2s;flex-shrink:0}
+.nav .icon svg.i{width:16px;height:16px}
+.nav:hover{color:#fff;background:rgba(255,255,255,.08);transform:translateX(2px)}
+.nav.on{color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15)}
+.nav.on .icon{background:linear-gradient(135deg,var(--gold),var(--gold-lt));box-shadow:0 4px 12px rgba(240,165,0,.4)}
+.nav.on::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--gold-lt);border-radius:0 3px 3px 0}
+.badge-n{margin-left:6px;background:#2563EB;color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:1px 7px;min-width:20px;text-align:center}
+.side-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.35)}
+.side-footer span{color:rgba(255,255,255,.6);font-weight:600}
+.btn-sair{width:100%;display:flex;align-items:center;gap:12px;padding:11px 14px;margin-bottom:14px;border:0;border-radius:10px;cursor:pointer;font-family:inherit;text-align:left;color:#fff;background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 14px rgba(220,38,38,.38);transition:transform .2s,box-shadow .2s,filter .2s}
+.btn-sair:hover{transform:translateY(-2px);filter:brightness(1.08);box-shadow:0 8px 20px rgba(220,38,38,.5)}
+.btn-sair strong{display:block;font-size:13.5px;line-height:1.25}.btn-sair small{display:block;font-size:11px;color:rgba(255,255,255,.8);line-height:1.25;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar-mobile{display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--navy);padding:12px 20px;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(30,42,110,.2)}
+.topbar-mobile strong{color:#fff;letter-spacing:2px;font-family:'Playfair Display',serif}
+.hamburger{background:none;border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:8px;border-radius:8px;display:flex;flex-direction:column;gap:4px}
+.hamburger span{display:block;width:18px;height:2px;background:#fff;border-radius:2px;transition:all .3s}
+.hamburger.open span:nth-child(1){transform:translateY(6px) rotate(45deg)}.hamburger.open span:nth-child(2){opacity:0}.hamburger.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+.overlay{display:none;position:fixed;inset:0;background:rgba(20,30,80,.5);z-index:99;backdrop-filter:blur(4px)}.overlay.show{display:block}
+/* barra superior */
+.top{display:flex;align-items:center;gap:14px;padding:10px 16px;margin-bottom:28px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);animation:fadeDown .5s cubic-bezier(.16,1,.3,1) both}
+.top form.busca{flex:1;max-width:420px}
+.fi{position:relative}.fi>svg.i{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted);pointer-events:none}
+.fi input,.fi select{padding-left:40px}
+input,select{width:100%;padding:11px 14px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--text);font:14px 'Plus Jakarta Sans',sans-serif;transition:border-color .2s,background .25s,box-shadow .2s}
+input:focus,select:focus{outline:none;border-color:var(--blue);background:var(--surface);box-shadow:0 0 0 3px rgba(61,82,196,.15)}
+input::placeholder{color:var(--muted)}
+.top-r{margin-left:auto;display:flex;align-items:center;gap:12px}
+.ib{width:40px;height:40px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:grid;place-items:center;transition:.2s}
+.ib:hover{transform:translateY(-2px);border-color:var(--blue);color:var(--blue)}
+[data-theme='dark'] .theme-btn{color:var(--gold-lt)}
+.me{display:flex;align-items:center;gap:10px;padding-left:14px;border-left:1px solid var(--border)}
+.me b{display:block;font-size:13px;line-height:1.2}.me small{color:var(--muted2);font-size:11px}
+.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0;background:linear-gradient(135deg,var(--navy),var(--blue))}
+.av.c1{background:linear-gradient(135deg,#3d52c4,#5b78e0)}.av.c2{background:linear-gradient(135deg,#0a8a79,#0fb39e)}.av.c3{background:linear-gradient(135deg,#e69500,#f5b800)}.av.c4{background:linear-gradient(135deg,#7c3aed,#a78bfa)}
+/* cabeçalho */
+.page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:24px;animation:fadeDown .5s .05s cubic-bezier(.16,1,.3,1) both}
+.ph-left{display:flex;align-items:center;gap:14px}
+.ph-icon{width:48px;height:48px;border-radius:14px;background:var(--ice);color:var(--blue);display:grid;place-items:center}.ph-icon svg.i{width:24px;height:24px}
+.page-header h1{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--navy);letter-spacing:-.5px;line-height:1.2}.page-header p{color:var(--muted2);font-size:13px}
+.acoes{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{padding:10px 18px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text2);font:600 13px 'Plus Jakarta Sans',sans-serif;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;box-shadow:var(--shadow-sm);transition:all .22s cubic-bezier(.16,1,.3,1)}
+.btn:hover{color:var(--blue);border-color:var(--blue);transform:translateY(-1px)}
+.btn svg.i{width:15px;height:15px}
+.btn-primary{background:linear-gradient(135deg,var(--navy),var(--blue));border-color:transparent;color:#fff;box-shadow:0 4px 14px rgba(30,42,110,.25)}
+.btn-primary:hover{color:#fff;border-color:transparent;transform:translateY(-2px);box-shadow:0 8px 20px rgba(30,42,110,.35)}
+.inline{display:inline}
+.flash-msg{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--radius);margin-bottom:16px;font-weight:600;animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both}
+.flash-msg.sucesso{background:rgba(15,179,158,.14);color:var(--teal)}.flash-msg.erro{background:rgba(220,38,38,.12);color:var(--danger)}
+/* cartões */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:26px;margin-bottom:22px;box-shadow:var(--shadow-sm);animation:fadeUp .55s cubic-bezier(.16,1,.3,1) both;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s,border-color .3s,background .25s}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow);border-color:var(--sky)}
+.card.c-a{animation-delay:.12s}.card.c-b{animation-delay:.2s}
+.card-h{display:flex;align-items:center;gap:14px;margin-bottom:22px;flex-wrap:wrap}
+.ci{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;display:grid;place-items:center;box-shadow:0 6px 16px rgba(30,42,110,.28);flex-shrink:0}
+.card-h h2{font-size:18px;font-weight:800;line-height:1.25}.card-h p{color:var(--muted2);font-size:12.5px}
+.card-h .tools{margin-left:auto;display:flex;gap:10px;position:relative}
+.card-h .tools .fi{width:230px}
+label{display:block;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:5px}label i{color:var(--danger);font-style:normal}
+.form-grid{display:grid;grid-template-columns:repeat(4,1fr) auto;gap:14px;align-items:end}
+.info{display:flex;align-items:center;gap:10px;margin-top:18px;padding:12px 16px;border-radius:var(--radius);background:var(--ice);color:var(--text2);font-size:12.5px}
+.info svg.i{color:var(--blue);width:16px;height:16px}
+/* tabela */
+.tw{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg)}
+table{width:100%;border-collapse:collapse;min-width:680px}
+th{padding:13px 18px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted2);background:var(--surface2)}
+td{padding:14px 18px;border-top:1px solid var(--border);font-size:13px;vertical-align:middle}
+tbody tr.row{animation:fadeUp .45s cubic-bezier(.16,1,.3,1) both;transition:background .2s}
+tbody tr.row:hover{background:var(--surface2)}
+.who{display:flex;align-items:center;gap:12px;font-weight:700}
+.bd,.st{display:inline-flex;align-items:center;gap:6px;padding:3px 12px;border-radius:999px;font-size:11.5px;font-weight:700}
+.bd{background:var(--ice);color:var(--blue)}.bd.admin{background:rgba(61,82,196,.16)}
+.st.on{background:rgba(15,179,158,.14);color:var(--teal)}.st.off{background:rgba(220,38,38,.12);color:var(--danger)}
+.st::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.tg{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:9px;border:1px solid transparent;font:700 12px 'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:all .22s cubic-bezier(.16,1,.3,1)}
+.tg svg.i{width:13px;height:13px}
+.tg.desat{background:rgba(220,38,38,.1);color:var(--danger);border-color:rgba(220,38,38,.25)}.tg.desat:hover{background:var(--danger);color:#fff;transform:translateY(-1px)}
+.tg.ativ{background:rgba(15,179,158,.12);color:var(--teal);border-color:rgba(15,179,158,.3)}.tg.ativ:hover{background:var(--teal);color:#fff;transform:translateY(-1px)}
+.tg.me{background:var(--surface2);color:var(--muted2);border-color:var(--border);cursor:default}
+.vazio{padding:34px;text-align:center;color:var(--muted2);display:none}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;color:var(--muted2);font-size:12px;flex-wrap:wrap}
+.pg{display:flex;gap:6px}.pg button{min-width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font:700 12px 'Plus Jakarta Sans',sans-serif;cursor:pointer;transition:.2s}
+.pg button:hover:not(:disabled){border-color:var(--blue);color:var(--blue)}.pg button.on{background:var(--navy);border-color:var(--navy);color:#fff}.pg button:disabled{opacity:.4;cursor:default}
+.pop{display:none;position:absolute;top:calc(100% + 8px);right:0;z-index:20;width:240px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);animation:fadeUp .25s cubic-bezier(.16,1,.3,1) both}
+.pop.show{display:block}.pop label{margin-top:10px}.pop label:first-child{margin-top:0}.pop .btn{width:100%;margin-top:14px}
+@view-transition{navigation:auto}
+.main{view-transition-name:app-content}.side{view-transition-name:app-sidebar}.topbar-mobile{view-transition-name:app-topbar}
+@media(max-width:1200px){.form-grid{grid-template-columns:repeat(2,1fr)}.form-grid .btn{grid-column:1/-1}}
+@media(max-width:900px){.side{position:fixed;top:0;left:0;bottom:0;height:auto;transform:translateX(-100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}.side.open{transform:translateX(0);box-shadow:12px 0 40px rgba(20,30,80,.3)}.topbar-mobile{display:flex}.main{padding:76px 16px 48px}.me div{display:none}.card-h .tools{margin-left:0;width:100%}.card-h .tools .fi{flex:1;width:auto}}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}}
+</style>
 </head>
-<body><main>
-  <h1>Gerenciar usuários</h1>
-  <div class="acoes"><a class="link" href="{{ url_for('home') }}">Voltar ao sistema</a>
-    <form action="{{ url_for('auth.logout') }}" method="post" class="inline">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Sair</button>
-    </form>
-  </div>
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for categoria, mensagem in messages %}<p class="msg {{ 'erro' if categoria == 'erro' else '' }}">{{ mensagem }}</p>{% endfor %}
-  {% endwith %}
-  {% if erro %}<p class="msg erro" role="alert">{{ erro }}</p>{% endif %}
-  <section>
-    <h2>Criar usuário</h2>
-    <form class="create" method="post">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div><label for="nome">Nome</label><input id="nome" name="nome" maxlength="120" required></div>
-      <div><label for="email">E-mail</label><input id="email" name="email" type="email" maxlength="160" required></div>
-      <div><label for="senha">Senha inicial</label><input id="senha" name="senha" type="password" minlength="12" required></div>
-      <div><label for="papel">Papel</label><select id="papel" name="papel"><option value="usuario">Usuário</option><option value="aprovador">Aprovador</option><option value="admin">Administrador</option></select></div>
-      <button type="submit">Criar usuário</button>
-    </form>
-    <p>A senha deve ter pelo menos 12 caracteres. O sistema não envia nem registra senhas.</p>
-  </section>
-  <section>
-    <h2>Contas cadastradas</h2>
-    <table><thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th><th>Status</th><th>Ação</th></tr></thead><tbody>
-      {% for usuario in usuarios %}
-      <tr><td>{{ usuario.nome }}</td><td>{{ usuario.email }}</td><td>{{ usuario.papel }}</td><td>{{ 'Ativo' if usuario.ativo else 'Desativado' }}</td><td>
-        {% if usuario.id != current_user.id %}
-        <form method="post" action="{{ url_for('auth.alternar_usuario', usuario_id=usuario.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button type="submit">{{ 'Desativar' if usuario.ativo else 'Ativar' }}</button>
+<body>
+<div class="glow g1"></div><div class="glow g2"></div>
+<div class="shell">
+  <div class="overlay" id="overlay" onclick="fecharMenu()"></div>
+  <div class="topbar-mobile"><strong>ORÇATECH</strong><button class="hamburger" id="hamburger" type="button" onclick="toggleMenu()" aria-label="Menu"><span></span><span></span><span></span></button></div>
+  <aside class="side" id="sidebar">
+    <div class="side-header"><h2>ORÇATECH</h2><div>Comparador Inteligente</div></div>
+    <div class="side-nav">
+      <div class="nav-label">Menu Principal</div>
+      <a class="nav" href="{{ url_for('home') }}"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M3 9.5 12 2l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></div> Dashboard</a>
+      <a class="nav" href="/orcamentos"><div class="icon"><svg class="i" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6M9 8h1"/></svg></div> Orçamentos</a>
+      <a class="nav" href="/relatorios"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-3"/></svg></div> Relatórios</a>
+      <a class="nav" href="{{ url_for('fornecedores.listar') }}"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div> Fornecedores</a>
+      <a class="nav" href="{{ url_for('orcamento.carrinho') }}"><div class="icon"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg></div> Carrinho{% if carrinho_count %}<span class="badge-n">{{ carrinho_count }}</span>{% endif %}</a>
+      <div class="nav-label">Administração</div>
+      <a class="nav on" href="{{ url_for('auth.usuarios') }}"><div class="icon"><svg class="i" viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><circle cx="12" cy="10" r="2.5"/><path d="M7.8 17c.8-2 2.4-3 4.2-3s3.400 1 4.200 3"/></svg></div> Gerenciar usuários</a>
+    </div>
+    <div class="side-footer">
+      <form action="{{ url_for('auth.logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-sair" title="Encerrar a sessão"><svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg><span><strong>Sair</strong><small>{{ current_user.nome }}</small></span></button>
+      </form>
+      OrçaTech v2.0 · <span>ORÇATECH</span>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="top">
+      <form class="busca" action="/buscar" method="POST"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="fi"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input type="text" name="produto" placeholder="Buscar no sistema..." required aria-label="Buscar no sistema"></div>
+      </form>
+      <div class="top-r">
+        <button class="ib theme-btn" type="button" onclick="toggleTheme()" aria-label="Alternar tema"></button>
+        <button class="ib" type="button" title="Notificações" aria-label="Notificações"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+        <div class="me"><span class="av">{{ (current_user.nome or '?')[:1]|upper }}</span><div><b>{{ current_user.nome }}</b><small>{{ current_user.email }}</small></div></div>
+      </div>
+    </div>
+
+    <div class="page-header">
+      <div class="ph-left">
+        <div class="ph-icon"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div><h1>Gerenciar usuários</h1><p>Crie, edite e gerencie os usuários do sistema.</p></div>
+      </div>
+      <div class="acoes">
+        <a class="btn" href="{{ url_for('home') }}"><svg class="i" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M5 12h14"/></svg>Voltar ao sistema</a>
+        <form action="{{ url_for('auth.logout') }}" method="post" class="inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-primary"><svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>Sair</button>
         </form>
-        {% else %}Conta atual{% endif %}
-      </td></tr>
-      {% endfor %}
-    </tbody></table>
-  </section>
-</main></body>
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}{% for categoria, mensagem in messages %}
+      <div class="flash-msg {{ 'erro' if categoria == 'erro' else 'sucesso' }}"><span>{{ mensagem }}</span></div>
+    {% endfor %}{% endwith %}
+    {% if erro %}<div class="flash-msg erro" role="alert"><span>{{ erro }}</span></div>{% endif %}
+
+    <section class="card c-a">
+      <div class="card-h"><div class="ci"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></div>
+        <div><h2>Criar usuário</h2><p>Preencha os dados abaixo para cadastrar um novo usuário.</p></div></div>
+      <form class="form-grid" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div><label for="nome">Nome <i>*</i></label><div class="fi"><svg class="i" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><input id="nome" name="nome" maxlength="120" placeholder="Digite o nome completo" required></div></div>
+        <div><label for="email">E-mail <i>*</i></label><div class="fi"><svg class="i" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg><input id="email" name="email" type="email" maxlength="160" placeholder="exemplo@email.com" required></div></div>
+        <div><label for="senha">Senha inicial <i>*</i></label><div class="fi"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><input id="senha" name="senha" type="password" minlength="12" placeholder="Mínimo de 12 caracteres" autocomplete="new-password" required></div></div>
+        <div><label for="papel">Papel <i>*</i></label><div class="fi"><svg class="i" viewBox="0 0 24 24"><path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/></svg><select id="papel" name="papel"><option value="usuario">Usuário</option><option value="aprovador">Aprovador</option>{% if empresarial_ativa %}<option value="comprador">Comprador</option>{% endif %}<option value="admin">Administrador</option></select></div></div>
+        {% if empresarial_ativa %}
+        <div><label for="departamento_id">Departamento</label><div class="fi"><select id="departamento_id" name="departamento_id"><option value="">Sem departamento</option>{% for departamento in departamentos %}<option value="{{ departamento.id }}">{{ departamento.nome }}</option>{% endfor %}</select></div></div>
+        {% endif %}
+        <button type="submit" class="btn btn-primary" style="padding:12px 22px"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Criar usuário</button>
+      </form>
+      <div class="info"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>A senha deve ter pelo menos 12 caracteres. O sistema não envia nem registra senhas.</div>
+    </section>
+
+    <section class="card c-b">
+      <div class="card-h"><div class="ci"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div><h2>Contas cadastradas</h2><p>Lista de todos os usuários do sistema.</p></div>
+        <div class="tools">
+          <div class="fi"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="uq" placeholder="Buscar usuário..." aria-label="Buscar usuário"></div>
+          <button class="ib" type="button" id="uf" title="Filtrar" aria-label="Filtrar"><svg class="i" viewBox="0 0 24 24"><path d="M22 3H2l8 9.46V19l4 2v-8.54z"/></svg></button>
+          <div class="pop" id="pop">
+            <label for="fp">Papel</label><select id="fp"><option value="">Todos</option><option value="admin">Administrador</option><option value="usuario">Usuário</option><option value="aprovador">Aprovador</option>{% if empresarial_ativa %}<option value="comprador">Comprador</option>{% endif %}</select>
+            <label for="fs">Status</label><select id="fs"><option value="">Todos</option><option value="ativo">Ativo</option><option value="desativado">Desativado</option></select>
+            <button type="button" class="btn btn-sm" id="fx">Limpar filtros</button>
+          </div>
+        </div>
+      </div>
+      <div class="tw"><table>
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Papel</th>{% if empresarial_ativa %}<th>Departamento</th>{% endif %}<th>Status</th><th>Ação</th></tr></thead>
+        <tbody id="tb">
+          {% for usuario in usuarios %}
+          <tr class="row" data-nome="{{ usuario.nome|lower }}" data-email="{{ usuario.email|lower }}" data-papel="{{ usuario.papel }}" data-status="{{ 'ativo' if usuario.ativo else 'desativado' }}">
+            <td><div class="who"><span class="av c{{ loop.index0 % 5 }}">{{ (usuario.nome or '?')[:1]|upper }}</span>{{ usuario.nome }}</div></td>
+            <td>{{ usuario.email }}</td>
+            <td><span class="bd {{ 'admin' if usuario.papel == 'admin' else '' }}">{{ {'admin': 'Administrador', 'usuario': 'Usuário', 'aprovador': 'Aprovador', 'comprador': 'Comprador'}.get(usuario.papel, usuario.papel|title) }}</span></td>
+            {% if empresarial_ativa %}<td>{{ usuario.departamento.nome if usuario.departamento else '—' }}</td>{% endif %}
+            <td><span class="st {{ 'on' if usuario.ativo else 'off' }}">{{ 'Ativo' if usuario.ativo else 'Desativado' }}</span></td>
+            <td>
+              {% if empresarial_ativa %}
+              <form method="post" action="{{ url_for('auth.atualizar_perfil_usuario', usuario_id=usuario.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <select name="papel" aria-label="Papel de {{ usuario.nome }}">
+                  <option value="usuario" {{ 'selected' if usuario.papel == 'usuario' }}>Usuário</option>
+                  <option value="aprovador" {{ 'selected' if usuario.papel == 'aprovador' }}>Aprovador</option>
+                  <option value="comprador" {{ 'selected' if usuario.papel == 'comprador' }}>Comprador</option>
+                  <option value="admin" {{ 'selected' if usuario.papel == 'admin' }}>Administrador</option>
+                </select>
+                <select name="departamento_id" aria-label="Departamento de {{ usuario.nome }}">
+                  <option value="">Sem departamento</option>
+                  {% for departamento in departamentos %}<option value="{{ departamento.id }}" {{ 'selected' if usuario.departamento_id == departamento.id }}>{{ departamento.nome }}</option>{% endfor %}
+                </select>
+                <button type="submit" class="tg">Salvar perfil</button>
+              </form>
+              {% endif %}
+              {% if usuario.id != current_user.id %}
+              <form method="post" action="{{ url_for('auth.alternar_usuario', usuario_id=usuario.id) }}" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="tg {{ 'desat' if usuario.ativo else 'ativ' }}"><svg class="i" viewBox="0 0 24 24"><path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/></svg>{{ 'Desativar' if usuario.ativo else 'Ativar' }}</button>
+              </form>
+              {% else %}<span class="tg me"><svg class="i" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Conta atual</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table><div class="vazio" id="vz">Nenhum usuário encontrado com esses filtros.</div></div>
+      <div class="pager"><span id="cnt"></span><div class="pg" id="pg"></div></div>
+    </section>
+  </main>
+</div>
+<script>
+(function(){
+var LUA='<svg class="i" viewBox="0 0 24 24"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+var SOL='<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+function tema(t){document.documentElement.setAttribute('data-theme',t);document.querySelectorAll('.theme-btn').forEach(function(b){b.innerHTML=t==='dark'?SOL:LUA});}
+tema(localStorage.getItem('tema')||'light');
+window.toggleTheme=function(){var n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';localStorage.setItem('tema',n);tema(n);};
+window.toggleMenu=function(){['sidebar','overlay','hamburger'].forEach(function(id,i){var e=document.getElementById(id);if(e)e.classList.toggle(i==0?'open':i==1?'show':'open')})};
+window.fecharMenu=function(){var a=document.getElementById('sidebar'),b=document.getElementById('overlay'),c=document.getElementById('hamburger');if(a)a.classList.remove('open');if(b)b.classList.remove('show');if(c)c.classList.remove('open')};
+
+var PER=8,page=1,rows=[].slice.call(document.querySelectorAll('#tb tr.row')),
+q=document.getElementById('uq'),fp=document.getElementById('fp'),fs=document.getElementById('fs'),
+pop=document.getElementById('pop'),pg=document.getElementById('pg'),cnt=document.getElementById('cnt'),vz=document.getElementById('vz');
+function aplicar(){
+  var t=q.value.trim().toLowerCase();
+  var vis=rows.filter(function(r){return (!t||(r.dataset.nome+' '+r.dataset.email).indexOf(t)>-1)&&(!fp.value||r.dataset.papel===fp.value)&&(!fs.value||r.dataset.status===fs.value)});
+  var pages=Math.max(1,Math.ceil(vis.length/PER));if(page>pages)page=pages;
+  rows.forEach(function(r){r.style.display='none'});
+  var cur=vis.slice((page-1)*PER,page*PER);
+  cur.forEach(function(r,i){r.style.animationDelay=(i*.05)+'s';r.style.display='table-row'});
+  vz.style.display=vis.length?'none':'block';
+  cnt.textContent='Mostrando '+cur.length+' de '+rows.length+' usuário'+(rows.length===1?'':'s');
+  var h='<button type="button" data-p="'+(page-1)+'"'+(page<=1?' disabled':'')+' aria-label="Anterior">‹</button>';
+  for(var p=1;p<=pages;p++)h+='<button type="button" data-p="'+p+'"'+(p===page?' class="on"':'')+'>'+p+'</button>';
+  h+='<button type="button" data-p="'+(page+1)+'"'+(page>=pages?' disabled':'')+' aria-label="Próxima">›</button>';
+  pg.innerHTML=h;
+}
+pg.addEventListener('click',function(e){var b=e.target.closest('button[data-p]');if(b&&!b.disabled){page=parseInt(b.dataset.p);aplicar();}});
+[q,fp,fs].forEach(function(el){el.addEventListener('input',function(){page=1;aplicar();})});
+document.getElementById('uf').addEventListener('click',function(e){e.stopPropagation();pop.classList.toggle('show');});
+document.getElementById('fx').addEventListener('click',function(){fp.value='';fs.value='';page=1;aplicar();});
+document.addEventListener('click',function(e){if(!e.target.closest('#pop'))pop.classList.remove('show');});
+aplicar();
+})();
+</script>
+</body>
 </html>

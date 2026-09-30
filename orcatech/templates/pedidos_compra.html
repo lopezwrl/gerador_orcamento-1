@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pedidos de compra – {{ orcamento.numero }}</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f6fb;color:#1a2040;font:15px/1.5 Arial,sans-serif}
+    main{width:min(900px,calc(100% - 32px));margin:36px auto}
+
+    @keyframes fadeDown{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:none}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+
+    h1,h2{color:#1e2a6e}
+    h1{animation:fadeDown .5s cubic-bezier(.16,1,.3,1) both}
+
+    section{
+      margin:18px 0;padding:22px;background:#fff;border:1px solid #d4d9ef;border-radius:14px;
+      animation:fadeUp .55s cubic-bezier(.16,1,.3,1) both;
+      transition:transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s, border-color .3s;
+    }
+    section:hover{transform:translateY(-3px);box-shadow:0 6px 20px rgba(30,42,110,.08)}
+
+    .link,button{
+      display:inline-block;padding:10px 14px;border:0;border-radius:7px;background:#2d3a8c;color:white;text-decoration:none;cursor:pointer;font:inherit;
+      transition:all .22s cubic-bezier(.16,1,.3,1);
+    }
+    .link:hover,button:hover{transform:translateY(-2px);filter:brightness(1.1)}
+
+    table{width:100%;border-collapse:collapse;margin-top:12px}td,th{padding:10px;border-bottom:1px solid #e2e7f5;text-align:left}
+
+    tbody tr{animation:fadeUp .45s cubic-bezier(.16,1,.3,1) both;transition:background .2s}
+    tbody tr:hover{background:#f8fafc}
+
+    .msg{padding:10px;background:#e0f2fe;border-radius:7px;animation:fadeUp .4s cubic-bezier(.16,1,.3,1) both}.erro{background:#fee2e2;color:#991b1b}
+  </style>
+</head>
+<body><main>
+  <h1>Pedidos de compra · {{ orcamento.numero }}</h1>
+  <p><a class="link" href="{{ url_for('orcamento.detalhe', orcamento_id=orcamento.id) }}">Voltar ao orçamento</a></p>
+  {% with messages = get_flashed_messages(with_categories=true) %}{% for categoria, mensagem in messages %}<p class="msg {{ 'erro' if categoria == 'erro' else '' }}">{{ mensagem }}</p>{% endfor %}{% endwith %}
+  {% if pode_emitir %}
+  <section><h2>Emitir pedidos</h2><p>Será criado um pedido separado para cada fornecedor. Os itens e preços do orçamento aprovado serão preservados.</p>
+    <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit">Emitir pedidos de compra</button></form>
+  </section>
+  {% endif %}
+  <section><h2>Pedidos emitidos</h2>
+    <table><thead><tr><th>Número</th><th>Fornecedor</th><th>Status</th><th>Total</th><th></th></tr></thead><tbody>
+      {% for pedido in pedidos %}<tr><td>{{ pedido.numero }}</td><td>{{ pedido.snapshot_fornecedor_nome }}</td><td>{{ pedido.status|title }}</td>
+        <td>R$ {{ "{:,.2f}".format(pedido.total).replace(',', 'X').replace('.', ',').replace('X', '.') }}</td>
+        <td><a class="link" href="{{ url_for('empresarial.detalhe_pedido', pedido_id=pedido.id) }}">Abrir</a></td></tr>
+      {% else %}<tr><td colspan="5">Ainda não há pedidos emitidos.</td></tr>{% endfor %}
+    </tbody></table>
+  </section>
+</main></body>
+</html>

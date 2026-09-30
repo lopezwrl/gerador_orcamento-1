@@ -7,6 +7,7 @@ Estratégia dupla:
 import re
 import json
 import time
+from .errors import BloqueioLoja, pagina_com_bloqueio
 
 
 def _fmt(valor):
@@ -140,6 +141,8 @@ def _buscar_americanas(produto):
                     continue
 
             if not cards:
+                if pagina_com_bloqueio(driver.page_source, driver.current_url):
+                    raise BloqueioLoja("Americanas sinalizou bloqueio anti-bot.")
                 print("[Americanas] Nenhum card DOM → tentando __NEXT_DATA__")
                 return _fallback_next_data(driver)
 
@@ -250,6 +253,8 @@ def _buscar_americanas(produto):
                     status_img = "[com foto]" if imagem else "[sem foto]"
                     print(f"[Americanas] {status_img} | {nome[:40]} | {preco_texto}")
 
+                except BloqueioLoja:
+                    raise
                 except Exception as e:
                     print(f"[Americanas] card erro: {e}")
 

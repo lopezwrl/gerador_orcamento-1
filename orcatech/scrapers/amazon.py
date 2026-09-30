@@ -13,6 +13,7 @@ salva o HTML em instance/debug/ para diagnóstico.
 """
 import random
 import time
+from urllib.parse import quote_plus
 from ..paths import DEBUG_DIR
 
 import undetected_chromedriver as uc
@@ -29,13 +30,22 @@ from .driver_manager import (
     obter_driver_path, aplicar_binary_location, aplicar_perfil_temporario,
     versao_principal_chrome,
 )
+from .errors import BloqueioLoja
 
 SELETOR_CARD = "div[data-component-type='s-search-result']"
 
 
+def _url_busca(produto):
+    return f"https://www.amazon.com.br/s?k={quote_plus(produto)}"
+
+
 def buscar_amazon(produto):
     with SELENIUM_SEMAPHORE:
-        produtos = _buscar_selenium(produto)
+        try:
+            produtos = _buscar_selenium(produto)
+        except BloqueioLoja as e:
+            print(f"[Amazon] Selenium padrão bloqueado ({e}) — tentando fallback...")
+            produtos = []
         if produtos:
             return produtos
         print("[Amazon] Método padrão sem resultado — tentando com undetected-chromedriver...")
@@ -51,6 +61,14 @@ def _pagina_de_erro(driver):
     except Exception:
         return False
     return "algo deu errado" in t or "something went wrong" in t
+
+
+def _bloqueada(driver):
+    try:
+        origem = (driver.page_source or "").lower()
+        return "captcha" in origem or _pagina_de_erro(driver)
+    except Exception:
+        return False
 
 
 def _aguardar_resultados(driver, segundos):
@@ -170,12 +188,16 @@ def _buscar_selenium(produto):
     driver = None
     try:
         driver = webdriver.Chrome(service=Service(obter_driver_path()), options=options)
-        driver.get(f"https://www.amazon.com.br/s?k={produto.replace(' ', '+')}")
+        driver.get(_url_busca(produto))
 
         if not _aguardar_resultados(driver, 15):
             _diagnosticar(driver, "selenium")
+            if _bloqueada(driver):
+                raise BloqueioLoja("Amazon sinalizou bloqueio anti-bot.")
             return []
         return _extrair_produtos(driver)
+    except BloqueioLoja:
+        raise
     except Exception as e:
         print(f"[Amazon] Erro geral (selenium): {e}")
         return []
@@ -201,7 +223,7 @@ def _buscar_uc(produto):
             )
         driver.set_page_load_timeout(45)
 
-        url = f"https://www.amazon.com.br/s?k={produto.replace(' ', '+')}"
+        url = _url_busca(produto)
 
         # Aquecimento: home primeiro (sessão de visitante) e busca pela caixa
         # de pesquisa, como uma pessoa faria.
@@ -228,7 +250,11 @@ def _buscar_uc(produto):
                 driver.get(url)
 
         _diagnosticar(driver, "uc")
+        if _bloqueada(driver):
+            raise BloqueioLoja("Amazon sinalizou bloqueio anti-bot.")
         return []
+    except BloqueioLoja:
+        raise
     except Exception as e:
         print(f"[Amazon] Erro geral (uc): {e}")
         return []

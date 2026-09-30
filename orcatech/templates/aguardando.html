@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pesquisando… – OrçaTech</title>
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}">
-    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}">
-    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon/favicon-16x16.png') }}">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='favicon/favicon-180x180.png') }}">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -165,7 +161,6 @@
         .loja-item.done::before { background:var(--teal); }
         .loja-item.erro { border-color:rgba(239,68,68,.25); background:#FEF2F2; }
         .loja-item.erro::before { background:#EF4444; }
-        .loja-item.nao-aplica, .loja-item.sem-relevancia { opacity:.72; }
 
         .loja-dot { width:8px; height:8px; border-radius:50%; background:var(--border2); flex-shrink:0; transition:all .3s; }
         .loja-item.buscando .loja-dot { background:var(--royal); box-shadow:0 0 10px var(--blue); animation:pulse 1.2s ease-in-out infinite; }
@@ -181,6 +176,7 @@
         .loja-item.buscando .loja-status { color:var(--royal); }
         .loja-item.done .loja-status     { color:var(--teal); }
         .loja-item.erro .loja-status     { color:#EF4444; }
+        .loja-status a { color:inherit; text-decoration:underline; }
 
         .loja-count {
             font-size:11px; font-weight:700; padding:2px 8px;
@@ -321,7 +317,7 @@
 
         <div class="progress-wrap">
             <div class="progress-meta">
-                <span class="label">Lojas concluídas: <strong id="lojasFeitas" style="color:var(--text)">0</strong> / <strong id="lojaTotal" style="color:var(--text)">8</strong></span>
+                <span class="label">Lojas concluídas: <strong id="lojasFeitas" style="color:var(--text)">0</strong> / <strong id="lojaTotal" style="color:var(--text)">7</strong></span>
                 <span class="pct" id="pctLabel">0%</span>
             </div>
             <div class="progress-bar">
@@ -366,19 +362,24 @@
                 <span class="loja-count" id="count-ib"></span>
                 <span class="loja-status" id="status-ib">Aguardando…</span>
             </div>
-            <div class="loja-item" id="loja-gs" data-loja="gshield">
+            <div class="loja-item loja-extra" id="loja-gs" data-loja="gshield">
                 <div class="loja-dot"></div>
                 <span class="loja-nome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> Gshield</span>
                 <span class="loja-count" id="count-gs"></span>
                 <span class="loja-status" id="status-gs">Aguardando…</span>
             </div>
-            <div class="loja-item" id="loja-ae" data-loja="aliexpress">
+            <div class="loja-item loja-extra" id="loja-ae" data-loja="aliexpress">
                 <div class="loja-dot"></div>
                 <span class="loja-nome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0;"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg> AliExpress</span>
                 <span class="loja-count" id="count-ae"></span>
                 <span class="loja-status" id="status-ae">Aguardando…</span>
             </div>
         </div>
+
+        <button type="button" class="ver-mais-lojas" id="verMaisLojas" onclick="alternarLojasExtras()">
+            <span id="verMaisTexto">Mostrar todas as <strong id="verMaisTotal">8</strong> lojas</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex-shrink:0;" id="verMaisSeta"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
 
         <div class="dica">
             <span class="dica-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M15 14c.3-1 .8-1.6 1.6-2.5A5.5 5.5 0 1 0 9 11.5c.7.9 1.4 1.5 1.6 2.5"/><path d="M9.5 18h5"/><path d="M10.3 22h3.4"/></svg></span>
@@ -406,6 +407,7 @@
 <script>
 const jobId      = "{{ job_id }}";
 const solicitante= "{{ solicitante }}";
+const termoBusca = {{ produto|tojson }};
 
 const LOJAS = [
     { key:'mercadolivre', itemId:'loja-ml', statusId:'status-ml', countId:'count-ml' },
@@ -419,8 +421,36 @@ const LOJAS = [
 ];
 const lojasContainer = document.querySelector('.lojas');
 
-// Todas as 8 lojas visíveis simultaneamente
-const lojasEl = document.querySelector('.lojas');
+/* Botão "Mostrar todas as lojas": a lista fica colapsada (só as 6
+   primeiras visíveis) até o usuário clicar, evitando que a página
+   fique gigante com as 7 lojas de uma vez. */
+const lojasEl        = document.querySelector('.lojas');
+const btnVerMais     = document.getElementById('verMaisLojas');
+const verMaisTexto   = document.getElementById('verMaisTexto');
+let lojasExpandidas  = false;
+
+function atualizarBotaoVerMais() {
+    const totalExtras = lojasContainer.querySelectorAll('.loja-extra').length;
+    if (totalExtras > 0) {
+        btnVerMais.classList.add('visivel');
+        const totalEl = document.getElementById('verMaisTotal');
+        if (totalEl) totalEl.textContent = LOJAS.length;
+    } else {
+        btnVerMais.classList.remove('visivel');
+    }
+}
+
+function alternarLojasExtras() {
+    lojasExpandidas = !lojasExpandidas;
+    lojasEl.classList.toggle('colapsado', !lojasExpandidas);
+    btnVerMais.classList.toggle('aberto', lojasExpandidas);
+    verMaisTexto.innerHTML = lojasExpandidas
+        ? 'Mostrar menos lojas'
+        : `Mostrar todas as <strong id="verMaisTotal">${LOJAS.length}</strong> lojas`;
+}
+
+lojasEl.classList.add('colapsado');
+atualizarBotaoVerMais();
 
 const progressFill  = document.getElementById('progressFill');
 const pctLabel      = document.getElementById('pctLabel');
@@ -448,7 +478,7 @@ function marcarLoja(loja, estado, count, jobFinalizado) {
     const status  = document.getElementById(loja.statusId);
     const countEl = document.getElementById(loja.countId);
 
-    item.classList.remove('buscando', 'done', 'erro', 'nao-aplica', 'sem-relevancia');
+    item.classList.remove('buscando', 'done', 'erro');
 
     if (estado === 'running') {
         item.classList.add('buscando');
@@ -467,13 +497,19 @@ function marcarLoja(loja, estado, count, jobFinalizado) {
         item.classList.add('erro');
         status.innerHTML = 'Erro <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="m14.5 9.5-5 5M9.5 9.5l5 5"/></svg>';
         countEl.textContent = '';
-    } else if (estado === 'not_applicable') {
-        item.classList.add('nao-aplica');
-        status.textContent = 'Não se aplica';
-        countEl.textContent = '';
-    } else if (estado === 'no_relevant') {
-        item.classList.add('sem-relevancia');
-        status.textContent = 'Sem itens relevantes para esta busca';
+    } else if (estado === 'blocked') {
+        item.classList.add('erro');
+        status.textContent = loja.key === 'amazon' ? 'Bloqueio temporário · ' : 'Bloqueado';
+        if (loja.key === 'amazon') {
+            const link = document.createElement('a');
+            const buscaAmazon = new URL('https://www.amazon.com.br/s');
+            buscaAmazon.searchParams.set('k', termoBusca);
+            link.href = buscaAmazon.toString();
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.textContent = 'abrir busca';
+            status.appendChild(link);
+        }
         countEl.textContent = '';
     } else {
         status.textContent = 'Aguardando…';
@@ -490,6 +526,7 @@ function marcarTudo(lojas_data) {
     });
     setProgresso(100);
     lojasFeitas.textContent = LOJAS.length;
+    if (!lojasExpandidas) alternarLojasExtras();
 }
 
 function processarEstado(data) {
@@ -503,7 +540,7 @@ function processarEstado(data) {
             const estado = info.status || 'pending';
             const count  = info.count;
             marcarLoja(loja, estado, count, jobDone);
-            if (['done', 'error', 'not_applicable', 'no_relevant'].includes(estado)) concluidas++;
+            if (estado === 'done' || estado === 'error' || estado === 'blocked') concluidas++;
         });
         setProgresso((concluidas / LOJAS.length) * 100);
         lojasFeitas.textContent = concluidas;
@@ -511,12 +548,10 @@ function processarEstado(data) {
 
     if (jobDone) {
         concluido = true;
-        // Agenda o redirecionamento ANTES de qualquer outra coisa, para que
-        // um erro na animação nunca impeça a ida para os resultados.
+        marcarTudo(data.lojas);
         setTimeout(() => {
             window.location.href = `/resultado/${jobId}?solicitante=${encodeURIComponent(solicitante)}`;
         }, 1200);
-        try { marcarTudo(data.lojas); } catch (e) { console.error(e); }
         return true;
     }
 
@@ -668,15 +703,28 @@ iniciarFonteEventos();
     }
 
     // Carrega o Three.js via CDN só quando necessário e inicializa a esfera
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';
-    script.onload = iniciarEsferaParticulas;
-    script.onerror = function () {
-        // Fallback silencioso: se o CDN falhar, o círculo fica vazio
-        // (sem quebrar o resto da página de espera).
-        console.warn('[OrçaTech] Não foi possível carregar o Three.js para a esfera de partículas.');
-    };
-    document.head.appendChild(script);
+    // Tenta primeiro o arquivo LOCAL (static/vendor/three.min.js);
+    // se não existir, tenta o CDN como reserva.
+    function carregarScript(url, aoCarregar, aoFalhar) {
+        const s = document.createElement('script');
+        s.src = url;
+        s.onload = aoCarregar;
+        s.onerror = aoFalhar;
+        document.head.appendChild(s);
+    }
+    carregarScript(
+        "{{ url_for('static', filename='vendor/three.min.js') }}",
+        iniciarEsferaParticulas,
+        function () {
+            carregarScript(
+                'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js',
+                iniciarEsferaParticulas,
+                function () {
+                    console.warn('[OrçaTech] Não foi possível carregar o Three.js para a esfera de partículas.');
+                }
+            );
+        }
+    );
 })();
 </script>
 

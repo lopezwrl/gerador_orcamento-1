@@ -1,6 +1,7 @@
 import requests
 import re
 import json
+from .errors import BloqueioLoja
 
 # KaBuM usa Next.js — os produtos ficam embutidos no __NEXT_DATA__ do HTML.
 # Esta versão funciona em IP residencial (sua máquina).
@@ -101,6 +102,8 @@ def buscar_kabum(produto: str):
 
         if resp.status_code != 200:
             print(f"[KaBuM] Bloqueado (status {resp.status_code})")
+            if resp.status_code in (403, 429):
+                raise BloqueioLoja(f"KaBuM respondeu HTTP {resp.status_code}.")
             return []
 
         match = re.search(
@@ -172,6 +175,8 @@ def buscar_kabum(produto: str):
                     "specs":       [],
                 })
 
+    except BloqueioLoja:
+        raise
     except Exception as e:
         print(f"[KaBuM] Erro: {e}")
 

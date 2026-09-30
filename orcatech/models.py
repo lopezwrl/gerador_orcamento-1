@@ -15,15 +15,19 @@ Como usar (em app.py):
 Adicionar ao requirements.txt: flask-sqlalchemy
 """
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
-from sqlalchemy import false
+from sqlalchemy import CheckConstraint, UniqueConstraint, false
 import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 
 db = SQLAlchemy()
+
+
+def _utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class Usuario(UserMixin, db.Model):
@@ -33,11 +37,19 @@ class Usuario(UserMixin, db.Model):
     nome = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(160), unique=True, nullable=False, index=True)
     senha_hash = db.Column(db.String(255), nullable=False)
-    papel = db.Column(db.String(20), nullable=False, default="usuario")  # "admin" | "usuario"
+    papel = db.Column(
+        db.String(20),
+        nullable=False,
+        default="usuario",
+    )  # "admin" | "usuario" | "aprovador" | "comprador"
     ativo = db.Column(db.Boolean, nullable=False, default=True)
+    departamento_id = db.Column(
+        db.Integer, db.ForeignKey("departamentos.id"), nullable=True, index=True
+    )
     criado_em = db.Column(db.DateTime, default=datetime.utcnow)
 
     orcamentos = db.relationship("Orcamento", back_populates="usuario", foreign_keys="Orcamento.usuario_id")
+    departamento = db.relationship("Departamento", back_populates="usuarios")
 
     @property
     def is_active(self):
@@ -68,6 +80,39 @@ class Fornecedor(db.Model):
 
     def __repr__(self):
         return f"<Fornecedor {self.nome}>"
+
+
+class Departamento(db.Model):
+    __tablename__ = "departamentos"
+
+    id = db.Column(db.Integer, primary_key=True)
+    codigo = db.Column(db.String(30), nullable=False, unique=True)
+    nome = db.Column(db.String(120), nullable=False, unique=True)
+    criado_em = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    usuarios = db.relationship("Usuario", back_populates="departamento")
+    centros_custo = db.relationship("CentroCusto", back_populates="departamento")
+    orcamentos = db.relationship("Orcamento", back_populates="departamento")
+
+
+class CentroCusto(db.Model):
+    __tablename__ = "centros_custo"
+    __table_args__ = (
+        UniqueConstraint("departamento_id", "codigo", name="uq_centro_custo_departamento_codigo"),
+        CheckConstraint("limite_gasto > 0", name="ck_centro_custo_limite_positivo"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    codigo = db.Column(db.String(30), nullable=False)
+    nome = db.Column(db.String(120), nullable=False)
+    departamento_id = db.Column(
+        db.Integer, db.ForeignKey("departamentos.id"), nullable=False, index=True
+    )
+    limite_gasto = db.Column(db.Numeric(12, 2), nullable=False)
+    criado_em = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    departamento = db.relationship("Departamento", back_populates="centros_custo")
+    orcamentos = db.relationship("Orcamento", back_populates="centro_custo")
 
 
 class ProdutoBusca(db.Model):
@@ -115,6 +160,12 @@ class Orcamento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     numero = db.Column(db.String(40), unique=True, nullable=False)  # ORC-AAAAMMDDHHmm
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=True)
+    departamento_id = db.Column(
+        db.Integer, db.ForeignKey("departamentos.id"), nullable=True, index=True
+    )
+    centro_custo_id = db.Column(
+        db.Integer, db.ForeignKey("centros_custo.id"), nullable=True, index=True
+    )
     solicitante = db.Column(db.String(120))
     status = db.Column(
         db.String(30), nullable=False, default="rascunho"
@@ -131,6 +182,8 @@ class Orcamento(db.Model):
     atualizado_em = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     usuario = db.relationship("Usuario", back_populates="orcamentos", foreign_keys=[usuario_id])
+    departamento = db.relationship("Departamento", back_populates="orcamentos")
+    centro_custo = db.relationship("CentroCusto", back_populates="orcamentos")
     itens = db.relationship("OrcamentoItem", back_populates="orcamento", cascade="all, delete-orphan")
     aprovacoes = db.relationship("Aprovacao", back_populates="orcamento", cascade="all, delete-orphan")
     historico = db.relationship(
@@ -141,6 +194,9 @@ class Orcamento(db.Model):
     )
     envios_email = db.relationship(
         "EnvioEmail", back_populates="orcamento", cascade="all, delete-orphan"
+    )
+    pedidos_compra = db.relationship(
+        "PedidoCompra", back_populates="orcamento", cascade="all, delete-orphan"
     )
 
     @staticmethod
@@ -268,7 +324,7 @@ class EnvioEmail(db.Model):
     __tablename__ = "envios_email"
 
     id = db.Column(db.Integer, primary_key=True)
-    orcamento_id = db.Column(db.Integer, db.ForeignKey("orcamentos.id"), nullable=False, index=True)
+    orcamento_id = db.Column(db.Integer, db.ForeignKey("orcamentos.id"), nullable=True, index=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False)
     destinatario = db.Column(db.String(254), nullable=False)
     sucesso = db.Column(db.Boolean)
@@ -277,3 +333,191 @@ class EnvioEmail(db.Model):
 
     orcamento = db.relationship("Orcamento", back_populates="envios_email")
     usuario = db.relationship("Usuario")
+
+
+class PrecoHistorico(db.Model):
+    __tablename__ = "precos_historico"
+    __table_args__ = (
+        UniqueConstraint("item_key", "dia", name="uq_preco_historico_item_dia"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    item_key = db.Column(db.String(64), nullable=False, index=True)
+    produto_busca_id = db.Column(
+        db.Integer, db.ForeignKey("produtos_busca.id"), nullable=False, index=True
+    )
+    fornecedor_id = db.Column(
+        db.Integer, db.ForeignKey("fornecedores.id"), nullable=False, index=True
+    )
+    cotacao_id = db.Column(db.Integer, db.ForeignKey("cotacoes.id"), nullable=True)
+    nome_produto = db.Column(db.String(255), nullable=False)
+    link = db.Column(db.String(500))
+    preco = db.Column(db.Numeric(12, 2), nullable=False)
+    dia = db.Column(db.Date, nullable=False, index=True)
+    coletado_em = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    produto_busca = db.relationship("ProdutoBusca")
+    fornecedor = db.relationship("Fornecedor")
+    cotacao = db.relationship("Cotacao")
+
+
+class Monitoramento(db.Model):
+    __tablename__ = "monitoramentos"
+    __table_args__ = (
+        UniqueConstraint(
+            "usuario_id",
+            "produto_busca_id",
+            "fornecedor_id",
+            "nome_modelo",
+            name="uq_monitoramentos_usuario_produto_loja_modelo",
+        ),
+        CheckConstraint(
+            "(gatilho_percentual IS NULL) != (gatilho_valor IS NULL)",
+            name="ck_monitoramentos_gatilho_exclusivo",
+        ),
+        CheckConstraint(
+            "gatilho_percentual IS NULL OR "
+            "(gatilho_percentual > 0 AND gatilho_percentual <= 100)",
+            name="ck_monitoramentos_gatilho_percentual",
+        ),
+        CheckConstraint(
+            "gatilho_valor IS NULL OR gatilho_valor > 0",
+            name="ck_monitoramentos_gatilho_valor",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True)
+    produto_busca_id = db.Column(
+        db.Integer, db.ForeignKey("produtos_busca.id"), nullable=False, index=True
+    )
+    fornecedor_id = db.Column(
+        db.Integer, db.ForeignKey("fornecedores.id"), nullable=False, index=True
+    )
+    loja = db.Column(db.String(30), nullable=False, index=True)
+    nome_modelo = db.Column(db.String(255), nullable=False)
+    link = db.Column(db.String(500))
+    preco_referencia = db.Column(db.Numeric(12, 2), nullable=False)
+    gatilho_percentual = db.Column(db.Numeric(5, 2))
+    gatilho_valor = db.Column(db.Numeric(12, 2))
+    ativo = db.Column(db.Boolean, nullable=False, default=True, index=True)
+    ultimo_check = db.Column(db.DateTime)
+    proxima_verificacao = db.Column(db.DateTime, nullable=False, default=_utcnow, index=True)
+    criado_em = db.Column(db.DateTime, nullable=False, default=_utcnow)
+
+    usuario = db.relationship("Usuario")
+    produto_busca = db.relationship("ProdutoBusca")
+    fornecedor = db.relationship("Fornecedor")
+    alertas = db.relationship(
+        "AlertaPreco", back_populates="monitoramento", cascade="all, delete-orphan"
+    )
+
+
+class AlertaPreco(db.Model):
+    __tablename__ = "alertas_preco"
+    __table_args__ = (
+        UniqueConstraint(
+            "monitoramento_id", "preco_novo", name="uq_alerta_preco_monitoramento_preco"
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    monitoramento_id = db.Column(
+        db.Integer, db.ForeignKey("monitoramentos.id"), nullable=False, index=True
+    )
+    preco_anterior = db.Column(db.Numeric(12, 2), nullable=False)
+    preco_novo = db.Column(db.Numeric(12, 2), nullable=False)
+    reducao = db.Column(db.Numeric(12, 2), nullable=False)
+    origem_referencia = db.Column(db.String(20), nullable=False, default="monitoramento")
+    criado_em = db.Column(db.DateTime, nullable=False, default=_utcnow, index=True)
+    lido_em = db.Column(db.DateTime)
+
+    monitoramento = db.relationship("Monitoramento", back_populates="alertas")
+
+
+class ControleVerificacaoLoja(db.Model):
+    __tablename__ = "controle_verificacao_lojas"
+
+    id = db.Column(db.Integer, primary_key=True)
+    loja = db.Column(db.String(30), nullable=False, unique=True)
+    ultima_verificacao = db.Column(db.DateTime)
+    proxima_permitida = db.Column(db.DateTime)
+    bloqueada_ate = db.Column(db.DateTime)
+    lease_ate = db.Column(db.DateTime)
+    falhas_consecutivas = db.Column(db.Integer, nullable=False, default=0)
+    ultimo_status = db.Column(db.String(20))
+    ultimo_erro_tipo = db.Column(db.String(80))
+
+
+class PedidoCompra(db.Model):
+    __tablename__ = "pedidos_compra"
+    __table_args__ = (
+        UniqueConstraint(
+            "orcamento_id", "fornecedor_id",
+            name="uq_pedido_compra_orcamento_fornecedor",
+        ),
+        CheckConstraint(
+            "status IN ('emitido', 'enviado', 'recebido', 'cancelado')",
+            name="ck_pedido_compra_status",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    numero = db.Column(db.String(40), nullable=False, unique=True, index=True)
+    orcamento_id = db.Column(
+        db.Integer, db.ForeignKey("orcamentos.id"), nullable=False, index=True
+    )
+    fornecedor_id = db.Column(
+        db.Integer, db.ForeignKey("fornecedores.id"), nullable=False, index=True
+    )
+    snapshot_fornecedor_nome = db.Column(db.String(120), nullable=False)
+    criado_por_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="emitido")
+    condicoes_comerciais = db.Column(db.Text)
+    data_entrega = db.Column(db.Date)
+    nota_fiscal = db.Column(db.String(120))
+    criado_em = db.Column(db.DateTime, nullable=False, default=_utcnow)
+    enviado_em = db.Column(db.DateTime)
+    recebido_em = db.Column(db.DateTime)
+
+    orcamento = db.relationship("Orcamento", back_populates="pedidos_compra")
+    fornecedor = db.relationship("Fornecedor")
+    criado_por = db.relationship("Usuario")
+    itens = db.relationship(
+        "PedidoCompraItem", back_populates="pedido_compra", cascade="all, delete-orphan"
+    )
+
+    @staticmethod
+    def gerar_numero():
+        return "PC-" + datetime.now().strftime("%Y%m%d%H%M%S") + "-" + secrets.token_hex(3).upper()
+
+    @property
+    def total(self):
+        return sum(
+            (item.subtotal + item.frete for item in self.itens),
+            Decimal("0.00"),
+        )
+
+
+class PedidoCompraItem(db.Model):
+    __tablename__ = "pedidos_compra_itens"
+
+    id = db.Column(db.Integer, primary_key=True)
+    pedido_compra_id = db.Column(
+        db.Integer, db.ForeignKey("pedidos_compra.id"), nullable=False, index=True
+    )
+    orcamento_item_id = db.Column(
+        db.Integer, db.ForeignKey("orcamento_itens.id"), nullable=False
+    )
+    nome_produto = db.Column(db.String(255), nullable=False)
+    quantidade = db.Column(db.Integer, nullable=False)
+    preco_unitario = db.Column(db.Numeric(12, 2), nullable=False)
+    frete = db.Column(db.Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    link = db.Column(db.String(500))
+
+    pedido_compra = db.relationship("PedidoCompra", back_populates="itens")
+    orcamento_item = db.relationship("OrcamentoItem")
+
+    @property
+    def subtotal(self):
+        return Decimal(self.preco_unitario) * self.quantidade

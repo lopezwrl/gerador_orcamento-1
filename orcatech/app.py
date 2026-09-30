@@ -22,13 +22,14 @@ import time
 import threading
 import unicodedata
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from statistics import median
 
 from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
 from flask_wtf.csrf import CSRFProtect
 from .auth_routes import auth_bp, limiter
-from .models import Usuario
+from .models import AlertaPreco, Usuario
 
 INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
 app = Flask(__name__, instance_path=str(INSTANCE_DIR), instance_relative_config=True)
@@ -70,6 +71,38 @@ if app.config["LINK_COMPARTILHAMENTO_DIAS"] < 1:
     raise RuntimeError("LINK_COMPARTILHAMENTO_DIAS deve ser maior que zero.")
 if app.config["ORCAMENTO_MAX_EMAILS_HORA"] < 1:
     raise RuntimeError("ORCAMENTO_MAX_EMAILS_HORA deve ser maior que zero.")
+try:
+    app.config["MONITORAMENTOS_LIMITE_USUARIO"] = int(
+        os.environ.get("MONITORAMENTOS_LIMITE_USUARIO", "50")
+    )
+    app.config["MONITORAMENTO_JITTER_SEGUNDOS"] = int(
+        os.environ.get("MONITORAMENTO_JITTER_SEGUNDOS", "300")
+    )
+except ValueError as exc:
+    raise RuntimeError(
+        "MONITORAMENTOS_LIMITE_USUARIO e MONITORAMENTO_JITTER_SEGUNDOS devem ser inteiros."
+    ) from exc
+if app.config["MONITORAMENTOS_LIMITE_USUARIO"] < 1:
+    raise RuntimeError("MONITORAMENTOS_LIMITE_USUARIO deve ser maior que zero.")
+if app.config["MONITORAMENTO_JITTER_SEGUNDOS"] < 0:
+    raise RuntimeError("MONITORAMENTO_JITTER_SEGUNDOS não pode ser negativo.")
+app.config["ALERTAS_PRECO_POR_EMAIL"] = os.environ.get(
+    "ALERTAS_PRECO_POR_EMAIL", "false"
+).strip().lower() in {"1", "true", "yes", "sim"}
+app.config["FEATURE_EMPRESARIAL_ENABLED"] = os.environ.get(
+    "FEATURE_EMPRESARIAL_ENABLED", "false"
+).strip().lower() in {"1", "true", "yes", "sim"}
+try:
+    app.config["ALCADA_APROVACAO_LIMITE"] = Decimal(
+        os.environ.get("ALCADA_APROVACAO_LIMITE", "10000.00").replace(",", ".")
+    ).quantize(Decimal("0.01"))
+except (InvalidOperation, ValueError) as exc:
+    raise RuntimeError("ALCADA_APROVACAO_LIMITE deve ser um valor monetário válido.") from exc
+if (
+    not app.config["ALCADA_APROVACAO_LIMITE"].is_finite()
+    or app.config["ALCADA_APROVACAO_LIMITE"] <= 0
+):
+    raise RuntimeError("ALCADA_APROVACAO_LIMITE deve ser maior que zero.")
 app.config["ADMIN_PODE_AUTOAPROVAR"] = os.environ.get(
     "ADMIN_PODE_AUTOAPROVAR", "false"
 ).strip().lower() in {"1", "true", "yes", "sim"}
@@ -102,6 +135,20 @@ limiter.init_app(app)
 def carregar_usuario(usuario_id):
     usuario = db.session.get(Usuario, int(usuario_id))
     return usuario if usuario and usuario.ativo else None
+
+
+@app.context_processor
+def disponibilizar_alertas_nao_lidos():
+    if not current_user.is_authenticated:
+        return {"alertas_nao_lidos": 0}
+    quantidade = (
+        AlertaPreco.query.filter(
+            AlertaPreco.lido_em.is_(None),
+            AlertaPreco.monitoramento.has(usuario_id=current_user.id),
+        )
+        .count()
+    )
+    return {"alertas_nao_lidos": quantidade}
 
 
 @app.before_request
@@ -145,6 +192,10 @@ from .compartilhamento_routes import compartilhamento_bp
 app.register_blueprint(compartilhamento_bp)
 from .fornecedores_routes import fornecedores_bp
 app.register_blueprint(fornecedores_bp)
+from .monitoramento_routes import monitoramento_bp
+app.register_blueprint(monitoramento_bp)
+from .empresarial_routes import empresarial_bp
+app.register_blueprint(empresarial_bp)
 
 @app.route('/favicon.ico')
 def favicon():
@@ -247,6 +298,11 @@ def _worker(job_id, produto, forcar):
             forcar_busca=forcar,
             job=job_ref,
         )
+        if not resultado.get("do_cache"):
+            with app.app_context():
+                from .monitoramento_service import persistir_resultados_precos
+
+                persistir_resultados_precos(produto, resultado["produtos"])
         salvar_historico(produto, resultado["produtos"])
         with _jobs_lock:
             _jobs[job_id]["status"] = "done"
@@ -411,7 +467,8 @@ def resultado(job_id):
                            produto=res['produto'],
                            solicitante=current_user.nome,
                            produtos=res['produtos'],
-                           do_cache=res['do_cache'])
+                           do_cache=res['do_cache'],
+                           lojas_status=res.get('lojas_status', {}))
 
 
 @app.route('/orcamentos')

@@ -1,12 +1,14 @@
 import json
 import logging
 import os
+import errno
 import time
 import re
 import threading
+from contextlib import contextmanager
 from concurrent.futures import ThreadPoolExecutor, as_completed, wait, FIRST_COMPLETED
 
-from .paths import CACHE_DIR, DEBUG_DIR
+from .paths import CACHE_DIR, DEBUG_DIR, INSTANCE_DIR
 from .scrapers.kabum import buscar_kabum
 from .scrapers.mercadolivre import buscar_mercadolivre
 from .scrapers.amazon import buscar_amazon
@@ -16,9 +18,17 @@ from .scrapers.ibyte import buscar_ibyte
 
 from .scrapers.gshield import buscar_gshield
 from .scrapers.aliexpress import buscar_aliexpress
+from .scrapers.errors import BloqueioLoja
 
 CACHE_HORAS = 6
 TOTAL_LOJAS = 8  # lojas nativas fixas (apenas lojas reais, sem comparadores)
+STORE_LOCKS = {
+    nome: threading.Lock()
+    for nome in (
+        'mercadolivre', 'kabum', 'amazon', 'terabyte',
+        'americanas', 'ibyte', 'gshield', 'aliexpress',
+    )
+}
 
 # Descarta itens irrelevantes e protege o comparador contra acessórios incompatíveis.
 FILTRAR_RESULTADOS = True
@@ -31,6 +41,57 @@ LOJAS_FILTRO_ESTRITO = {'Gshield', 'AliExpress', 'Americanas', 'Mercado Livre'}
 FILTRO_ESTRITO_TOLERANCIA = 0
 
 os.makedirs(CACHE_DIR, exist_ok=True)
+
+
+@contextmanager
+def _lock_arquivo_loja(nome, sem_espera=False):
+    pasta = INSTANCE_DIR / "locks"
+    pasta.mkdir(parents=True, exist_ok=True)
+    arquivo = open(pasta / f"loja_{nome}.lock", "a+b")
+    adquirido = False
+    try:
+        arquivo.seek(0, os.SEEK_END)
+        if arquivo.tell() == 0:
+            arquivo.write(b"0")
+            arquivo.flush()
+        arquivo.seek(0)
+        if os.name == "nt":
+            import msvcrt
+
+            modo = msvcrt.LK_NBLCK if sem_espera else msvcrt.LK_LOCK
+            while True:
+                try:
+                    msvcrt.locking(arquivo.fileno(), modo, 1)
+                    adquirido = True
+                    break
+                except OSError as exc:
+                    if exc.errno not in (errno.EACCES, errno.EDEADLK, errno.EAGAIN):
+                        raise
+                    if sem_espera:
+                        break
+                    time.sleep(0.2)
+        else:
+            import fcntl
+
+            modo = fcntl.LOCK_EX | (fcntl.LOCK_NB if sem_espera else 0)
+            try:
+                fcntl.flock(arquivo.fileno(), modo)
+                adquirido = True
+            except BlockingIOError:
+                pass
+        yield adquirido
+    finally:
+        if adquirido:
+            if os.name == "nt":
+                import msvcrt
+
+                arquivo.seek(0)
+                msvcrt.locking(arquivo.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(arquivo.fileno(), fcntl.LOCK_UN)
+        arquivo.close()
 
 # ═══════════════════════════════════════════════════════════════════
 # NORMALIZAÇÃO
@@ -623,7 +684,9 @@ def _marcar(job, loja, status, n, total_lojas):
             concluidas = sum(
                 1 for v in job['lojas'].values()
                 if isinstance(v, dict)
-                and v.get('status') in ('done', 'error', 'not_applicable', 'no_relevant')
+                and v.get('status') in (
+                    'done', 'error', 'blocked', 'not_applicable', 'no_relevant'
+                )
             )
             job['progresso']  = int((concluidas / total_lojas) * 100)
             job['concluidas'] = concluidas
@@ -653,7 +716,14 @@ def _ler_cache(produto):
 # COMPARAR
 # ═══════════════════════════════════════════════════════════════════
 
-def comparar(produto, forcar_busca=False, job=None):
+def comparar(
+    produto,
+    forcar_busca=False,
+    job=None,
+    lojas_incluir=None,
+    salvar_cache=True,
+    pular_lojas_ocupadas=False,
+):
     """Busca em paralelo, valida categorias, filtra relevância e classifica."""
     total_lojas = TOTAL_LOJAS
 
@@ -669,6 +739,10 @@ def comparar(produto, forcar_busca=False, job=None):
             _classificar(prods),
             key=lambda p: (p.get('preco', 0) == 0, p.get('preco', 0))
         )
+        dados['lojas_status'] = {
+            nome: 'cache'
+            for nome in STORE_LOCKS
+        }
         if job:
             nomes_lojas = ['mercadolivre','kabum','amazon','terabyte','americanas','ibyte','gshield','aliexpress']
             with _job_lock:
@@ -715,6 +789,16 @@ def comparar(produto, forcar_busca=False, job=None):
         if job:
             _marcar(job, 'gshield', 'not_applicable', 0, total_lojas)
         lojas_fixas = [(nome, fn) for nome, fn in lojas_fixas if nome != 'gshield']
+    if lojas_incluir is not None:
+        nomes_solicitados = set(lojas_incluir)
+        desconhecidas = nomes_solicitados - set(STORE_LOCKS)
+        if desconhecidas:
+            raise ValueError(
+                f"Lojas não reconhecidas: {', '.join(sorted(desconhecidas))}."
+            )
+        lojas_fixas = [
+            (nome, fn) for nome, fn in lojas_fixas if nome in nomes_solicitados
+        ]
 
     fontes_estritas = {
         'mercadolivre': 'Mercado Livre',
@@ -723,26 +807,42 @@ def comparar(produto, forcar_busca=False, job=None):
         'aliexpress': 'AliExpress',
     }
 
+    lojas_status = {
+        nome: 'not_requested' for nome in STORE_LOCKS
+    }
+
     def _rodar(nome_loja, fn):
-        _iniciar(job, nome_loja)
+        lock = STORE_LOCKS[nome_loja]
+        if pular_lojas_ocupadas and not lock.acquire(blocking=False):
+            return [], 'busy'
+        if not pular_lojas_ocupadas:
+            lock.acquire()
         try:
-            print(f"-> {nome_loja} iniciado...")
-            t0  = time.time()
-            res = fn(produto)
-            site = fontes_estritas.get(nome_loja)
-            if site:
-                res = _filtrar_estrito(produto, res, validar_termos=True)
-            else:
-                res = _filtrar_estrito(produto, res, validar_termos=False)
-            dt  = time.time() - t0
-            print(f"[OK] {nome_loja} concluido em {dt:.1f}s ({len(res)} produtos)")
-            status = 'no_relevant' if nome_loja == 'gshield' and not res else 'done'
-            _marcar(job, nome_loja, status, len(res), total_lojas)
-            return res
-        except Exception as e:
-            print(f"[ERRO] {nome_loja} falhou: {e}")
-            _marcar(job, nome_loja, 'error', 0, total_lojas)
-            return []
+            with _lock_arquivo_loja(nome_loja, sem_espera=pular_lojas_ocupadas) as lock_arquivo_ok:
+                if not lock_arquivo_ok:
+                    return [], 'busy'
+                _iniciar(job, nome_loja)
+                try:
+                    print(f"-> {nome_loja} iniciado...")
+                    t0  = time.time()
+                    res = fn(produto)
+                    site = fontes_estritas.get(nome_loja)
+                    if site:
+                        res = _filtrar_estrito(produto, res, validar_termos=True)
+                    else:
+                        res = _filtrar_estrito(produto, res, validar_termos=False)
+                    dt  = time.time() - t0
+                    print(f"[OK] {nome_loja} concluido em {dt:.1f}s ({len(res)} produtos)")
+                    status = 'no_relevant' if nome_loja == 'gshield' and not res else 'done'
+                    _marcar(job, nome_loja, status, len(res), total_lojas)
+                    return res, 'success'
+                except Exception as e:
+                    print(f"[ERRO] {nome_loja} falhou: {e}")
+                    status = 'blocked' if isinstance(e, BloqueioLoja) else 'error'
+                    _marcar(job, nome_loja, status, 0, total_lojas)
+                    return [], status
+        finally:
+            lock.release()
 
     # ── Lojas fixas, todas em paralelo ─────────────────────────────────────
     with ThreadPoolExecutor(max_workers=max(total_lojas, 1)) as executor:
@@ -751,11 +851,14 @@ def comparar(produto, forcar_busca=False, job=None):
             for nome, fn in lojas_fixas
         }
         for futuro in as_completed(futuros):
+            nome = futuros[futuro]
             try:
-                res = futuro.result()
+                res, status = futuro.result()
                 todos.extend(res)
+                lojas_status[nome] = status
             except Exception as e:
                 print(f"[Busca] Erro em futuro: {e}")
+                lojas_status[nome] = 'error'
 
     print(f"[Busca] Todas as lojas concluidas em {time.time() - inicio:.1f}s (paralelo)")
 
@@ -773,7 +876,13 @@ def comparar(produto, forcar_busca=False, job=None):
         except Exception:
             pass
 
-    dados = {'produto': produto, 'do_cache': False, 'produtos': filtrados}
-    _salvar_cache(produto, dados)
+    dados = {
+        'produto': produto,
+        'do_cache': False,
+        'produtos': filtrados,
+        'lojas_status': lojas_status,
+    }
+    if salvar_cache and (lojas_incluir is None or len(lojas_fixas) == len(STORE_LOCKS)):
+        _salvar_cache(produto, dados)
     print(f"[Busca] {len(todos)} brutos -> {len(filtrados)} relevantes.")
     return dados

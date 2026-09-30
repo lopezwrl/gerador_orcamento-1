@@ -18,6 +18,7 @@ from urllib.parse import quote
 
 from ..paths import DEBUG_DIR
 from .driver_manager import SELENIUM_SEMAPHORE, versao_principal_chrome
+from .errors import BloqueioLoja
 
 BASE = "https://pt.aliexpress.com"
 SELETOR_CARDS = "div.search-item-card-wrapper-gallery, a.search-card-item"
@@ -102,14 +103,20 @@ def _diagnosticar(page):
             f.write(html)
         print(f"[AliExpress] HTML de diagnóstico salvo em {arquivo_debug}")
         baixo = html.lower()
-        if "punish" in page.url or "captcha" in baixo or "slide to verify" in baixo:
+        bloqueada = (
+            "punish" in page.url
+            or "captcha" in baixo
+            or "slide to verify" in baixo
+        )
+        if bloqueada:
             print("[AliExpress] Verificação anti-bot (captcha/slider) detectada.")
         elif "login" in page.url:
             print("[AliExpress] Redirecionou para login.")
         else:
             print("[AliExpress] Nenhum card conhecido apareceu (seletores podem ter mudado).")
+        return bloqueada
     except Exception:
-        pass
+        return False
 
 
 # ───────────────────────── busca ─────────────────────────
@@ -161,7 +168,8 @@ def _buscar_aliexpress(produto):
                 try:
                     page.wait_for_selector(SELETOR_CARDS, timeout=20000)
                 except Exception:
-                    _diagnosticar(page)
+                    if _diagnosticar(page):
+                        raise BloqueioLoja("AliExpress sinalizou verificação anti-bot.")
                     return []
 
                 # rola a página para o AliExpress carregar preços/imagens (lazy load)
@@ -192,6 +200,8 @@ def _buscar_aliexpress(produto):
                         continue
             finally:
                 browser.close()
+    except BloqueioLoja:
+        raise
     except Exception as e:
         print(f"[AliExpress] Erro geral: {e}")
 

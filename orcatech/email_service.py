@@ -48,9 +48,19 @@ def enfileirar_email(
     destinatario,
     anexar_pdf=True,
     link_interno=None,
+    assunto=None,
+    mensagem_texto=None,
 ):
     if not email_valido(destinatario):
         raise ValueError("Informe um endereço de e-mail válido.")
+    if bool(assunto) != bool(mensagem_texto):
+        raise ValueError("Assunto e conteúdo do e-mail devem ser informados juntos.")
+    if orcamento_id is None and not assunto:
+        raise ValueError("E-mails sem orçamento precisam de assunto e conteúdo.")
+    if assunto and ("\r" in assunto or "\n" in assunto or len(assunto) > 200):
+        raise ValueError("O assunto do e-mail é inválido.")
+    if mensagem_texto and len(mensagem_texto) > 10000:
+        raise ValueError("O conteúdo do e-mail excede o limite permitido.")
 
     with _fila_lock, app.app_context():
         limite = app.config["ORCAMENTO_MAX_EMAILS_HORA"]
@@ -77,6 +87,8 @@ def enfileirar_email(
             orcamento_id,
             anexar_pdf,
             link_interno,
+            assunto,
+            mensagem_texto,
         )
     except RuntimeError as exc:
         with app.app_context():
@@ -148,16 +160,58 @@ def _montar_mensagem(app, orcamento, destinatario, anexar_pdf, link_interno):
     return mensagem, host, porta, usuario, senha
 
 
-def _processar_envio(app, envio_id, orcamento_id, anexar_pdf, link_interno):
+def _montar_mensagem_personalizada(app, destinatario, assunto, mensagem_texto):
+    config = app.config
+    host = config["SMTP_HOST"]
+    remetente = config["SMTP_FROM"] or config["SMTP_USERNAME"]
+    if not host or not email_valido(remetente):
+        raise ValueError("Configure SMTP_HOST e SMTP_FROM para enviar e-mails.")
+    try:
+        porta = int(config["SMTP_PORT"])
+    except ValueError as exc:
+        raise ValueError("SMTP_PORT deve ser um número inteiro.") from exc
+    usuario = config["SMTP_USERNAME"]
+    senha = config["SMTP_PASSWORD"]
+    if bool(usuario) != bool(senha):
+        raise ValueError("SMTP_USERNAME e SMTP_PASSWORD devem ser configurados juntos.")
+
+    mensagem = EmailMessage()
+    mensagem["Subject"] = assunto
+    mensagem["From"] = remetente
+    mensagem["To"] = destinatario
+    mensagem.set_content(mensagem_texto)
+    return mensagem, host, porta, usuario, senha
+
+
+def _processar_envio(
+    app,
+    envio_id,
+    orcamento_id,
+    anexar_pdf,
+    link_interno,
+    assunto,
+    mensagem_texto,
+):
     with app.app_context():
         envio = db.session.get(EnvioEmail, envio_id)
-        orcamento = db.session.get(Orcamento, orcamento_id)
+        orcamento = (
+            db.session.get(Orcamento, orcamento_id)
+            if orcamento_id is not None
+            else None
+        )
         try:
-            if not envio or not orcamento:
-                raise LookupError("O envio ou o orçamento não foi encontrado.")
-            mensagem, host, porta, usuario, senha = _montar_mensagem(
-                app, orcamento, envio.destinatario, anexar_pdf, link_interno
-            )
+            if not envio:
+                raise LookupError("O envio não foi encontrado.")
+            if orcamento_id is None:
+                mensagem, host, porta, usuario, senha = _montar_mensagem_personalizada(
+                    app, envio.destinatario, assunto, mensagem_texto
+                )
+            else:
+                if not orcamento:
+                    raise LookupError("O orçamento não foi encontrado.")
+                mensagem, host, porta, usuario, senha = _montar_mensagem(
+                    app, orcamento, envio.destinatario, anexar_pdf, link_interno
+                )
             with smtplib.SMTP(host, porta, timeout=20) as servidor:
                 if app.config["SMTP_USE_TLS"]:
                     servidor.starttls(context=ssl.create_default_context())

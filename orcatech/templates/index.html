@@ -38,6 +38,16 @@
         .sidebar a.ativo::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:60%;background:var(--gold-lt);border-radius:0 3px 3px 0;}
         .sidebar-footer{padding:16px 24px;border-top:1px solid rgba(255,255,255,.1);font-size:11px;color:rgba(255,255,255,.35);}
         .sidebar-footer span{color:rgba(255,255,255,.6);font-weight:600;}
+        .sair-form{margin-bottom:14px;}
+        .btn-sair{width:100%;display:flex;align-items:center;gap:12px;padding:11px 14px;border:0;border-radius:10px;cursor:pointer;font-family:inherit;text-align:left;color:#fff;background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 14px rgba(220,38,38,.38);transition:transform .2s,box-shadow .2s,filter .2s;}
+        .btn-sair:hover{transform:translateY(-2px);filter:brightness(1.08);box-shadow:0 8px 20px rgba(220,38,38,.5);}
+        .btn-sair:active{transform:translateY(0);}
+        .btn-sair:focus-visible{outline:2px solid var(--gold-lt);outline-offset:2px;}
+        .sair-txt{display:flex;flex-direction:column;min-width:0;line-height:1.25;}
+        .sair-txt strong{font-size:13.5px;font-weight:700;color:#fff;}
+        .sair-txt small{font-size:11px;font-weight:500;color:rgba(255,255,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        .sidebar-versao{font-size:11px;color:rgba(255,255,255,.35);}
+        .sidebar-versao span{color:rgba(255,255,255,.6);font-weight:600;}
 
         /* TOPBAR MOBILE */
         .topbar-mobile{display:none;position:fixed;top:0;left:0;right:0;z-index:200;background:var(--navy);padding:12px 20px;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(30,42,110,.2);}
@@ -208,10 +218,21 @@
         <a href="/fornecedores"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div> Fornecedores</a>
         <a href="/orcamento/carrinho"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg></div> Carrinho{% if carrinho_count %}<span style="background:#2563EB;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;">{{ carrinho_count }}</span>{% endif %}</a>
         {% if current_user.papel in ['admin', 'aprovador'] %}<a href="{{ url_for('aprovacoes.fila') }}">Aprovações</a>{% endif %}
+        <a href="{{ url_for('monitoramento.listar') }}"><div class="icon">🔔</div> Alertas de preço{% if alertas_nao_lidos %}<span style="background:#dc2626;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;">{{ alertas_nao_lidos }}</span>{% endif %}</a>
         {% if current_user.papel == 'admin' %}<a href="{{ url_for('auth.usuarios') }}">Gerenciar usuários</a>{% endif %}
-        <form action="{{ url_for('auth.logout') }}" method="POST" style="padding:8px 12px"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" style="background:none;border:0;color:inherit;cursor:pointer">Sair ({{ current_user.nome }})</button></form>
+        {% if config.FEATURE_EMPRESARIAL_ENABLED and current_user.papel == 'admin' %}<a href="{{ url_for('empresarial.estrutura') }}">Departamentos e centros de custo</a>{% endif %}
+        {% if config.FEATURE_EMPRESARIAL_ENABLED and current_user.papel in ['admin', 'comprador'] %}<a href="{{ url_for('empresarial.relatorios') }}">Relatórios empresariais</a>{% endif %}
     </div>
-    <div class="sidebar-footer">OrçaTech v2.0 · <span>ORÇATECH</span></div>
+    <div class="sidebar-footer">
+        <form action="{{ url_for('auth.logout') }}" method="POST" class="sair-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-sair" title="Encerrar a sessão">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;flex-shrink:0;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+                <span class="sair-txt"><strong>Sair</strong><small>{{ current_user.nome }}</small></span>
+            </button>
+        </form>
+        <div class="sidebar-versao">OrçaTech v2.0 · <span>ORÇATECH</span></div>
+    </div>
 </nav>
 
 <div class="topbar-mobile">

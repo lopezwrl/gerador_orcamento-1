@@ -1,0 +1,62 @@
+{% extends 'base_app.html' %}
+{% from '_macros.html' import brl %}
+{% block titulo %}{{ pedido.numero }}{% endblock %}
+{% block icone %}<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/>{% endblock %}
+{% block h1 %}Pedido de compra · {{ pedido.numero }}{% endblock %}
+{% block subtitulo %}<span class="bd">{{ pedido.status|title }}</span>{% endblock %}
+{% block acoes %}
+<a class="btn" href="{{ url_for('empresarial.pedidos_orcamento', orcamento_id=pedido.orcamento_id) }}">Pedidos do orçamento</a>
+<a class="btn btn-primary" href="{{ url_for('empresarial.pdf_pedido', pedido_id=pedido.id) }}">Baixar PDF</a>
+{% endblock %}
+{% block conteudo %}
+<style>
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-14px); } to { opacity:1; transform:none; } }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:none; } }
+
+  .card {
+    animation: fadeUp .55s cubic-bezier(.16,1,.3,1) both;
+    transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s, border-color .3s;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+  }
+  .card.grade .dado {
+    animation: fadeUp .45s cubic-bezier(.16,1,.3,1) both;
+  }
+  .tw table tbody tr {
+    animation: fadeUp .45s cubic-bezier(.16,1,.3,1) both;
+    transition: background .2s;
+  }
+  .btn {
+    transition: all .22s cubic-bezier(.16,1,.3,1);
+  }
+  .btn:hover {
+    transform: translateY(-2px);
+  }
+</style>
+<section class="card grade">
+  <div class="dado"><small>Fornecedor</small><strong>{{ pedido.snapshot_fornecedor_nome }}</strong></div>
+  <div class="dado"><small>Orçamento</small><strong><a href="{{ url_for('orcamento.detalhe', orcamento_id=pedido.orcamento_id) }}" style="color:var(--blue)">{{ pedido.orcamento.numero }}</a></strong></div>
+  <div class="dado"><small>Status</small><strong>{{ pedido.status|title }}</strong></div>
+  <div class="dado"><small>Emitido por</small><strong>{{ pedido.criado_por.nome }}</strong></div>
+  <div class="dado"><small>Total</small><strong>{{ brl(pedido.total) }}</strong></div>
+</section>
+<section class="card"><h2>Itens</h2>
+  <div class="tw"><table><thead><tr><th>Produto</th><th>Quantidade</th><th>Unitário</th><th>Frete</th><th>Subtotal + frete</th></tr></thead><tbody>
+    {% for i in pedido.itens %}<tr><td>{{ i.nome_produto }}</td><td>{{ i.quantidade }}</td><td>{{ brl(i.preco_unitario) }}</td><td>{{ brl(i.frete) }}</td><td>{{ brl(i.subtotal + i.frete) }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  <p style="margin-top:14px"><strong>Condições:</strong> {{ pedido.condicoes_comerciais or 'Não informadas' }}</p>
+</section>
+{% if pode_atualizar and transicoes %}
+<section class="card"><h2>Atualizar pedido</h2>
+  {% for status in transicoes %}
+  <form class="fg" method="post" action="{{ url_for('empresarial.atualizar_pedido', pedido_id=pedido.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="{{ status }}">
+    <div><label for="entrega-{{ status }}">Entrega prevista</label><input id="entrega-{{ status }}" type="date" name="data_entrega" value="{{ pedido.data_entrega.isoformat() if pedido.data_entrega else '' }}"></div>
+    <div><label for="nf-{{ status }}">Nota fiscal</label><input id="nf-{{ status }}" name="nota_fiscal" maxlength="120" value="{{ pedido.nota_fiscal or '' }}"></div>
+    <button class="btn btn-primary" type="submit">Marcar como {{ status|replace('_', ' ') }}</button>
+  </form>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}
