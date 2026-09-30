@@ -285,6 +285,8 @@
         [data-theme='dark'] .loja-status{color:var(--muted);}
         [data-theme='dark'] .dica{background:var(--surface);border-color:var(--border);color:var(--muted);}
     </style>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/animacoes.css') }}">
+<script src="{{ url_for('static', filename='js/animacoes.js') }}" defer></script>
 </head>
 <body>
 <div class="page">
@@ -317,7 +319,7 @@
 
         <div class="progress-wrap">
             <div class="progress-meta">
-                <span class="label">Lojas concluídas: <strong id="lojasFeitas" style="color:var(--text)">0</strong> / <strong id="lojaTotal" style="color:var(--text)">7</strong></span>
+                <span class="label">Lojas concluídas: <strong id="lojasFeitas" style="color:var(--text)">0</strong> / <strong id="lojaTotal" style="color:var(--text)">8</strong></span>
                 <span class="pct" id="pctLabel">0%</span>
             </div>
             <div class="progress-bar">
@@ -423,7 +425,7 @@ const lojasContainer = document.querySelector('.lojas');
 
 /* Botão "Mostrar todas as lojas": a lista fica colapsada (só as 6
    primeiras visíveis) até o usuário clicar, evitando que a página
-   fique gigante com as 7 lojas de uma vez. */
+   fique gigante com as 8 lojas de uma vez. */
 const lojasEl        = document.querySelector('.lojas');
 const btnVerMais     = document.getElementById('verMaisLojas');
 const verMaisTexto   = document.getElementById('verMaisTexto');
