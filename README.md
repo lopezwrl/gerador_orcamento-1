@@ -8,7 +8,7 @@ Aplicação web em **Flask** que pesquisa um produto simultaneamente em **8 loja
 
 Esta versão do OrçaTech consolida o fluxo completo de comparação, aprovação e acompanhamento comercial:
 
-- **Busca inteligente e paralela**: consulta simultânea em várias lojas, deduplicação de resultados, filtro de relevância e classificação por melhor custo-benefício.
+- **Busca inteligente e paralela**: consulta simultânea em várias lojas, deduplicação de resultados, filtro de relevância (incluindo modelo e especificações digitados, como NV2 e 1 TB) e classificação por melhor custo-benefício.
 - **Carrinho e orçamento multi-produto**: o usuário monta o pedido com itens de diferentes fornecedores, ajusta quantidades e acompanha totais em tempo real.
 - **Workflow de aprovação e histórico**: orçamentos passam por estados de rascunho, cotação, aprovação, compra e reabertura, com transições registradas e validade configurável.
 - **Compartilhamento e envio**: links públicos somente leitura, WhatsApp, e-mails automáticos com PDF e limites de envio por hora para evitar abuso.
@@ -63,7 +63,9 @@ Esse conjunto transforma a aplicação em um sistema de compras e gestão de or�
 - **Cache de buscas** (6 horas) por produto.
 - **Histórico de buscas** e página de orçamentos, com possibilidade de gerar o PDF novamente a partir de uma busca antiga.
 - **Relatórios com gráficos** (Chart.js): economia acumulada, lojas mais baratas e produtos mais pesquisados.
-- **Interface com modo claro/escuro** (preferência salva no navegador) e animações de entrada e de transição entre páginas.
+- **Interface consistente** com modo claro/escuro (preferência salva no navegador), animações de entrada e de transição entre páginas, brilho sutil que acompanha o cursor nos painéis principais e nos cartões da tela Aguardando, movimento discreto no cabeçalho do login e menu lateral/rodapé padronizados com botão de saída compacto.
+- O rodapé da navegação mantém posição e conteúdo durante as transições entre páginas; a animação continua restrita ao conteúdo e ao item ativo do menu.
+- Após alterações em templates, reinicie o servidor Flask local e atualize o navegador com `Ctrl+F5` para evitar visualizar templates antigos já carregados.
 - **Cards de resultado expansíveis**: tocar em um card abre os detalhes só dele; os demais continuam fechados.
 
 ---
@@ -202,6 +204,8 @@ gerador_orcamento-1-main/
 │   ├── paths.py                 # Caminhos dos dados locais
 │   ├── scrapers/                # Scrapers e gerenciador do Chrome
 │   ├── templates/               # Templates HTML do Flask
+│   │   ├── _sidebar_nav.html    # Menu lateral compartilhado
+│   │   └── _sidebar_footer.html # Rodapé e saída compacta compartilhados
 │   └── static/                  # Arquivos estáticos
 ├── scripts/                     # Comandos de banco e testes manuais
 │   ├── init_db.py
@@ -471,6 +475,8 @@ Abra `http://127.0.0.1:5000`. Para usar outra porta, defina `PORT` antes de inic
 - **`db upgrade` falha com `no such table: orcamento_itens`:** pare o servidor e não execute `stamp head`. Isso pode indicar que o banco está marcado como se a migration inicial tivesse sido aplicada, mas as tabelas não existem. Faça uma cópia do arquivo `instance/orcatech.db`; se ele tiver dados importantes, não o substitua e peça ajuda para recuperar o schema. Somente para instalação nova sem dados, preserve o banco com outro nome, deixe o Flask-Migrate criar um SQLite vazio com `db upgrade` e execute `python -m scripts.init_db` para criar o administrador.
 - **O comando Python ou dependências falham:** confira se está na pasta certa e execute novamente `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`.
 - **Uma loja retorna poucos ou nenhum produto:** os sites podem bloquear temporariamente consultas automatizadas ou alterar suas páginas. Confira os logs do servidor e tente novamente mais tarde. As outras lojas podem continuar funcionando.
+- A capacidade e os códigos de modelo alfanuméricos informados na busca são conferidos nos títulos e especificações dos anúncios antes de serem exibidos, para evitar misturar variantes próximas (por exemplo, NV1/NV3 ou 500 GB numa busca por NV2 1 TB).
+- Na tela de espera, falha, bloqueio temporário, loja sem resultados relevantes e loja não aplicável à categoria aparecem como estados distintos; esses estados também contam no progresso final.
 - **Chrome/ChromeDriver falha:** confirme que o Google Chrome está instalado e atualizado. O Chrome é necessário para os scrapers que usam Selenium.
 - **Não encontra histórico, cache ou banco:** não mova nem apague `instance/`; o banco, o histórico, o cache e os PDFs do orçamento ficam nessa pasta.
 
@@ -541,12 +547,11 @@ execute uma busca com acesso à internet.
   `flask db stamp head` para contornar isso; crie ou aplique a migration
   correspondente depois de confirmar o schema e fazer backup de
   `instance/orcatech.db`.
-- A suíte terminou com **111 testes aprovados e 12 falhos**. As falhas
-  ocorreram nos testes de recursos empresariais, workflow de aprovação e
-  compartilhamento porque os templates importam `_macros.html`, mas esse
-  arquivo não está presente em `orcatech/templates/`. Enquanto ele não for
-  restaurado ou os imports forem ajustados, as páginas autenticadas que usam o
-  macro `brl` podem responder com erro 500.
+- Na validação atual, **130 testes passaram e 1 falhou**:
+  `test_buyer_emits_supplier_orders_and_tracks_delivery`. O teste falha ao
+  renderizar `pedido_compra_detalhe.html`, pois a rota não fornece a variável
+  `orcamento` usada pelo template. Essa falha no detalhe empresarial não faz
+  parte do fluxo de busca alterado.
 - O servidor em si iniciou e as rotas públicas acima responderam
   corretamente. Esses resultados não substituem a correção dos bloqueios de
   migration e template antes de considerar a aplicação pronta para uso.

@@ -51,6 +51,7 @@
         @keyframes anel{0%{transform:scale(.6);opacity:.7}100%{transform:scale(1.5);opacity:0}}
         @keyframes girar{to{transform:rotate(360deg)}}
         @keyframes brilho{0%,100%{opacity:.55}50%{opacity:.9}}
+        @keyframes logoFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
 
         /* ============ PAINEL DA MARCA (mesma linguagem da sidebar) ============ */
         .marca{
@@ -83,7 +84,7 @@
         }
 
         .logo{animation:fadeDown .5s ease both;}
-        .logo h2{font-size:20px; font-weight:800; letter-spacing:2px; color:#fff;}
+        .logo h2{font-size:20px; font-weight:800; letter-spacing:2px; color:#fff; animation:logoFloat 4s ease-in-out .5s infinite;}
         .logo p{margin-top:6px; font-size:12px; color:rgba(255,255,255,.75);}
 
         .palco{display:flex; flex-direction:column; align-items:flex-start; gap:28px; padding:32px 0;}
@@ -245,7 +246,9 @@
         }
     </style>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/animacoes.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nav-motion.css') }}">
 <script src="{{ url_for('static', filename='js/animacoes.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/nav-motion.js') }}" defer></script>
 </head>
 <body>
 

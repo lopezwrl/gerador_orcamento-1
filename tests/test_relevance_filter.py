@@ -82,6 +82,29 @@ def test_filtro_de_categoria_tambem_cobre_todas_as_lojas_mistas(monkeypatch, tmp
 
 
 @pytest.mark.parametrize(
+    "site",
+    (
+        "Mercado Livre", "KaBuM", "Amazon", "Terabyte",
+        "Americanas", "iBytes", "Gshield", "AliExpress",
+    ),
+)
+def test_filtro_global_exige_modelo_e_capacidade_exatos(site, monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        comparador, "_ARQUIVO_DIAGNOSTICO_FILTRO", tmp_path / "filtro.jsonl"
+    )
+    produtos = [
+        _product("SSD Kingston NV2 1TB", site=site),
+        _product("SSD Kingston NV1 1TB", site=site),
+        _product("SSD Kingston NV3 1TB", site=site),
+        _product("SSD Kingston NV2 500GB", site=site),
+    ]
+
+    resultado = comparador._filtrar("SSD Kingston NV2 1TB", produtos)
+
+    assert [item["nome"] for item in resultado] == ["SSD Kingston NV2 1TB"]
+
+
+@pytest.mark.parametrize(
     ("busca", "esperado"),
     [
         ("Notebook i7 16GB", False),
@@ -149,10 +172,11 @@ def test_nao_chama_gshield_para_busca_fora_do_catalogo(monkeypatch, tmp_path):
         "gshield", "aliexpress",
     )}}
 
-    comparador.comparar("Notebook i7", forcar_busca=True, job=job)
+    resultado = comparador.comparar("Notebook i7", forcar_busca=True, job=job)
 
     assert job["lojas"]["gshield"]["status"] == "not_applicable"
     assert job["progresso"] == 100
+    assert resultado["lojas_status"]["gshield"] == "not_applicable"
 
 
 def test_gshield_sem_resultado_relevante_fica_explicito(monkeypatch, tmp_path):

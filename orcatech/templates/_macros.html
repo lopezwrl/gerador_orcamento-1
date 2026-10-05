@@ -1,0 +1,1 @@
+{% macro brl(v) %}R$ {{ "{:,.2f}".format(v or 0).replace(',', 'X').replace('.', ',').replace('X', '.') }}{% endmacro %}

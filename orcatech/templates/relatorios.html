@@ -114,9 +114,9 @@
         .sidebar-footer .versao,.side-footer .versao{white-space:nowrap}
         .sidebar-footer .versao b,.side-footer .versao b{color:rgba(255,255,255,.6);font-weight:600}
         .sair-form{margin:0}
-        .btn-sair{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:auto;padding:6px 12px;border:0;border-radius:8px;cursor:pointer;font:600 12px 'Plus Jakarta Sans',sans-serif;line-height:1.2;color:#fff;background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 3px 10px rgba(220,38,38,.3);transition:transform .2s,filter .2s,box-shadow .2s}
-        .btn-sair svg{width:14px;height:14px;flex-shrink:0}
-        .btn-sair:hover{transform:translateY(-1px);filter:brightness(1.08);box-shadow:0 6px 16px rgba(220,38,38,.45)}
+        .btn-sair{display:inline-flex;align-items:center;justify-content:center;gap:5px;width:auto;padding:4px 8px;border:0;border-radius:6px;cursor:pointer;font:600 11px 'Plus Jakarta Sans',sans-serif;line-height:1.2;color:#fff;background:linear-gradient(135deg,#ef4444,#dc2626);transition:transform .2s,filter .2s}
+        .btn-sair svg{width:13px;height:13px;flex-shrink:0}
+        .btn-sair:hover{transform:translateY(-1px);filter:brightness(1.1)}
         .btn-sair:active{transform:none}
         .btn-sair:focus-visible{outline:2px solid var(--gold-lt);outline-offset:2px}
         @view-transition{navigation:auto}
@@ -131,6 +131,12 @@
         @keyframes vt-out{to{opacity:0;transform:translateY(-6px) scale(.992)}}
         @keyframes vt-in{from{opacity:0;transform:translateY(10px) scale(.992)}}
         @media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+
+        /* botão de tema padrão */
+        .theme-btn{width:40px;height:40px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;box-shadow:var(--shadow-sm,0 1px 3px rgba(30,42,110,.08));display:inline-flex;align-items:center;justify-content:center;padding:0;font-size:0;flex-shrink:0;transition:.2s}
+        .theme-btn:hover{transform:translateY(-2px);border-color:var(--blue,#3d52c4)}
+        .theme-btn svg{width:18px;height:18px}
+        [data-theme='dark'] .theme-btn{background:var(--surface2);border-color:var(--border2);color:var(--gold-lt)}
     </style>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/animacoes.css') }}">
 <script src="{{ url_for('static', filename='js/animacoes.js') }}" defer></script>
@@ -349,6 +355,28 @@ async function carregarRelatorios(){
 
 carregarRelatorios();
 
+</script>
+<script>
+/* ═══ BOTÃO DE TEMA PADRÃO (lua no claro / sol no escuro) — igual em todas as telas ═══ */
+(function(){
+  var LUA='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+  var SOL='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;flex-shrink:0"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+  function atual(){return document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light';}
+  function pintar(){
+    var t=atual();
+    document.querySelectorAll('.theme-btn').forEach(function(b){
+      if(b.getAttribute('data-ico')!==t||!b.querySelector('svg')){b.setAttribute('data-ico',t);b.innerHTML=t==='dark'?SOL:LUA;}
+      b.setAttribute('aria-label','Alternar tema');
+      if(!b.__obs&&window.MutationObserver){b.__obs=new MutationObserver(pintar);b.__obs.observe(b,{childList:true,characterData:true,subtree:true});}
+    });
+  }
+  function aplicar(t){document.documentElement.setAttribute('data-theme',t);pintar();}
+  window.toggleTheme=function(){var n=atual()==='dark'?'light':'dark';try{localStorage.setItem('tema',n);}catch(e){}aplicar(n);};
+  var salvo='light';try{salvo=localStorage.getItem('tema')||'light';}catch(e){}
+  aplicar(salvo);
+  document.addEventListener('DOMContentLoaded',pintar);
+  window.addEventListener('load',pintar);
+})();
 </script>
 </body>
 </html>

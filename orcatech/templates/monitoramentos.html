@@ -23,13 +23,13 @@ svg.i{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-
 /* Sidebar Padronizada */
 .side{width:250px;flex-shrink:0;background:var(--navy);box-shadow:4px 0 24px rgba(30,42,110,.18);position:sticky;top:0;height:100vh;display:flex;flex-direction:column;z-index:100}
 [data-theme='dark'] .side,[data-theme='dark'] .topbar-mobile{background:#0a1322}
-.side-header{padding:26px 24px 20px;border-bottom:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.15)}
+.side-header{padding:28px 24px 22px;border-bottom:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.15)}
 .side-header h2{font-family:'Playfair Display',serif;font-size:22px;color:#fff;letter-spacing:2px}
-.side-header div{margin-top:4px;color:rgba(255,255,255,.75);font-size:12px}
-.side-nav{padding:16px 14px;flex:1;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+.side-header div{margin-top:6px;color:rgba(255,255,255,.75);font-size:12px}
+.side-nav{padding:20px 14px;flex:1;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
 .nav-label{font-size:9px;color:rgba(255,255,255,.35);letter-spacing:2px;text-transform:uppercase;font-weight:700;padding:0 10px;margin:12px 0 6px}
-.nav{display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:10px;color:rgba(255,255,255,.6);text-decoration:none;font-size:13.5px;font-weight:500;position:relative;transition:color .22s,background .22s,transform .22s}
-.nav .icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);flex-shrink:0}
+.nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;color:rgba(255,255,255,.6);text-decoration:none;font-size:13.5px;font-weight:500;position:relative;transition:color .22s,background .22s,transform .22s}
+.nav .icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);flex-shrink:0}
 .nav .icon svg.i{width:16px;height:16px}
 .nav:hover{color:#fff;background:rgba(255,255,255,.08);transform:translateX(2px)}
 .nav.on{color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.15)}
@@ -51,6 +51,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--blue);bo
 .top-r{margin-left:auto;display:flex;align-items:center;gap:12px}
 .ib{width:40px;height:40px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;display:grid;place-items:center;transition:.2s}
 .ib:hover{transform:translateY(-2px);border-color:var(--blue);color:var(--blue)}
+[data-theme='dark'] .theme-btn{color:var(--gold-lt,#ffd24d)}
 .me{display:flex;align-items:center;gap:10px;padding-left:14px;border-left:1px solid var(--border)}
 .me b{display:block;font-size:13px;line-height:1.2}.me small{color:var(--muted2);font-size:11px}
 .av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;background:linear-gradient(135deg,var(--navy),var(--blue))}
@@ -88,11 +89,21 @@ tbody tr{transition:background .2s}tbody tr:hover{background:var(--surface2)}
 .total{text-align:right;font-size:20px;font-weight:800;color:var(--navy);margin-top:16px}[data-theme='dark'] .total{color:var(--text)}
 textarea{min-height:84px;margin-bottom:12px;resize:vertical}
 @view-transition{navigation:auto}
-.main{view-transition-name:app-content}.side{view-transition-name:app-sidebar}
+.main{view-transition-name:app-content}.side{view-transition-name:app-sidebar}.topbar-mobile{view-transition-name:app-topbar}
+::view-transition-old(app-sidebar),::view-transition-old(app-topbar){display:none}
+::view-transition-new(app-sidebar),::view-transition-new(app-topbar),::view-transition-group(app-sidebar),::view-transition-group(app-topbar){animation:none}
+::view-transition-old(app-content){animation:vt-out .2s cubic-bezier(.4,0,.6,1) both}
+::view-transition-new(app-content){animation:vt-in .32s cubic-bezier(.16,1,.3,1) both}
+@keyframes vt-out{to{opacity:0;transform:translateY(-6px) scale(.992)}}
+@keyframes vt-in{from{opacity:0;transform:translateY(10px) scale(.992)}}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}}
+.theme-btn svg{width:18px;height:18px}
 @media(max-width:900px){.side{position:fixed;top:0;left:0;bottom:0;height:auto;transform:translateX(-100%);transition:transform .3s}.side.open{transform:none}.topbar-mobile{display:flex}.main{padding:76px 16px 48px}.me div{display:none}}
 </style>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/animacoes.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nav-motion.css') }}">
 <script src="{{ url_for('static', filename='js/animacoes.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/nav-motion.js') }}" defer></script>
 </head>
 <body>
 {% set URL_ESTRUTURA = '/empresarial/estrutura' %}
@@ -108,28 +119,10 @@ textarea{min-height:84px;margin-bottom:12px;resize:vertical}
   <aside class="side" id="sidebar">
     <div class="side-header"><h2>ORÇATECH</h2><div>Comparador Inteligente</div></div>
     <div class="side-nav">
-      <div class="nav-label">Menu Principal</div>
-      {{ item(url_for('home'), ep=='home', '<path d="M3 9.5 12 2l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>', 'Dashboard') }}
-      {{ item('/orcamentos', ep.startswith('orcamento.') and ep!='orcamento.carrinho', '<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M9 12h6M9 16h6"/>', 'Orçamentos') }}
-      {{ item('/relatorios', false, '<path d="M3 3v18h18M18 17V9M13 17V5M8 17v-3"/>', 'Relatórios') }}
-      {{ item(url_for('fornecedores.listar'), ep.startswith('fornecedores.'), '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>', 'Fornecedores') }}
-      {{ item(url_for('orcamento.carrinho'), ep=='orcamento.carrinho', '<circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/>', 'Carrinho', carrinho_count|default(0)) }}
-      {{ item(URL_ALERTAS, ep.startswith('monitoramento'), '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/>', 'Alertas de preço') }}
-      {% if papel in ['admin','aprovador'] %}
-      {{ item(url_for('aprovacoes.fila'), ep.startswith('aprovacoes.'), '<path d="M20 6 9 17l-5-5"/>', 'Aprovações') }}
-      {% endif %}
-      {% if emp and papel == 'admin' %}
-      <div class="nav-label">Empresarial</div>
-      {{ item(URL_ESTRUTURA, ep in ['empresarial.estrutura'], '<path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M14 9h1M9 13h1M14 13h1"/>', 'Estrutura empresarial') }}
-      {{ item(url_for('empresarial.relatorios'), ep=='empresarial.relatorios', '<path d="M3 3v18h18M7 14l4-4 3 3 5-6"/>', 'Relatórios da empresa') }}
-      {% endif %}
-      {% if papel == 'admin' %}
-      <div class="nav-label">Administração</div>
-      {{ item(url_for('auth.usuarios'), ep=='auth.usuarios', '<path d="M12 2 4 6v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V6z"/><circle cx="12" cy="10" r="2.5"/>', 'Gerenciar usuários') }}
-      {% endif %}
+        {% set nm_cls = 'nav' %}{% set nm_lbl = 'nav-label' %}{% include '_sidebar_nav.html' %}
     </div>
     <div class="side-footer">
-      <span>v2.0 · {{ current_user.nome }}</span>
+      <span class="versao">v2.0 · <b>OrçaTech</b></span>
       <form action="{{ url_for('auth.logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn-sair" title="Encerrar a sessão"><svg class="i" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Sair</button>
       </form>
@@ -142,7 +135,8 @@ textarea{min-height:84px;margin-bottom:12px;resize:vertical}
         <div class="fi"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg><input type="text" name="produto" placeholder="Buscar no sistema..." required aria-label="Buscar no sistema"></div>
       </form>
       <div class="top-r">
-        <button class="ib" type="button" id="tema-btn" aria-label="Alternar tema">◐</button>
+        <button class="ib theme-btn" type="button" onclick="toggleTheme()" aria-label="Alternar tema"></button>
+        <button class="ib" type="button" title="Notificações" aria-label="Notificações"><svg class="i" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
         <div class="me"><span class="av">{{ (current_user.nome or '?')[:1]|upper }}</span><div><b>{{ current_user.nome }}</b><small>{{ current_user.email }}</small></div></div>
       </div>
     </div>
@@ -163,7 +157,13 @@ textarea{min-height:84px;margin-bottom:12px;resize:vertical}
   </main>
 </div>
 <script>
-document.getElementById('tema-btn').onclick=function(){var n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';localStorage.setItem('tema',n);document.documentElement.setAttribute('data-theme',n)};
+(function(){
+var LUA='<svg class="i" viewBox="0 0 24 24"><path d="M12 3a6.4 6.4 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+var SOL='<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+function tema(t){document.documentElement.setAttribute('data-theme',t);document.querySelectorAll('.theme-btn').forEach(function(b){b.innerHTML=t==='dark'?SOL:LUA});}
+tema(localStorage.getItem('tema')||'light');
+window.toggleTheme=function(){var n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';localStorage.setItem('tema',n);tema(n);};
+})();
 </script>
 {% block scripts %}{% endblock %}
 </body>

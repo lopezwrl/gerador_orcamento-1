@@ -146,7 +146,9 @@
         .main { view-transition-name: app-content; }
     </style>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/animacoes.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nav-motion.css') }}">
 <script src="{{ url_for('static', filename='js/animacoes.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/nav-motion.js') }}" defer></script>
 </head>
 <body>
 
@@ -160,28 +162,9 @@
         </div>
     </div>
     <div class="sidebar-nav">
-        <div class="nav-section-label">Menu Principal</div>
-        <a href="/"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M3 9.5 12 2l9 7.5V20a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></div> Dashboard</a>
-        <a class="ativo" href="/orcamentos"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 12h6M9 16h6M9 8h1"/></svg></div> Orçamentos</a>
-        <a href="/relatorios"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div> Relatórios</a>
-        <a href="/fornecedores"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div> Fornecedores</a>
-        <a href="/orcamento/carrinho"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.5 3h2l2.7 12.4a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21.5 8H6"/></svg></div> Carrinho{% if carrinho_count %}<span style="background:#2563EB;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;">{{ carrinho_count }}</span>{% endif %}</a>
-        {% if current_user.papel in ['admin', 'aprovador'] %}<a href="{{ url_for('aprovacoes.fila') }}">Aprovações</a>{% endif %}
-        <a href="{{ url_for('monitoramento.listar') }}"><div class="icon">🔔</div> Alertas de preço{% if alertas_nao_lidos %}<span style="background:#dc2626;color:#fff;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:700;margin-left:6px;">{{ alertas_nao_lidos }}</span>{% endif %}</a>
-        {% if current_user.papel == 'admin' %}<a href="{{ url_for('auth.usuarios') }}">Gerenciar usuários</a>{% endif %}
-        {% if config.FEATURE_EMPRESARIAL_ENABLED and current_user.papel == 'admin' %}<a href="{{ url_for('empresarial.estrutura') }}">Departamentos e centros de custo</a>{% endif %}
-        {% if config.FEATURE_EMPRESARIAL_ENABLED and current_user.papel in ['admin', 'comprador'] %}<a href="{{ url_for('empresarial.relatorios') }}">Relatórios empresariais</a>{% endif %}
+        {% include '_sidebar_nav.html' %}
     </div>
-    <div class="sidebar-footer">
-        <form action="{{ url_for('auth.logout') }}" method="POST" class="sair-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <button type="submit" class="btn-sair" title="Encerrar a sessão">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;flex-shrink:0;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
-                <span class="sair-txt"><strong>Sair</strong><small>{{ current_user.nome }}</small></span>
-            </button>
-        </form>
-        <div class="sidebar-versao">OrçaTech v2.0 · <span>ORÇATECH</span></div>
-    </div>
+    {% include '_sidebar_footer.html' %}
 </nav>
 
 <div class="topbar-mobile">

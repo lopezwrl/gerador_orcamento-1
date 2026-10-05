@@ -311,17 +311,26 @@ def _filtrar(produto, produtos):
         and len(t) > 1 and t not in _PALAVRAS_SPEC
     ]
     nums_modelo_busca = _extrair_num_modelo(produto)
+    termos_modelo = {
+        termo
+        for termo in re.findall(r'\b[a-z0-9]+\b', _norm(produto))
+        if re.search(r'[a-z]', termo) and re.search(r'\d', termo)
+    }
+    specs_busca = _RE_SPEC_BUSCA.findall(_norm(produto))
+
     incompat = set()
     for cat, bloco in _INCOMPAT.items():
         if cat in b_tok:
             incompat |= bloco
 
     resultado = []
-    c_acess = c_incompat = c_modelo = c_relev = 0
+    c_acess = c_incompat = c_modelo = c_specs = c_relev = 0
 
     for p in produtos:
         nome  = p.get('nome', '')
-        n_tok = _tokens(nome)
+        texto_produto = ' '.join([nome, *(p.get('specs') or [])])
+        nome_norm = _norm(texto_produto)
+        n_tok = _tokens(texto_produto)
 
         if not busca_eh_acessorio:
             if n_tok & _ACESSORIOS:
@@ -331,6 +340,32 @@ def _filtrar(produto, produtos):
                         produto, p, 'acessorio',
                         _primeira_categoria(re.findall(r'\w+', _norm(nome)))[0],
                         n_tok & _ACESSORIOS,
+                    )
+                    continue
+
+        termos_modelo_faltantes = termos_modelo - n_tok
+        if termos_modelo_faltantes:
+                    c_modelo += 1
+                    _registrar_rejeicao(
+                        produto, p, 'termos',
+                        _primeira_categoria(re.findall(r'\w+', _norm(nome)))[0],
+                        termos_modelo_faltantes,
+                    )
+                    continue
+
+        specs_faltantes = []
+        for numero, unidade in specs_busca:
+                    sufixo = {'gb': r'g(?:b)?', 'tb': r't(?:b)?'}.get(
+                        unidade, re.escape(unidade)
+                    )
+                    if not re.search(rf'(?<![\d.]){numero}\s*{sufixo}\b', nome_norm):
+                        specs_faltantes.append(f'{numero}{unidade}')
+        if specs_faltantes:
+                    c_specs += 1
+                    _registrar_rejeicao(
+                        produto, p, 'termos',
+                        _primeira_categoria(re.findall(r'\w+', _norm(nome)))[0],
+                        specs_faltantes,
                     )
                     continue
 
@@ -372,7 +407,8 @@ def _filtrar(produto, produtos):
 
     print(
         f"[Filtro] '{produto}': {len(produtos)} -> {len(resultado)} "
-        f"| acess:{c_acess} incompat:{c_incompat} modelo:{c_modelo} irrelevante:{c_relev}"
+        f"| acess:{c_acess} incompat:{c_incompat} modelo:{c_modelo} "
+        f"specs:{c_specs} irrelevante:{c_relev}"
     )
     return resultado
 
@@ -810,6 +846,8 @@ def comparar(
     lojas_status = {
         nome: 'not_requested' for nome in STORE_LOCKS
     }
+    if not _busca_gshield_aplicavel(produto):
+        lojas_status['gshield'] = 'not_applicable'
 
     def _rodar(nome_loja, fn):
         lock = STORE_LOCKS[nome_loja]

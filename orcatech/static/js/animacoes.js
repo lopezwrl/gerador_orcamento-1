@@ -8,7 +8,7 @@
   function spotlight(){
     var raf=0,ev=null;
     document.addEventListener('mousemove',function(e){
-      var c=e.target.closest&&e.target.closest('.card,.stat-card'); if(!c) return;
+      var c=e.target.closest&&e.target.closest('.card,.stat-card,.search-card,.lojas-card,.chart-card,.jobs-section,.table-card,.loja-item,.dica,.radar-container'); if(!c) return;
       ev=e; if(raf) return;
       raf=requestAnimationFrame(function(){
         raf=0; var r=c.getBoundingClientRect();

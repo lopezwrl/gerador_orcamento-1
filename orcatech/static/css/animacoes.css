@@ -7,10 +7,10 @@
 :root{--ease-out:cubic-bezier(.16,1,.3,1)}
 
 /* 1. SPOTLIGHT — brilho que segue o mouse dentro dos cards */
-.card,.stat-card{--mx:50%;--my:50%}
-.card::after,.stat-card::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .35s ease;
+.card,.stat-card,.search-card,.lojas-card,.chart-card,.jobs-section,.table-card,.loja-item,.dica,.radar-container{--mx:50%;--my:50%;position:relative}
+.card::after,.stat-card::after,.search-card::after,.lojas-card::after,.chart-card::after,.jobs-section::after,.table-card::after,.loja-item::after,.dica::after,.radar-container::after{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .35s ease;
   background:radial-gradient(420px circle at var(--mx) var(--my),rgba(91,120,224,.14),transparent 60%)}
-@media (hover:hover){.card:hover::after,.stat-card:hover::after{opacity:1}}
+@media (hover:hover){.card:hover::after,.stat-card:hover::after,.search-card:hover::after,.lojas-card:hover::after,.chart-card:hover::after,.jobs-section:hover::after,.table-card:hover::after,.loja-item:hover::after,.dica:hover::after,.radar-container:hover::after{opacity:1}}
 
 /* 2. LINHAS DE TABELA — entram em cascata */
 tbody tr.anim-row{animation:rowIn .45s var(--ease-out) both;animation-delay:calc(var(--i,0)*40ms + .2s)}

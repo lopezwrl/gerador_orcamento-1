@@ -1,0 +1,187 @@
+/* OrçaTech · nav-motion.css
+   Equivalente em CSS/JS puro do layoutId + spring do Motion (React). */
+
+@property --nm-h{syntax:'<number>';inherits:true;initial-value:214}
+:root{
+  --nm-h:214;
+  --nm-ease:cubic-bezier(.16,1,.3,1);
+  --nm-acc:hsl(var(--nm-h) 92% 64%);
+  transition:--nm-h .7s var(--nm-ease);
+}
+
+/* ── Fundo escuro garantido + cor da página já no 1º frame ─────────────
+   Antes: a cor (--nm-h) só era definida pelo JS depois que a página já tinha sido desenhada,
+   então o brilho do canto varria de azul (214) até a cor da página em ~0,7s = "parte clara" que
+   depois normaliza. Agora a cor é decidida só por CSS (:has) e vale desde o primeiro quadro. */
+html{color-scheme:light}
+html[data-theme='dark']{color-scheme:dark;background:var(--bg,#0b1220)}
+html:has(:is(.sidebar-nav,.side-nav) :is(.ativo,.on,.nm-on)[href*="aprovac"]){--nm-h:150}
+html:has(:is(.sidebar-nav,.side-nav) :is(.ativo,.on,.nm-on)[href*="alerta"]),
+html:has(:is(.sidebar-nav,.side-nav) :is(.ativo,.on,.nm-on)[href*="monitoramento"]){--nm-h:38}
+html:has(:is(.sidebar-nav,.side-nav) :is(.ativo,.on,.nm-on)[href*="usuario"]){--nm-h:196}
+html:has(:is(.sidebar-nav,.side-nav) :is(.ativo,.on,.nm-on)[href*="estrutura"]){--nm-h:318}
+html:has(:is(.sidebar-nav,.side-nav) :is(.ativo,.on,.nm-on)[href*="empresarial/relatorios"]){--nm-h:338}
+html:has(:is(.sidebar-nav,.side-nav) :is(.ativo,.on,.nm-on)[href$="/relatorios"]){--nm-h:172}
+html:has(:is(.sidebar-nav,.side-nav) :is(.ativo,.on,.nm-on)[href$="/orcamentos"]){--nm-h:238}
+html:has(:is(.sidebar-nav,.side-nav) :is(.ativo,.on,.nm-on)[href*="fornecedor"]){--nm-h:276}
+html:has(:is(.sidebar-nav,.side-nav) :is(.ativo,.on,.nm-on)[href*="carrinho"]){--nm-h:24}
+html:has(.lojas .loja-item){--nm-h:190}
+html:has(.stats .stat-card):not(:has(.sidebar-nav,.side-nav)){--nm-h:152}
+
+/* ── Orb ambiente na cor da página ───────────────────────── */
+html::after{
+  content:'';position:fixed;z-index:0;top:-26vmax;right:-20vmax;width:62vmax;height:62vmax;
+  border-radius:50%;pointer-events:none;
+  background:radial-gradient(closest-side,hsl(var(--nm-h) 92% 62% / .17),transparent);
+  animation:nm-float 22s ease-in-out infinite alternate;   /* sem 'orb-in': não reaparece do zero a cada página */
+}
+@keyframes nm-orb-in{from{opacity:0;transform:scale(.6)}}
+@keyframes nm-float{to{transform:translate3d(-6vmax,5vmax,0) scale(1.08)}}
+
+/* ── Medidas ÚNICAS do menu lateral ─────────────────────────
+   Antes cada página tinha números diferentes (padding 8px/10px, ícone 30px/32px, cabeçalho 26/28px)
+   e o menu "pulava" ao trocar de aba. Agora todas usam estas, não importa o CSS interno da página. */
+.sidebar-header,.side-header{padding:28px 24px 22px}
+.side-header h2{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;line-height:1.3;letter-spacing:2px;margin:0;color:#fff}
+.side-header>div{margin-top:6px;font-size:12px;line-height:1.5}
+.sidebar-nav,.side-nav{padding:20px 14px;gap:3px}
+.nav-label,.nav-section-label{font-size:9px;line-height:1.6;letter-spacing:2px;padding:0 10px;margin:12px 0 6px;
+  color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase}
+.sidebar-nav a,.side-nav a{padding:10px 12px;gap:12px;font-size:13.5px;line-height:1.6;border:1px solid transparent}
+.sidebar-nav a .icon,.side-nav a .icon{width:32px;height:32px}
+
+/* ── RODAPÉ FIXO do menu (v2.0 + botão Sair) ────────────────
+   No vídeo o rodapé trocava entre 3 versões ao mudar de aba (Sair grande, Sair pequeno,
+   "v2.0 · ADMIN"). Aqui as medidas ficam travadas para todas as páginas, em qualquer template. */
+.sidebar-footer,.side-footer{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;
+  box-sizing:border-box!important;min-height:61px;padding:14px 18px!important;font-size:11px!important;line-height:1.4!important;
+  color:rgba(255,255,255,.4)!important;text-align:left!important;view-transition-name:app-sidebar-footer}
+::view-transition-group(app-sidebar-footer),
+::view-transition-old(app-sidebar-footer),
+::view-transition-new(app-sidebar-footer){animation:none!important}
+.sidebar-versao{order:-1}
+.sidebar-footer span,.side-footer span{font-size:11px!important;font-weight:400!important;white-space:nowrap;color:rgba(255,255,255,.4)}
+.sidebar-footer b,.side-footer b{font-weight:600!important;color:rgba(255,255,255,.6)!important}
+.sidebar-footer form,.side-footer form,.sair-form{margin:0!important;flex-shrink:0}
+.btn-sair{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;width:auto!important;height:auto!important;
+  margin:0!important;padding:4px 8px!important;border:0!important;border-radius:6px!important;
+  font:600 11px/1.2 'Plus Jakarta Sans',sans-serif!important;box-shadow:none!important;
+  background:linear-gradient(135deg,#ef4444,#dc2626)!important;color:#fff!important}
+.btn-sair svg{width:13px!important;height:13px!important;flex-shrink:0}
+
+/* ── Sidebar: estado antigo neutralizado (o indicador assume) ── */
+.sidebar a.ativo,.nav.on{background:transparent!important;border-color:transparent!important}
+.sidebar a.ativo::before,.nav.on::before{display:none!important}
+.sidebar-nav,.side-nav{position:relative;isolation:isolate}
+.sidebar-nav a,.side-nav a{position:relative;z-index:1;overflow:hidden;-webkit-tap-highlight-color:transparent;
+  transition:color .25s,background-color .25s,transform .35s var(--nm-ease)}
+.sidebar-nav a:hover,.side-nav a:hover{
+  background-image:radial-gradient(130px circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.17),transparent 70%)!important}
+.sidebar-nav a:active,.side-nav a:active{transform:scale(.97)}
+.sidebar-nav a .icon,.side-nav a .icon{position:relative;transition:transform .45s var(--nm-ease),background .3s,box-shadow .3s}
+.sidebar-nav a:hover .icon,.side-nav a:hover .icon{transform:scale(1.1) rotate(-5deg)}
+
+.nm-on{color:#fff!important;font-weight:600}
+.nm-on .icon{
+  background:linear-gradient(135deg,hsl(var(--nm-h) 92% 62%),hsl(calc(var(--nm-h) + 34) 90% 56%))!important;
+  box-shadow:0 6px 16px -2px hsl(var(--nm-h) 95% 55% / .6)!important;color:#fff}
+.nm-on .icon::after{content:'';position:absolute;inset:-3px;border-radius:11px;border:2px solid var(--nm-acc);
+  opacity:0;pointer-events:none;animation:nm-ring 1s .2s ease-out}
+@keyframes nm-ring{0%{opacity:.95;transform:scale(.8)}100%{opacity:0;transform:scale(1.35)}}
+.nm-on .icon svg :is(path,circle,rect,line,polyline,polygon){
+  stroke-dasharray:1;stroke-dashoffset:0;animation:nm-draw .95s .12s var(--nm-ease) backwards}
+@keyframes nm-draw{from{stroke-dashoffset:1}}
+.nm-on .icon{animation:nm-pop .8s .1s var(--nm-spring,cubic-bezier(.34,1.56,.64,1)) backwards}
+@keyframes nm-pop{from{transform:scale(.55) rotate(-14deg)}}
+
+/* Assinatura de ícone por página */
+html[data-nm-page="alerta"] .nm-on .icon{transform-origin:50% 12%;animation:nm-bell 1.3s .2s ease-out backwards}
+@keyframes nm-bell{0%{transform:rotate(0)}15%{transform:rotate(22deg)}30%{transform:rotate(-18deg)}45%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}75%{transform:rotate(4deg)}100%{transform:rotate(0)}}
+html[data-nm-page="carrinho"] .nm-on .icon{animation:nm-cart .9s .1s var(--nm-spring,cubic-bezier(.34,1.56,.64,1)) backwards}
+@keyframes nm-cart{from{transform:translateX(-26px) rotate(-8deg);opacity:0}}
+html[data-nm-page="aprovacoes"] .nm-on .icon{animation:nm-stamp .7s .1s cubic-bezier(.2,1.8,.4,1) backwards}
+@keyframes nm-stamp{from{transform:scale(1.9);opacity:0}}
+
+.nm-rip{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;pointer-events:none;
+  background:rgba(255,255,255,.38);animation:nm-rip .65s ease-out forwards}
+@keyframes nm-rip{to{transform:scale(20);opacity:0}}
+
+.badge-n,.sidebar a>span[style*="999px"]{animation:nm-badge 2.6s ease-in-out 1.2s infinite}
+@keyframes nm-badge{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.0)}50%{box-shadow:0 0 0 5px rgba(255,255,255,.18)}}
+
+/* ── Indicador líquido (o "layoutId") ────────────────────── */
+.nm-ind{position:absolute;top:0;left:0;z-index:0;pointer-events:none;opacity:0;will-change:transform,height;transition:opacity .25s}
+.nm-ind.nm-show{opacity:1}
+.nm-core{position:absolute;inset:0;border-radius:12px;overflow:hidden;
+  background:linear-gradient(135deg,hsl(var(--nm-h) 92% 70% / .26),rgba(255,255,255,.07));
+  border:1px solid rgba(255,255,255,.2);
+  box-shadow:0 10px 26px -8px hsl(var(--nm-h) 95% 60% / .65),inset 0 1px 0 rgba(255,255,255,.25);
+  backdrop-filter:blur(6px)}
+.nm-core::before{content:'';position:absolute;left:0;top:50%;width:3px;height:56%;transform:translateY(-50%);
+  border-radius:0 3px 3px 0;background:var(--nm-acc);box-shadow:0 0 14px 1px var(--nm-acc)}
+.nm-core::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.3) 50%,transparent 65%);
+  background-size:260% 100%;animation:nm-sheen 4.6s ease-in-out infinite}
+@keyframes nm-sheen{0%{background-position:130% 0}55%,100%{background-position:-130% 0}}
+
+/* ── Conteúdo: entrada escalonada com mola ───────────────── */
+.nm-rv{animation:nm-rise var(--nm-spring-dur,.85s) var(--nm-spring,cubic-bezier(.22,1.25,.36,1)) calc(80ms + var(--i,0)*60ms) backwards!important}
+@keyframes nm-rise{from{opacity:0;transform:translateY(34px) scale(.955)}}
+.nm-chip{animation:nm-chip .6s cubic-bezier(.2,1.5,.4,1) calc(560ms + var(--k,0)*45ms) backwards}
+@keyframes nm-chip{from{opacity:0;transform:scale(.6) translateY(10px)}}
+.nm-row{animation:nm-row .6s var(--nm-ease) calc(380ms + var(--j,0)*32ms) backwards}
+@keyframes nm-row{from{opacity:0;transform:translateX(-16px)}}
+
+.main h1,main h1{position:relative}
+.main h1::after,main h1::after{content:'';position:absolute;left:0;bottom:-5px;width:46px;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,var(--nm-acc),transparent);transform-origin:left;animation:nm-line 1s .3s var(--nm-ease) backwards}
+@keyframes nm-line{from{transform:scaleX(0)}}
+.ph-icon{animation:nm-pop .9s .15s var(--nm-spring,cubic-bezier(.34,1.56,.64,1)) backwards}
+
+/* Tilt 3D + brilho que segue o mouse */
+[data-nm-tilt]{transition:transform .5s var(--nm-ease),box-shadow .35s,border-color .35s,background-color .3s}
+[data-nm-tilt]:hover{
+  transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateY(-3px);
+  background-image:radial-gradient(520px circle at var(--gx,50%) var(--gy,50%),hsl(var(--nm-h) 92% 65% / .11),transparent 45%);
+  box-shadow:0 22px 44px -18px hsl(var(--nm-h) 80% 40% / .35)}
+
+/* Barra superior dos cards na cor da página */
+.main .card::before,main .card::before{background:linear-gradient(90deg,hsl(var(--nm-h) 70% 38%),var(--nm-acc),hsl(calc(var(--nm-h) + 40) 85% 60%))!important}
+.titulo h1::after,.titulo-card h1::after{display:none}
+
+/* ── Tela de espera (aguardando): sonar + lojas vivas ──── */
+.nm-clip{overflow-x:clip}
+.titulo{position:relative;isolation:isolate}
+.nm-radar{position:absolute;left:50%;top:50%;width:0;height:0;z-index:-1;pointer-events:none}
+.nm-radar i{position:absolute;left:-90px;top:-90px;width:180px;height:180px;border-radius:50%;
+  border:1.5px solid hsl(var(--nm-h) 90% 60% / .55);opacity:0;animation:nm-sonar 3.6s cubic-bezier(.2,.6,.3,1) infinite}
+.nm-radar i:nth-child(2){animation-delay:1.2s}.nm-radar i:nth-child(3){animation-delay:2.4s}
+@keyframes nm-sonar{0%{transform:scale(.25);opacity:.8}100%{transform:scale(2.6);opacity:0}}
+.loja-item{position:relative;overflow:hidden}
+.nm-iv{animation:nm-slide var(--nm-spring-dur,.8s) var(--nm-spring,cubic-bezier(.22,1.25,.36,1)) calc(480ms + var(--k,0)*70ms) backwards}
+@keyframes nm-slide{from{opacity:0;transform:translateX(-34px) scale(.96)}}
+.loja-item.buscando::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(100deg,transparent 30%,hsl(var(--nm-h) 90% 65% / .24) 50%,transparent 70%);
+  transform:translateX(-100%);animation:nm-scan 1.5s ease-in-out infinite}
+@keyframes nm-scan{to{transform:translateX(100%)}}
+.loja-item.done .loja-dot{animation:nm-done .75s cubic-bezier(.2,1.4,.4,1)}
+@keyframes nm-done{0%{transform:scale(.3)}55%{transform:scale(1.6);box-shadow:0 0 0 0 rgba(5,150,105,.55)}100%{transform:scale(1);box-shadow:0 0 0 14px rgba(5,150,105,0)}}
+.loja-item.erro{animation:nm-shake .5s}
+@keyframes nm-shake{20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(2px)}}
+
+/* ── Transição entre páginas ─────────────────────────────── */
+@view-transition{navigation:auto}
+::view-transition-group(app-sidebar),::view-transition-group(app-topbar),::view-transition-group(app-content){animation:none}
+::view-transition-old(app-sidebar),::view-transition-old(app-topbar){display:none}
+::view-transition-new(app-sidebar),::view-transition-new(app-topbar){animation:none}
+/* Sem sobreposição: a página antiga some na hora e a nova entra com as animações da própria página
+   (antes as duas ficavam misturadas e a nova ainda reiniciava o fadeUp = "resquícios" e agarrada). */
+::view-transition-old(app-content){display:none}
+::view-transition-new(app-content){animation:none}
+@keyframes nm-vt-out{to{opacity:0;transform:scale(.985) translateY(-6px);filter:blur(4px)}}
+@keyframes nm-vt-in{from{opacity:0}}
+
+@media (prefers-reduced-motion:reduce){
+  .nm-rv,.nm-row,.nm-chip,.nm-iv,.nm-radar i,.nm-on .icon,.nm-on .icon::after,.nm-on .icon svg *,.nm-core::after,html::after,.main h1::after,main h1::after{animation:none!important}
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
+}

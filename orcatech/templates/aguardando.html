@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
+<script>try{document.documentElement.setAttribute('data-theme',localStorage.getItem('tema')||'light')}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pesquisando… – OrçaTech</title>
@@ -293,7 +294,9 @@
         @keyframes vt-in{from{opacity:0;transform:translateY(10px) scale(.992)}}
     </style>
 <link rel="stylesheet" href="{{ url_for('static', filename='css/animacoes.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nav-motion.css') }}">
 <script src="{{ url_for('static', filename='js/animacoes.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/nav-motion.js') }}" defer></script>
 </head>
 <body>
 <div class="page">
@@ -413,10 +416,11 @@
     </footer>
 </div>
 
+<script type="application/json" id="dados-busca">{{ produto|tojson }}</script>
 <script>
 const jobId      = "{{ job_id }}";
 const solicitante= "{{ solicitante }}";
-const termoBusca = {{ produto|tojson }};
+const termoBusca = JSON.parse(document.getElementById('dados-busca').textContent);
 
 const LOJAS = [
     { key:'mercadolivre', itemId:'loja-ml', statusId:'status-ml', countId:'count-ml' },
@@ -502,7 +506,7 @@ function marcarLoja(loja, estado, count, jobFinalizado) {
             status.innerHTML = 'Concluído <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0;"><path d="M20 6 9 17l-5-5"/></svg>';
             countEl.textContent = '';
         }
-    } else if (estado === 'erro') {
+    } else if (estado === 'error' || estado === 'erro') {
         item.classList.add('erro');
         status.innerHTML = 'Erro <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:11px;height:11px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="m14.5 9.5-5 5M9.5 9.5l5 5"/></svg>';
         countEl.textContent = '';
@@ -520,6 +524,12 @@ function marcarLoja(loja, estado, count, jobFinalizado) {
             status.appendChild(link);
         }
         countEl.textContent = '';
+    } else if (estado === 'not_applicable') {
+        status.textContent = 'Não atende esta busca';
+        countEl.textContent = '';
+    } else if (estado === 'no_relevant') {
+        status.textContent = 'Sem resultados relevantes';
+        countEl.textContent = 'Nenhum item';
     } else {
         status.textContent = 'Aguardando…';
         countEl.textContent = '';
@@ -549,7 +559,7 @@ function processarEstado(data) {
             const estado = info.status || 'pending';
             const count  = info.count;
             marcarLoja(loja, estado, count, jobDone);
-            if (estado === 'done' || estado === 'error' || estado === 'blocked') concluidas++;
+            if (['done', 'error', 'blocked', 'not_applicable', 'no_relevant'].includes(estado)) concluidas++;
         });
         setProgresso((concluidas / LOJAS.length) * 100);
         lojasFeitas.textContent = concluidas;
